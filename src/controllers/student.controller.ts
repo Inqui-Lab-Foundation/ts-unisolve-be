@@ -306,7 +306,7 @@ export default class StudentController extends BaseController {
             const errors:any=[]
             for(var i=0;i<badges_ids.length;i++){
                 const badgeId = badges_ids[i];
-                const badgeResultForId = await this.crudService.findOne(badge,{where:{id:badgeId}})
+                const badgeResultForId = await this.crudService.findOne(badge,{where:{badge_id:badgeId}})
                 if(!badgeResultForId){
                     errors.push({id:badgeId,err:badRequest(speeches.DATA_NOT_FOUND)})
                     continue;
@@ -336,7 +336,7 @@ export default class StudentController extends BaseController {
                 return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
             } 
 
-            return res.status(202).send(dispatcher(res, {errs:errors,succ:studentBadgesObj}, 'updated', speeches.USER_BADGES_LINKED, 202));
+            return res.status(202).send(dispatcher(res, {errs:errors,success:studentBadgesObj}, 'updated', speeches.USER_BADGES_LINKED, 202));
         }catch(err){
             next(err)
         }
@@ -349,7 +349,7 @@ export default class StudentController extends BaseController {
             // console.log("came here too");
             const student_user_id:any = req.params.student_user_id;
             const serviceStudent = new StudentService()
-            let studentBadgesObj:any = serviceStudent.getStudentBadges(student_user_id);
+            let studentBadgesObj:any = await serviceStudent.getStudentBadges(student_user_id);
             ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
             if(studentBadgesObj instanceof Error){
                 throw studentBadgesObj
@@ -358,14 +358,21 @@ export default class StudentController extends BaseController {
                 studentBadgesObj={};
             }
             const studentBadgesObjKeysArr = Object.keys(studentBadgesObj)
-            const status:any = req.query.status;
-            let whereClauseStatusPart = {}
-            if(status && status=="ACTIVE"||"INACTIVE"){
-                whereClauseStatusPart = {status:status}
+            const paramStatus:any = req.query.status;
+            const where: any = {};
+            let whereClauseStatusPart: any = {};
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+            }
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
             }
             const allBadgesResult = await badge.findAll({
-                where:{
-                    ...whereClauseStatusPart
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart,
+                        where,
+                    ]
                 },
                 raw:true,
             });
@@ -376,10 +383,11 @@ export default class StudentController extends BaseController {
             if(allBadgesResult instanceof Error){
                 throw allBadgesResult;
             }
+            // console.log(studentBadgesObj);
             for(var i=0;i<allBadgesResult.length;i++){
                 const currBadge:any = allBadgesResult[i];
-                if(studentBadgesObj.hasOwnProperty(""+currBadge.id)){
-                    currBadge["student_status"] = studentBadgesObj[currBadge.id].completed_date
+                if(studentBadgesObj.hasOwnProperty(""+currBadge.badge_id)){
+                    currBadge["student_status"] = studentBadgesObj[(""+currBadge.badge_id)].completed_date
                 }else{
                     currBadge["student_status"] = null;
                 }
