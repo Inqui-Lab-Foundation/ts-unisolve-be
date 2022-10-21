@@ -7,6 +7,7 @@ import { baseConfig } from '../configs/base.config';
 import { user } from './user.model';
 import { organization } from './organization.model';
 import { speeches } from '../configs/speeches.config';
+import { student } from './student.model';
 
 
 export class mentor extends Model<InferAttributes<mentor>, InferCreationAttributes<mentor>> {
@@ -139,5 +140,7 @@ mentor.init(
 
 mentor.belongsTo(user, { foreignKey: 'user_id', constraints: false });
 user.hasOne(mentor, { foreignKey: 'user_id', constraints: false, scope: { role: 'MENTOR' } });
-mentor.belongsTo(organization, { targetKey: 'organization_code',foreignKey: 'organization_code', constraints: false });
-organization.hasOne(mentor, { sourceKey:'organization_code',foreignKey: 'organization_code', constraints: false});
+mentor.belongsTo(organization, { targetKey: 'organization_code', foreignKey: 'organization_code', constraints: false });
+organization.hasOne(mentor, { sourceKey: 'organization_code', foreignKey: 'organization_code', constraints: false });
+mentor.belongsTo(student, { targetKey: 'team_id', foreignKey: 'organization_code', constraints: false });
+student.hasOne(mentor, { sourceKey: 'team_id', foreignKey: 'organization_code', constraints: false });
