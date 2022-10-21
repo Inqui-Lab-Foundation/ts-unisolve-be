@@ -179,19 +179,19 @@ export default class StudentController extends BaseController {
                         model: team,
                         attributes: [
                             'team_id',
-                            'team_name'
+                            'team_name',
+                            'mentor_id'
                         ],
                         include: {
                             model: mentor,
                             attributes: [
-                                'mentor_id',
+                                'organization_code',
                                 'full_name',
                             ],
                             include: {
                                 model: organization,
                                 attributes: [
-                                    'organization_code',
-                                    'organization_code',
+                                    'organization_name',
                                 ],
                             }
                         }

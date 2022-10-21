@@ -7,6 +7,7 @@ import { baseConfig } from '../configs/base.config';
 import { user } from './user.model';
 import { admin } from './admin.model';
 import { mentor } from './mentor.model';
+import { team } from './team.model';
 
 export class student extends Model<InferAttributes<student>, InferCreationAttributes<student>> {
     declare student_id: CreationOptional<number>;
@@ -150,5 +151,7 @@ student.init(
 
 // student.belongsTo(user, { foreignKey: 'user_id', constraints: false });
 // user.hasOne(student, { foreignKey: 'user_id', constraints: false, scope: { role: 'STUDENT' } });
+student.belongsTo(user, { foreignKey: 'user_id' });
+user.hasMany(student, { foreignKey: 'user_id' });
 student.belongsTo(user, { foreignKey: 'user_id' });
 user.hasMany(student, { foreignKey: 'user_id' });

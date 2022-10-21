@@ -2,6 +2,8 @@ import { DataTypes, Model } from 'sequelize';
 import db from '../utils/dbconnection.util';
 import { teamAttributes } from '../interfaces/model.interface';
 import { constents } from '../configs/constents.config';
+import { mentor } from './mentor.model';
+import { student } from './student.model';
 
 export class team extends Model<teamAttributes> { }
 
@@ -55,3 +57,9 @@ team.init(
     }
 );
 
+student.belongsTo(team, { foreignKey: 'team_id', constraints: false });
+team.hasMany(student, { foreignKey: 'team_id', constraints: false });
+team.belongsTo(mentor, { foreignKey: 'mentor_id', constraints: false });
+mentor.hasOne(team, { foreignKey: 'mentor_id', constraints: false });
+// mentor.belongsTo(organization, { targetKey: 'organization_code',foreignKey: 'organization_code', constraints: false });
+// organization.hasOne(mentor, { sourceKey:'organization_code',foreignKey: 'organization_code', constraints: false});
