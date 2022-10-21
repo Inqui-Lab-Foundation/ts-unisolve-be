@@ -68,7 +68,7 @@ export default class MentorController extends BaseController {
         // const otp = await this.authService.generateOtp();
         let otp = await this.authService.triggerOtpMsg(req.body.mobile); //async function but no need to await ...since we yet do not care about the outcome of the sms trigger ....!!this may need to change later on ...!!
         otp = String(otp)
-        let hashString = await this.authService.HashPassword(otp);
+        let hashString = await this.authService.generateCryptEncryption(otp);
         console.log(hashString);
         const updatePassword = await this.authService.crudService.update(user,
             { password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT) },
