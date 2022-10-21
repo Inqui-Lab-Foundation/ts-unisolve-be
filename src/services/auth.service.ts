@@ -25,6 +25,7 @@ import { includes } from 'lodash';
 import { func, invalid } from 'joi';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
 import { badRequest, internal, notAcceptable, notFound } from 'boom';
+import { notFoundError } from '../docs/errors';
 export default class authService {
 
     crudService: CRUDService = new CRUDService;
@@ -124,8 +125,9 @@ export default class authService {
                 return response
             }
             const result = await this.crudService.create(user, requestBody);
+            console.log(result)
             let whereClass = { ...requestBody, user_id: result.dataValues.user_id };
-            // console.log(whereClass);
+            console.log(whereClass);
             switch (requestBody.role) {
                 case 'STUDENT': {
                     profile = await this.crudService.create(student, whereClass);
@@ -148,6 +150,7 @@ export default class authService {
                 default:
                     profile = null;
             }
+            console.log(profile)
             response['profile'] = profile;
             return response;
         } catch (error: any) {
@@ -380,7 +383,7 @@ export default class authService {
             return result;
         }
     }
-    async HashPassword(value: any) {
+    async generateCryptEncryption(value: any) {
         const key = CryptoJS.enc.Hex.parse('253D3FB468A0E24677C28A624BE0F939');
         const iv = CryptoJS.enc.Hex.parse('00000000000000000000000000000000');
         const hashedPassword = CryptoJS.AES.encrypt(value, key, {
@@ -445,7 +448,7 @@ export default class authService {
                 throw smsResponse;
             }
             smsResponse = String(smsResponse);
-            let hashString = await this.HashPassword(smsResponse)
+            let hashString = await this.generateCryptEncryption(smsResponse)
             const user_res: any = await this.crudService.updateAndFind(user, {
                 password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT)
             }, { where: { user_id: user_data.dataValues.user_id } })
@@ -454,6 +457,30 @@ export default class authService {
                 user_id: user_res.dataValues.user_id,
                 // mobile: mentor_res.dataValues.mobile,
                 // reg_status: mentor_res.dataValues.reg_status
+            };
+            return result;
+        } catch (error) {
+            result['error'] = error;
+            return result;
+        }
+    }
+    async studentResetPassword(requestBody: any) {
+        let result: any = {};
+        try {
+            const findUserDetailsAndUpdatePassword: any = await this.crudService.updateAndFind(user,
+                { password: await bcrypt.hashSync(requestBody.encryptedString, process.env.SALT || baseConfig.SALT) },
+                { where: { user_id: requestBody.user_id } }
+            );
+            const findStudentDetailsAndUpdateUUID: any = await this.crudService.updateAndFind(student,
+                { UUID: requestBody.UUID, qualification: requestBody.encryptedString },
+                { where: { user_id: requestBody.user_id } }
+            );
+            if (!findStudentDetailsAndUpdateUUID || !findUserDetailsAndUpdatePassword || findStudentDetailsAndUpdateUUID instanceof Error || findUserDetailsAndUpdatePassword instanceof Error) throw badRequest(speeches.DATA_NOT_FOUND)
+            result['data'] = {
+                username: findUserDetailsAndUpdatePassword.dataValues.username,
+                user_id: findUserDetailsAndUpdatePassword.dataValues.user_id,
+                student_id: findStudentDetailsAndUpdateUUID.dataValues.student_id,
+                student_uuid: findStudentDetailsAndUpdateUUID.dataValues.UUID
             };
             return result;
         } catch (error) {

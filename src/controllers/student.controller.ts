@@ -11,12 +11,14 @@ import validationMiddleware from '../middlewares/validation.middleware';
 import { constents } from '../configs/constents.config';
 import CryptoJS from 'crypto-js';
 import { Op } from 'sequelize';
-import { badRequest, internal, notFound } from 'boom';
 import { user } from '../models/user.model';
 import { team } from '../models/team.model';
 import { student } from '../models/student.model';
 import StudentService from '../services/students.service';
 import { badge } from '../models/badge.model';
+import { mentor } from '../models/mentor.model';
+import { organization } from '../models/organization.model';
+import { badRequest, notFound } from 'boom';
 
 export default class StudentController extends BaseController {
     model = "student";
@@ -43,45 +45,30 @@ export default class StudentController extends BaseController {
         this.router.get(`${this.path}/:student_user_id/badges`,  this.getStudentBadges.bind(this));
         super.initializeRoutes();
     }
-    private HashPassword(value: any): any {
-        const key = CryptoJS.enc.Hex.parse('253D3FB468A0E24677C28A624BE0F939');
-        const iv = CryptoJS.enc.Hex.parse('00000000000000000000000000000000');
-        const hashedPassword = CryptoJS.AES.encrypt(value, key, {
-            iv: iv,
-            padding: CryptoJS.pad.NoPadding
-        }).toString();
-        return hashedPassword;
-    }
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        const randomGeneratedSixDigitID = this.nanoid();
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(randomGeneratedSixDigitID);
+
         const { team_id } = req.body;
-        const generatedUUID = this.nanoid();
-        const hashedPassword = this.HashPassword(generatedUUID);
         let trimmedTeamName: any;
         let trimmedStudentName: any;
         trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
-        if (!req.body.role || req.body.role !== 'STUDENT') {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
-        }
-        if (!req.body.team_id) {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
-        }
+
+        if (!req.body.role || req.body.role !== 'STUDENT') return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
+        if (!req.body.team_id) return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
         const teamDetails = await this.authService.crudService.findOne(team, { where: { team_id } });
-        if (!teamDetails) {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.TEAM_NOT_FOUND, 406));
-        } else {
-            trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
-        }
-        // console.log(trimmedTeamName, trimmedStudentName);
+        if (!teamDetails) return res.status(406).send(dispatcher(res, null, 'error', speeches.TEAM_NOT_FOUND, 406));
+        else trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
         if (!req.body.username || req.body.username === "") {
             req.body.username = trimmedTeamName + '_' + trimmedStudentName
-            req.body['UUID'] = generatedUUID;
-            req.body.qualification = hashedPassword
+            req.body['UUID'] = randomGeneratedSixDigitID;
+            req.body.qualification = cryptoEncryptedString // saving the encrypted text in the qualification as for now just for debugging
         }
-        if (!req.body.password || req.body.password === "") req.body.password = hashedPassword;
-        console.log(hashedPassword);
+        if (!req.body.password || req.body.password === "") req.body.password = cryptoEncryptedString;
+        console.log(req.body);
         const result = await this.authService.register(req.body);
+        console.log(result);
         if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.STUDENT_EXISTS, 406));
-        // result.profile.dataValues['password'] = generatedUUID;
         return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
     private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -132,16 +119,32 @@ export default class StudentController extends BaseController {
     }
     private async resetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         // accept the user_id or user_name from the req.body and update the password in the user table
-        const generatedUUID = this.nanoid()
-        req.body['generatedPassword'] = generatedUUID;
-        const result = await this.authService.restPassword(req.body, res);
-        if (!result) {
-            return res.status(404).send(dispatcher(res, result.user_res, 'error', speeches.USER_NOT_FOUND));
-        } else if (result.match) {
-            return res.status(404).send(dispatcher(res, result.match, 'error', speeches.USER_PASSWORD));
-        } else {
-            return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        // perviously while student registration changes we have changed the password is changed to random generated UUID and stored and send in the payload,
+        // now reset password use case is to change the password using user_id to some random generated ID and update the UUID also
+        const randomGeneratedSixDigitID: any = this.nanoid();
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(randomGeneratedSixDigitID);
+        try {
+            const { user_id } = req.body;
+            req.body['UUID'] = randomGeneratedSixDigitID;
+            req.body['encryptedString'] = cryptoEncryptedString;
+            if (!user_id) throw badRequest(speeches.USER_USERID_REQUIRED);
+            const result = await this.authService.studentResetPassword(req.body);
+            if (!result) return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+            else if (result.error) return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
+            else return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        } catch (error) {
+            next(error)
         }
+        // const generatedUUID = this.nanoid();
+        // req.body['generatedPassword'] = generatedUUID;
+        // const result = await this.authService.restPassword(req.body, res);
+        // if (!result) {
+        //     return res.status(404).send(dispatcher(res, result.user_res, 'error', speeches.USER_NOT_FOUND));
+        // } else if (result.match) {
+        //     return res.status(404).send(dispatcher(res, result.match, 'error', speeches.USER_PASSWORD));
+        // } else {
+        //     return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        // }
     }
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
@@ -170,7 +173,28 @@ export default class StudentController extends BaseController {
                         [Op.and]: [
                             whereClauseStatusPart,
                             where,
-                        ]
+                        ],
+                    },
+                    include: {
+                        model: team,
+                        attributes: [
+                            'team_id',
+                            'team_name'
+                        ],
+                        include: {
+                            model: mentor,
+                            attributes: [
+                                'mentor_id',
+                                'full_name',
+                            ],
+                            include: {
+                                model: organization,
+                                attributes: [
+                                    'organization_code',
+                                    'organization_code',
+                                ],
+                            }
+                        }
                     }
                 });
             } else {
