@@ -24,6 +24,7 @@ export class student extends Model<InferAttributes<student>, InferCreationAttrib
     declare district: string;
     declare state: string;
     declare country: string;
+    declare badges: string;
     declare status: Enumerator;
     declare created_by: number;
     declare created_at: Date;
@@ -96,6 +97,9 @@ student.init(
         },
         country: {
             type: DataTypes.STRING
+        },
+        badges: {
+            type: DataTypes.TEXT('long')
         },
         status: {
             type: DataTypes.ENUM(...Object.values(constents.common_status_flags.list)),

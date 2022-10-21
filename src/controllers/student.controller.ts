@@ -11,9 +11,12 @@ import validationMiddleware from '../middlewares/validation.middleware';
 import { constents } from '../configs/constents.config';
 import CryptoJS from 'crypto-js';
 import { Op } from 'sequelize';
-import { badRequest, notFound } from 'boom';
+import { badRequest, internal, notFound } from 'boom';
 import { user } from '../models/user.model';
 import { team } from '../models/team.model';
+import { student } from '../models/student.model';
+import StudentService from '../services/students.service';
+import { badge } from '../models/badge.model';
 
 export default class StudentController extends BaseController {
     model = "student";
@@ -36,6 +39,8 @@ export default class StudentController extends BaseController {
         this.router.put(`${this.path}/changePassword`, validationMiddleware(studentChangePasswordSchema), this.changePassword.bind(this));
         // this.router.put(`${this.path}/updatePassword`, validationMiddleware(studentChangePasswordSchema), this.updatePassword.bind(this));
         this.router.post(`${this.path}/resetPassword`, validationMiddleware(studentResetPasswordSchema), this.resetPassword.bind(this));
+        this.router.post(`${this.path}/:student_user_id/badges`,  this.addBadgeToStudent.bind(this));
+        this.router.get(`${this.path}/:student_user_id/badges`,  this.getStudentBadges.bind(this));
         super.initializeRoutes();
     }
     private HashPassword(value: any): any {
@@ -253,6 +258,114 @@ export default class StudentController extends BaseController {
         } catch (error) {
             next(error);
         }
+    }
+    private async addBadgeToStudent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try{
+            //todo: test this api : haven't manually tested this api yet 
+            // console.log("came here");
+            const student_user_id:any = req.params.student_user_id;
+            const badges_ids:any = req.body.badge_ids;
+            if(!badges_ids||!badges_ids.length||badges_ids.length<=0){
+                throw badRequest(speeches.BADGE_IDS_ARRAY_REQUIRED)
+            }
+
+            const serviceStudent = new StudentService()
+            let studentBadgesObj:any = serviceStudent.getStudentBadges(student_user_id);
+            ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
+            if(studentBadgesObj instanceof Error){
+                throw studentBadgesObj
+            }
+            if(!studentBadgesObj){
+                studentBadgesObj={};
+            }
+            const success:any=[]
+            const errors:any=[]
+            for(var i=0;i<badges_ids.length;i++){
+                const badgeId = badges_ids[i];
+                const badgeResultForId = await this.crudService.findOne(badge,{where:{id:badgeId}})
+                if(!badgeResultForId){
+                    errors.push({id:badgeId,err:badRequest(speeches.DATA_NOT_FOUND)})
+                    continue;
+                }
+                if(badgeResultForId instanceof Error){
+                    errors.push({id:badgeId,err:badgeResultForId})
+                    continue;
+                }
+                
+                const date = new Date();
+                const studentHasBadgeObjForId = studentBadgesObj[badgeId]
+                if(!studentHasBadgeObjForId||!studentHasBadgeObjForId.completed_date){
+                    studentBadgesObj[badgeId]={
+                        completed_date:(""+date.getFullYear()+"-"+""+(date.getMonth()+1)+"-"+""+date.getDay())
+                    }
+                }
+            }
+            const studentBadgesObjJson = JSON.stringify(studentBadgesObj)
+            const result:any = await student.update({badges:studentBadgesObjJson},{where:{
+                user_id:student_user_id
+            }})
+            if(result instanceof Error){
+                throw result;
+            }
+
+            if (!result) {
+                return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+            } 
+
+            return res.status(202).send(dispatcher(res, {errs:errors,succ:studentBadgesObj}, 'updated', speeches.USER_BADGES_LINKED, 202));
+        }catch(err){
+            next(err)
+        }
+    }
+
+    
+    private async getStudentBadges(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        //todo: implement this api ...!!
+        try{
+            // console.log("came here too");
+            const student_user_id:any = req.params.student_user_id;
+            const serviceStudent = new StudentService()
+            let studentBadgesObj:any = serviceStudent.getStudentBadges(student_user_id);
+            ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
+            if(studentBadgesObj instanceof Error){
+                throw studentBadgesObj
+            }
+            if(!studentBadgesObj){
+                studentBadgesObj={};
+            }
+            const studentBadgesObjKeysArr = Object.keys(studentBadgesObj)
+            const status:any = req.query.status;
+            let whereClauseStatusPart = {}
+            if(status && status=="ACTIVE"||"INACTIVE"){
+                whereClauseStatusPart = {status:status}
+            }
+            const allBadgesResult = await badge.findAll({
+                where:{
+                    ...whereClauseStatusPart
+                },
+                raw:true,
+            });
+            
+            if(!allBadgesResult){
+                throw notFound(speeches.DATA_NOT_FOUND);
+            }
+            if(allBadgesResult instanceof Error){
+                throw allBadgesResult;
+            }
+            for(var i=0;i<allBadgesResult.length;i++){
+                const currBadge:any = allBadgesResult[i];
+                if(studentBadgesObj.hasOwnProperty(""+currBadge.id)){
+                    currBadge["student_status"] = studentBadgesObj[currBadge.id].completed_date
+                }else{
+                    currBadge["student_status"] = null;
+                }
+                allBadgesResult[i] = currBadge
+            }
+
+            return res.status(200).send(dispatcher(res,allBadgesResult , 'success'));
+        }catch(err){
+            next(err)    
+        }   
     }
 }
         // private async updatePassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
