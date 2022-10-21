@@ -40,7 +40,7 @@ export default class StudentController extends BaseController {
         this.router.get(`${this.path}/logout`, this.logout.bind(this));
         this.router.put(`${this.path}/changePassword`, validationMiddleware(studentChangePasswordSchema), this.changePassword.bind(this));
         // this.router.put(`${this.path}/updatePassword`, validationMiddleware(studentChangePasswordSchema), this.updatePassword.bind(this));
-        this.router.post(`${this.path}/resetPassword`, validationMiddleware(studentResetPasswordSchema), this.resetPassword.bind(this));
+        this.router.put(`${this.path}/resetPassword`, validationMiddleware(studentResetPasswordSchema), this.resetPassword.bind(this));
         this.router.post(`${this.path}/:student_user_id/badges`,  this.addBadgeToStudent.bind(this));
         this.router.get(`${this.path}/:student_user_id/badges`,  this.getStudentBadges.bind(this));
         super.initializeRoutes();
