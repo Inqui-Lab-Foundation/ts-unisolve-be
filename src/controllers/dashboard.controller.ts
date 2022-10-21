@@ -15,7 +15,8 @@ import { organization } from '../models/organization.model';
 import { constents } from '../configs/constents.config';
 import path from 'path';
 import { readFileSync } from 'fs';
-import { internal } from 'boom';
+import { internal, notFound } from 'boom';
+import { student } from '../models/student.model';
 
 export default class DashboardController extends BaseController {
     model = ""; ///this u will override in every function in this controller ...!!!
@@ -39,6 +40,9 @@ export default class DashboardController extends BaseController {
         //mentor stats...
         this.router.get(`${this.path}/mentorStats/:mentor_user_id`, this.getMentorStats.bind(this))
         // this.router.get(`${this.path}/mentorStats/:mentor_id/progessOverall`, this.getMentorStatsProgressOverall.bind(this))
+
+        //student Stats...
+        this.router.get(`${this.path}/studentStats/:student_user_id`, this.getStudentStats.bind(this))
 
         super.initializeRoutes();
     }
@@ -192,7 +196,51 @@ export default class DashboardController extends BaseController {
         }
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////// STUDENT STATS
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    private async getStudentStats(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try{
+            const {student_user_id} = req.params;
+            const paramStatus:any= req.query.status;
+            let whereClauseStatusPart:any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if(paramStatus && (paramStatus in constents.common_status_flags.list)){
+                whereClauseStatusPart = {"status":paramStatus}
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart =true;
+            }
+            const studentStatsResul = student.findOne({
+                where:{
+                    user_id:student_user_id
+                },
+                attributes:[
+                    [
+                        db.literal(`(
+                        select count(utp.user_id) 
+                        from user_topic_progress as utp
+                        where 
+                        ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
+                        and utp.user_id=\`student\`.\`user_id\`
+                        )`),
+                        "topics_completed_count"
+                    ]
+                ]
+            })
+            if(!studentStatsResul){
+                throw notFound(speeches.USER_NOT_FOUND)
+            }
+            if(studentStatsResul instanceof Error){
+                throw studentStatsResul
+            }
 
+            res.status(200).send(dispatcher(res,studentStatsResul,"success"))
+
+        }catch(err){
+            next(err)
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////// MAPP STATS
