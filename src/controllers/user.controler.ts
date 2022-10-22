@@ -6,6 +6,8 @@ import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
 import { badRequest } from 'boom';
+import validationMiddleware from '../middlewares/validation.middleware';
+import { UpdateMentorUsernameSchema } from '../validations/user.validations'
 
 export default class UserController extends BaseController {
     model = "user";
@@ -18,7 +20,7 @@ export default class UserController extends BaseController {
     }
     protected initializeRoutes(): void {
         //example route to add
-        this.router.put(`${this.path}/updateMentorDetails`, this.updateMentorUserDetails.bind(this));
+        this.router.put(`${this.path}/updateMentorDetails`, validationMiddleware(UpdateMentorUsernameSchema), this.updateMentorUserDetails.bind(this));
         super.initializeRoutes();
     }
 
