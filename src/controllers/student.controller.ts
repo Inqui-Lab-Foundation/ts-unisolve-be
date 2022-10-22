@@ -41,8 +41,8 @@ export default class StudentController extends BaseController {
         this.router.put(`${this.path}/changePassword`, validationMiddleware(studentChangePasswordSchema), this.changePassword.bind(this));
         // this.router.put(`${this.path}/updatePassword`, validationMiddleware(studentChangePasswordSchema), this.updatePassword.bind(this));
         this.router.put(`${this.path}/resetPassword`, validationMiddleware(studentResetPasswordSchema), this.resetPassword.bind(this));
-        this.router.post(`${this.path}/:student_user_id/badges`,  this.addBadgeToStudent.bind(this));
-        this.router.get(`${this.path}/:student_user_id/badges`,  this.getStudentBadges.bind(this));
+        this.router.post(`${this.path}/:student_user_id/badges`, this.addBadgeToStudent.bind(this));
+        this.router.get(`${this.path}/:student_user_id/badges`, this.getStudentBadges.bind(this));
         super.initializeRoutes();
     }
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -284,81 +284,83 @@ export default class StudentController extends BaseController {
         }
     }
     private async addBadgeToStudent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        try{
+        try {
             //todo: test this api : haven't manually tested this api yet 
             // console.log("came here");
-            const student_user_id:any = req.params.student_user_id;
-            const badges_ids:any = req.body.badge_ids;
-            if(!badges_ids||!badges_ids.length||badges_ids.length<=0){
+            const student_user_id: any = req.params.student_user_id;
+            const badges_ids: any = req.body.badge_ids;
+            if (!badges_ids || !badges_ids.length || badges_ids.length <= 0) {
                 throw badRequest(speeches.BADGE_IDS_ARRAY_REQUIRED)
             }
 
             const serviceStudent = new StudentService()
-            let studentBadgesObj:any = serviceStudent.getStudentBadges(student_user_id);
+            let studentBadgesObj: any = serviceStudent.getStudentBadges(student_user_id);
             ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
-            if(studentBadgesObj instanceof Error){
+            if (studentBadgesObj instanceof Error) {
                 throw studentBadgesObj
             }
-            if(!studentBadgesObj){
-                studentBadgesObj={};
+            if (!studentBadgesObj) {
+                studentBadgesObj = {};
             }
-            const success:any=[]
-            const errors:any=[]
-            for(var i=0;i<badges_ids.length;i++){
+            const success: any = []
+            const errors: any = []
+            for (var i = 0; i < badges_ids.length; i++) {
                 const badgeId = badges_ids[i];
-                const badgeResultForId = await this.crudService.findOne(badge,{where:{badge_id:badgeId}})
-                if(!badgeResultForId){
-                    errors.push({id:badgeId,err:badRequest(speeches.DATA_NOT_FOUND)})
+                const badgeResultForId = await this.crudService.findOne(badge, { where: { badge_id: badgeId } })
+                if (!badgeResultForId) {
+                    errors.push({ id: badgeId, err: badRequest(speeches.DATA_NOT_FOUND) })
                     continue;
                 }
-                if(badgeResultForId instanceof Error){
-                    errors.push({id:badgeId,err:badgeResultForId})
+                if (badgeResultForId instanceof Error) {
+                    errors.push({ id: badgeId, err: badgeResultForId })
                     continue;
                 }
-                
+
                 const date = new Date();
                 const studentHasBadgeObjForId = studentBadgesObj[badgeId]
-                if(!studentHasBadgeObjForId||!studentHasBadgeObjForId.completed_date){
-                    studentBadgesObj[badgeId]={
-                        completed_date:(""+date.getFullYear()+"-"+""+(date.getMonth()+1)+"-"+""+date.getDay())
+                if (!studentHasBadgeObjForId || !studentHasBadgeObjForId.completed_date) {
+                    studentBadgesObj[badgeId] = {
+                        completed_date: ("" + date.getFullYear() + "-" + "" + (date.getMonth() + 1) + "-" + "" + date.getDay())
                     }
                 }
             }
             const studentBadgesObjJson = JSON.stringify(studentBadgesObj)
-            const result:any = await student.update({badges:studentBadgesObjJson},{where:{
-                user_id:student_user_id
-            }})
-            if(result instanceof Error){
+            const result: any = await student.update({ badges: studentBadgesObjJson }, {
+                where: {
+                    user_id: student_user_id
+                }
+            })
+            if (result instanceof Error) {
                 throw result;
             }
 
             if (!result) {
                 return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
-            } 
+            }
 
-            return res.status(202).send(dispatcher(res, {errs:errors,success:studentBadgesObj}, 'updated', speeches.USER_BADGES_LINKED, 202));
-        }catch(err){
+            return res.status(202).send(dispatcher(res, { errs: errors, success: studentBadgesObj }, 'updated', speeches.USER_BADGES_LINKED, 202));
+        } catch (err) {
             next(err)
         }
     }
 
-    
+
     private async getStudentBadges(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         //todo: implement this api ...!!
-        try{
+        try {
             // console.log("came here too");
-            const student_user_id:any = req.params.student_user_id;
+            const student_user_id: any = req.params.student_user_id;
             const serviceStudent = new StudentService()
-            let studentBadgesObj:any = await serviceStudent.getStudentBadges(student_user_id);
+            let studentBadgesObj: any = await serviceStudent.getStudentBadges(student_user_id);
             ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
-            if(studentBadgesObj instanceof Error){
+            if (studentBadgesObj instanceof Error) {
                 throw studentBadgesObj
             }
-            if(!studentBadgesObj){
-                studentBadgesObj={};
+            if (!studentBadgesObj) {
+                studentBadgesObj = {};
             }
             const studentBadgesObjKeysArr = Object.keys(studentBadgesObj)
-            const paramStatus:any = req.query.status;
+            const paramStatus: any = req.query.status;
             const where: any = {};
             let whereClauseStatusPart: any = {};
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
@@ -374,30 +376,30 @@ export default class StudentController extends BaseController {
                         where,
                     ]
                 },
-                raw:true,
+                raw: true,
             });
-            
-            if(!allBadgesResult){
+
+            if (!allBadgesResult) {
                 throw notFound(speeches.DATA_NOT_FOUND);
             }
-            if(allBadgesResult instanceof Error){
+            if (allBadgesResult instanceof Error) {
                 throw allBadgesResult;
             }
             // console.log(studentBadgesObj);
-            for(var i=0;i<allBadgesResult.length;i++){
-                const currBadge:any = allBadgesResult[i];
-                if(studentBadgesObj.hasOwnProperty(""+currBadge.badge_id)){
-                    currBadge["student_status"] = studentBadgesObj[(""+currBadge.badge_id)].completed_date
-                }else{
+            for (var i = 0; i < allBadgesResult.length; i++) {
+                const currBadge: any = allBadgesResult[i];
+                if (studentBadgesObj.hasOwnProperty("" + currBadge.badge_id)) {
+                    currBadge["student_status"] = studentBadgesObj[("" + currBadge.badge_id)].completed_date
+                } else {
                     currBadge["student_status"] = null;
                 }
                 allBadgesResult[i] = currBadge
             }
 
-            return res.status(200).send(dispatcher(res,allBadgesResult , 'success'));
-        }catch(err){
-            next(err)    
-        }   
+            return res.status(200).send(dispatcher(res, allBadgesResult, 'success'));
+        } catch (err) {
+            next(err)
+        }
     }
 }
         // private async updatePassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {

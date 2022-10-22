@@ -91,6 +91,10 @@ mentor.init(
             type: DataTypes.STRING,
             unique: true
         },
+        otp: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         status: {
             type: DataTypes.ENUM(...Object.values(constents.common_status_flags.list)),
             defaultValue: constents.common_status_flags.default
@@ -138,8 +142,8 @@ mentor.init(
     }
 );
 
-mentor.belongsTo(user, { foreignKey: 'user_id', constraints: false });
-user.hasOne(mentor, { foreignKey: 'user_id', constraints: false, scope: { role: 'MENTOR' } });
+mentor.belongsTo(user, { foreignKey: 'user_id', constraints: false, scope: { role: 'MENTOR' } });
+user.hasOne(mentor, { foreignKey: 'user_id', constraints: false });
 mentor.belongsTo(organization, { targetKey: 'organization_code', foreignKey: 'organization_code', constraints: false });
 organization.hasOne(mentor, { sourceKey: 'organization_code', foreignKey: 'organization_code', constraints: false });
 mentor.belongsTo(student, { targetKey: 'team_id', foreignKey: 'organization_code', constraints: false });
