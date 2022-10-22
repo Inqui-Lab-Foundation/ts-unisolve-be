@@ -464,6 +464,32 @@ export default class authService {
             return result;
         }
     }
+
+    async manualMentorResetPassword(requestBody: any) {
+        let result: any = {};
+        try {
+            const findUserDetailsAndUpdatePassword: any = await this.crudService.updateAndFind(user,
+                { password: await bcrypt.hashSync(requestBody.encryptedString, process.env.SALT || baseConfig.SALT) },
+                { where: { user_id: requestBody.user_id } }
+            );
+            const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
+                { otp: requestBody.otp, qualification: requestBody.encryptedString },
+                { where: { user_id: requestBody.user_id } }
+            );
+            if (!findMentorDetailsAndUpdateOTP || !findUserDetailsAndUpdatePassword || findMentorDetailsAndUpdateOTP instanceof Error || findUserDetailsAndUpdatePassword instanceof Error) throw badRequest(speeches.DATA_NOT_FOUND)
+            result['data'] = {
+                username: findUserDetailsAndUpdatePassword.dataValues.username,
+                user_id: findUserDetailsAndUpdatePassword.dataValues.user_id,
+                mentor_id: findMentorDetailsAndUpdateOTP.dataValues.mentor_id,
+                mentor_otp: findMentorDetailsAndUpdateOTP.dataValues.otp
+            };
+            return result;
+        } catch (error) {
+            result['error'] = error;
+            return result;
+        }
+    }
+
     async studentResetPassword(requestBody: any) {
         let result: any = {};
         try {

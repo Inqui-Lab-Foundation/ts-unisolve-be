@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
 import { Request, Response, NextFunction } from 'express';
-
+import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
 import { baseConfig } from '../configs/base.config';
 import { user } from '../models/user.model';
@@ -23,7 +23,7 @@ export default class MentorController extends BaseController {
     model = "mentor";
     authService: authService = new authService;
     private password = process.env.GLOBAL_PASSWORD;
-
+    private nanoid = customAlphabet('0123456789', 6);
     protected initializePath(): void {
         this.path = '/mentors';
     }
@@ -43,6 +43,8 @@ export default class MentorController extends BaseController {
         this.router.put(`${this.path}/updateMobile`, this.updateMobile.bind(this));
         this.router.delete(`${this.path}/:mentor_user_id/deleteAllData`, this.deleteAllData.bind(this));
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
+        this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
+        
         super.initializeRoutes();
     }
     // TODO: update the register flow by adding a flag called reg_statue in mentor tables
@@ -310,5 +312,35 @@ export default class MentorController extends BaseController {
         } catch (error) {
             next(error)
         }
+    }
+
+    private async manualResetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        // accept the user_id or user_name from the req.body and update the password in the user table
+        // perviously while student registration changes we have changed the password is changed to random generated UUID and stored and send in the payload,
+        // now reset password use case is to change the password using user_id to some random generated ID and update the UUID also
+        const randomGeneratedSixDigitID: any = this.nanoid();
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(randomGeneratedSixDigitID);
+        try {
+            const { user_id } = req.body;
+            req.body['otp'] = randomGeneratedSixDigitID;
+            req.body['encryptedString'] = cryptoEncryptedString;
+            if (!user_id) throw badRequest(speeches.USER_USERID_REQUIRED);
+            const result = await this.authService.manualMentorResetPassword(req.body);
+            if (!result) return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+            else if (result.error) return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
+            else return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        } catch (error) {
+            next(error)
+        }
+        // const generatedUUID = this.nanoid();
+        // req.body['generatedPassword'] = generatedUUID;
+        // const result = await this.authService.restPassword(req.body, res);
+        // if (!result) {
+        //     return res.status(404).send(dispatcher(res, result.user_res, 'error', speeches.USER_NOT_FOUND));
+        // } else if (result.match) {
+        //     return res.status(404).send(dispatcher(res, result.match, 'error', speeches.USER_PASSWORD));
+        // } else {
+        //     return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        // }
     }
 };
