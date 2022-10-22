@@ -7,7 +7,7 @@ export const tableName = tutorial_video.modelTableName;
 export const up: Migration = async ({ context: sequelize }) => {
 	// await sequelize.query(`raise fail('up migration not implemented')`); //call direct sql 
 	//or below implementation 
-	await sequelize.getQueryInterface().createTable(tableName, badge.structrue);
+	await sequelize.getQueryInterface().createTable(tableName, tutorial_video.structrue);
 };
 
 export const down: Migration = async ({ context: sequelize }) => {

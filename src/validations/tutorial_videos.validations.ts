@@ -20,7 +20,7 @@ export const tutorialVideosSchema = Joi.object().keys({
 });
 
 export const tutorialVideosUpdateSchema = Joi.object().keys({
-    video_stream_id: Joi.string().required().messages({
+    video_stream_id: Joi.string().messages({
         'string.empty': speeches.VIDEO_STREAM_ID_REQUIRED
     }),
     title:Joi.string().allow(null, ''),
