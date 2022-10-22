@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
+import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
@@ -10,7 +11,7 @@ import dispatcher from '../utils/dispatch.util';
 import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
-import { badRequest, internal } from 'boom';
+import { badRequest, internal, notFound } from 'boom';
 import { mentor } from '../models/mentor.model';
 import { where } from 'sequelize/types';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
@@ -18,6 +19,8 @@ import { quiz_survey_response } from '../models/quiz_survey_response.model';
 import { quiz_response } from '../models/quiz_response.model';
 import { team } from '../models/team.model';
 import { student } from '../models/student.model';
+import { constents } from '../configs/constents.config';
+import { organization } from '../models/organization.model';
 
 export default class MentorController extends BaseController {
     model = "mentor";
@@ -49,7 +52,90 @@ export default class MentorController extends BaseController {
     }
 
     //TODO: Override the getDate function for mentor and join org details and user details
+    protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let data: any;
+            const { model, id } = req.params;
+            const paramStatus: any = req.query.status;
+            if (model) {
+                this.model = model;
+            };
+            // pagination
+            const { page, size, status } = req.query;
+            let condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(model).catch(error => {
+                next(error)
+            });
+            const where: any = {};
+            let whereClauseStatusPart: any = {};
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+            }
+            if (id) {
+                where[`${this.model}_id`] = req.params.id;
+                data = await this.crudService.findOne(modelClass, {
+                    where: {
+                        [Op.and]: [
+                            whereClauseStatusPart,
+                            where,
+                        ]
+                    },
+                    include: {
+                        model: organization,
+                        attributes: [
+                            "organization_code",
+                            "organization_name",
+                            "organization_id",
+                            "principal_name",
+                            "principal_mobile",
+                            "principal_email",
+                            "city",
+                            "district",
+                            "state",
+                            "country"
+                        ]
+                    }
+                });
+            } else {
+                try {
+                    const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                        where: {
+                            [Op.and]: [
+                                whereClauseStatusPart,
+                                condition
+                            ]
+                        }, limit, offset
+                    })
+                    const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
+                    data = result;
+                } catch (error: any) {
+                    return res.status(500).send(dispatcher(res, data, 'error'))
+                }
 
+            }
+            // if (!data) {
+            //     return res.status(404).send(dispatcher(res,data, 'error'));
+            // }
+            if (!data || data instanceof Error) {
+                if (data != null) {
+                    throw notFound(data.message)
+                } else {
+                    throw notFound()
+                }
+                res.status(200).send(dispatcher(res, null, "error", speeches.DATA_NOT_FOUND));
+                // if(data!=null){
+                //     throw 
+                (data.message)
+                // }else{
+                //     throw notFound()
+                // }
+            }
+            return res.status(200).send(dispatcher(res, data, 'success'));
+        } catch (error) {
+            next(error);
+        }
+    }
     // TODO: update the register flow by adding a flag called reg_statue in mentor tables
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         if (!req.body.organization_code || req.body.organization_code === "") return res.status(406).send(dispatcher(res, speeches.ORG_CODE_REQUIRED, 'error', speeches.NOT_ACCEPTABLE, 406));
