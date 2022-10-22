@@ -91,6 +91,10 @@ mentor.init(
             type: DataTypes.STRING,
             unique: true
         },
+        otp: {
+            type: DataTypes.STRING, 
+            allowNull: true,
+        },
         status: {
             type: DataTypes.ENUM(...Object.values(constents.common_status_flags.list)),
             defaultValue: constents.common_status_flags.default

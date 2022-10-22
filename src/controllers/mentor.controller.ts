@@ -47,6 +47,9 @@ export default class MentorController extends BaseController {
         
         super.initializeRoutes();
     }
+
+    //TODO: Override the getDate function for mentor and join org details and user details
+
     // TODO: update the register flow by adding a flag called reg_statue in mentor tables
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         if (!req.body.organization_code || req.body.organization_code === "") return res.status(406).send(dispatcher(res, speeches.ORG_CODE_REQUIRED, 'error', speeches.NOT_ACCEPTABLE, 406));
@@ -75,6 +78,10 @@ export default class MentorController extends BaseController {
         const updatePassword = await this.authService.crudService.update(user,
             { password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT) },
             { where: { user_id: result.dataValues.user_id } });
+        const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
+            { otp: otp },
+            { where: { user_id: result.dataValues.user_id } }
+        );
         const data = result.dataValues;
         return res.status(201).send(dispatcher(res, data, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
@@ -301,6 +308,7 @@ export default class MentorController extends BaseController {
             if (!mobile) {
                 throw badRequest(speeches.MOBILE_NUMBER_REQUIRED);
             }
+            // req.body['otp'] = 
             const result = await this.authService.mentorResetPassword(req.body);
             if (!result) {
                 return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
@@ -313,7 +321,6 @@ export default class MentorController extends BaseController {
             next(error)
         }
     }
-
     private async manualResetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         // accept the user_id or user_name from the req.body and update the password in the user table
         // perviously while student registration changes we have changed the password is changed to random generated UUID and stored and send in the payload,
@@ -342,5 +349,5 @@ export default class MentorController extends BaseController {
         // } else {
         //     return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
         // }
-    }
+    };
 };
