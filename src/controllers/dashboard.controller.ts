@@ -43,7 +43,7 @@ export default class DashboardController extends BaseController {
 
         //student Stats...
         this.router.get(`${this.path}/studentStats/:student_user_id`, this.getStudentStats.bind(this))
-
+        this.router.get(`${this.path}/studentStats/:student_user_id/`, this.getStudentStats.bind(this))
         super.initializeRoutes();
     }
 
@@ -198,6 +198,7 @@ export default class DashboardController extends BaseController {
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////// STUDENT STATS
+    ///////// PS: this assumes that there is only course in the systems and hence alll topics inside topics table are taken for over counts
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     private async getStudentStats(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try{
@@ -211,21 +212,68 @@ export default class DashboardController extends BaseController {
                 whereClauseStatusPartLiteral = `status = "${paramStatus}"`
                 addWhereClauseStatusPart =true;
             }
-            const studentStatsResul = student.findOne({
+            const studentStatsResul = await student.findOne({
                 where:{
                     user_id:student_user_id
                 },
                 attributes:[
                     [
                         db.literal(`(
-                        select count(utp.user_id) 
-                        from user_topic_progress as utp
-                        where 
-                        ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
-                        and utp.user_id=\`student\`.\`user_id\`
-                        )`),
+                            ${this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_topics_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${this.getDbLieralForAllToipcVideosCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_videos_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${this.getDbLieralForAllToipcWorksheetCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_worksheets_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${this.getDbLieralForAllToipcQuizCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_quiz_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
                         "topics_completed_count"
-                    ]
+                    ],
+                    [
+                        db.literal(`(
+                            ${this.getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "videos_completed_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${this.getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "worksheet_completed_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${this.getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "quiz_completed_count"
+                    ],
+                    
                 ]
             })
             if(!studentStatsResul){
@@ -240,6 +288,51 @@ export default class DashboardController extends BaseController {
         }catch(err){
             next(err)
         }
+    }
+
+
+    
+    getDbLieralForAllToipcsCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+       return  `
+            select count(t.course_topic_id) 
+            from course_topics as t
+            where 
+            ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
+            `
+    }
+    getDbLieralForAllToipcVideosCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+        return this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+        `and t.topic_type = "VIDEO"`
+     }
+    getDbLieralForAllToipcWorksheetCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+    return this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+    `and t.topic_type = "WORKSHEET"`
+    }
+    getDbLieralForAllToipcQuizCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+    return this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+    `and t.topic_type = "QUIZ"`
+    }
+    getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+        return  `
+            select count(utp.user_id) 
+            from user_topic_progress as utp
+            join course_topics as t on t.course_topic_id=utp.course_topic_id
+            where 
+            ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
+            and utp.user_id=\`student\`.\`user_id\`
+            `
+     }
+    getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+        return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+        `and t.topic_type = "VIDEO"`
+    }
+    getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+        return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+        `and t.topic_type = "WORKSHEET"`
+    }
+    getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+        return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+        `and t.topic_type = "QUIZ"`
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
