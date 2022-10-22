@@ -1,7 +1,8 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
+import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
-
+import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
 import { baseConfig } from '../configs/base.config';
 import { user } from '../models/user.model';
@@ -10,7 +11,7 @@ import dispatcher from '../utils/dispatch.util';
 import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
-import { badRequest, internal } from 'boom';
+import { badRequest, internal, notFound } from 'boom';
 import { mentor } from '../models/mentor.model';
 import { where } from 'sequelize/types';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
@@ -18,12 +19,14 @@ import { quiz_survey_response } from '../models/quiz_survey_response.model';
 import { quiz_response } from '../models/quiz_response.model';
 import { team } from '../models/team.model';
 import { student } from '../models/student.model';
+import { constents } from '../configs/constents.config';
+import { organization } from '../models/organization.model';
 
 export default class MentorController extends BaseController {
     model = "mentor";
     authService: authService = new authService;
     private password = process.env.GLOBAL_PASSWORD;
-
+    private nanoid = customAlphabet('0123456789', 6);
     protected initializePath(): void {
         this.path = '/mentors';
     }
@@ -43,7 +46,95 @@ export default class MentorController extends BaseController {
         this.router.put(`${this.path}/updateMobile`, this.updateMobile.bind(this));
         this.router.delete(`${this.path}/:mentor_user_id/deleteAllData`, this.deleteAllData.bind(this));
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
+        this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
+        
         super.initializeRoutes();
+    }
+
+    //TODO: Override the getDate function for mentor and join org details and user details
+    protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let data: any;
+            const { model, id } = req.params;
+            const paramStatus: any = req.query.status;
+            if (model) {
+                this.model = model;
+            };
+            // pagination
+            const { page, size, status } = req.query;
+            let condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(model).catch(error => {
+                next(error)
+            });
+            const where: any = {};
+            let whereClauseStatusPart: any = {};
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+            }
+            if (id) {
+                where[`${this.model}_id`] = req.params.id;
+                data = await this.crudService.findOne(modelClass, {
+                    where: {
+                        [Op.and]: [
+                            whereClauseStatusPart,
+                            where,
+                        ]
+                    },
+                    include: {
+                        model: organization,
+                        attributes: [
+                            "organization_code",
+                            "organization_name",
+                            "organization_id",
+                            "principal_name",
+                            "principal_mobile",
+                            "principal_email",
+                            "city",
+                            "district",
+                            "state",
+                            "country"
+                        ]
+                    }
+                });
+            } else {
+                try {
+                    const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                        where: {
+                            [Op.and]: [
+                                whereClauseStatusPart,
+                                condition
+                            ]
+                        }, limit, offset
+                    })
+                    const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
+                    data = result;
+                } catch (error: any) {
+                    return res.status(500).send(dispatcher(res, data, 'error'))
+                }
+
+            }
+            // if (!data) {
+            //     return res.status(404).send(dispatcher(res,data, 'error'));
+            // }
+            if (!data || data instanceof Error) {
+                if (data != null) {
+                    throw notFound(data.message)
+                } else {
+                    throw notFound()
+                }
+                res.status(200).send(dispatcher(res, null, "error", speeches.DATA_NOT_FOUND));
+                // if(data!=null){
+                //     throw 
+                (data.message)
+                // }else{
+                //     throw notFound()
+                // }
+            }
+            return res.status(200).send(dispatcher(res, data, 'success'));
+        } catch (error) {
+            next(error);
+        }
     }
     // TODO: update the register flow by adding a flag called reg_statue in mentor tables
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -73,6 +164,10 @@ export default class MentorController extends BaseController {
         const updatePassword = await this.authService.crudService.update(user,
             { password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT) },
             { where: { user_id: result.dataValues.user_id } });
+        const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
+            { otp: otp },
+            { where: { user_id: result.dataValues.user_id } }
+        );
         const data = result.dataValues;
         return res.status(201).send(dispatcher(res, data, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
@@ -299,6 +394,7 @@ export default class MentorController extends BaseController {
             if (!mobile) {
                 throw badRequest(speeches.MOBILE_NUMBER_REQUIRED);
             }
+            // req.body['otp'] = 
             const result = await this.authService.mentorResetPassword(req.body);
             if (!result) {
                 return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
@@ -311,4 +407,33 @@ export default class MentorController extends BaseController {
             next(error)
         }
     }
+    private async manualResetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        // accept the user_id or user_name from the req.body and update the password in the user table
+        // perviously while student registration changes we have changed the password is changed to random generated UUID and stored and send in the payload,
+        // now reset password use case is to change the password using user_id to some random generated ID and update the UUID also
+        const randomGeneratedSixDigitID: any = this.nanoid();
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(randomGeneratedSixDigitID);
+        try {
+            const { user_id } = req.body;
+            req.body['otp'] = randomGeneratedSixDigitID;
+            req.body['encryptedString'] = cryptoEncryptedString;
+            if (!user_id) throw badRequest(speeches.USER_USERID_REQUIRED);
+            const result = await this.authService.manualMentorResetPassword(req.body);
+            if (!result) return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+            else if (result.error) return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
+            else return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        } catch (error) {
+            next(error)
+        }
+        // const generatedUUID = this.nanoid();
+        // req.body['generatedPassword'] = generatedUUID;
+        // const result = await this.authService.restPassword(req.body, res);
+        // if (!result) {
+        //     return res.status(404).send(dispatcher(res, result.user_res, 'error', speeches.USER_NOT_FOUND));
+        // } else if (result.match) {
+        //     return res.status(404).send(dispatcher(res, result.match, 'error', speeches.USER_PASSWORD));
+        // } else {
+        //     return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        // }
+    };
 };
