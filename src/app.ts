@@ -167,7 +167,7 @@ export default class App {
     // }
 
     private initializeRouteProtectionMiddleware(): void {
-        this.app.use(routeProtectionMiddleware);
+        // this.app.use(routeProtectionMiddleware);
     }
 
     private initializeTranslations() {

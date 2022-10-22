@@ -7,6 +7,7 @@ import { baseConfig } from '../configs/base.config';
 import { user } from './user.model';
 import { admin } from './admin.model';
 import { mentor } from './mentor.model';
+import { team } from './team.model';
 
 export class student extends Model<InferAttributes<student>, InferCreationAttributes<student>> {
     declare student_id: CreationOptional<number>;
@@ -24,6 +25,7 @@ export class student extends Model<InferAttributes<student>, InferCreationAttrib
     declare district: string;
     declare state: string;
     declare country: string;
+    declare badges: string;
     declare status: Enumerator;
     declare created_by: number;
     declare created_at: Date;
@@ -97,6 +99,9 @@ student.init(
         country: {
             type: DataTypes.STRING
         },
+        badges: {
+            type: DataTypes.TEXT('long')
+        },
         status: {
             type: DataTypes.ENUM(...Object.values(constents.common_status_flags.list)),
             defaultValue: constents.common_status_flags.default
@@ -146,5 +151,7 @@ student.init(
 
 // student.belongsTo(user, { foreignKey: 'user_id', constraints: false });
 // user.hasOne(student, { foreignKey: 'user_id', constraints: false, scope: { role: 'STUDENT' } });
+student.belongsTo(user, { foreignKey: 'user_id' });
+user.hasMany(student, { foreignKey: 'user_id' });
 student.belongsTo(user, { foreignKey: 'user_id' });
 user.hasMany(student, { foreignKey: 'user_id' });
