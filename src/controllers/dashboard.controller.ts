@@ -15,7 +15,7 @@ import { organization } from '../models/organization.model';
 import { constents } from '../configs/constents.config';
 import path from 'path';
 import { readFileSync } from 'fs';
-import { internal, notFound } from 'boom';
+import { badData, internal, notFound } from 'boom';
 import { student } from '../models/student.model';
 import { team } from '../models/team.model';
 import { challenge_response } from '../models/challenge_response.model';
@@ -48,6 +48,7 @@ export default class DashboardController extends BaseController {
         //student Stats...
         this.router.get(`${this.path}/studentStats/:student_user_id`, this.getStudentStats.bind(this))
         this.router.get(`${this.path}/studentStats/:student_user_id/challenges`, this.getStudentChallengeDetails.bind(this))
+        this.router.get(`${this.path}/studentStats/:student_user_id/teamProgress`, this.getTeamProgress.bind(this))
         
         
         super.initializeRoutes();
@@ -218,6 +219,8 @@ export default class DashboardController extends BaseController {
                 whereClauseStatusPartLiteral = `status = "${paramStatus}"`
                 addWhereClauseStatusPart =true;
             }
+
+            const serviceDashboard = new DashboardService();
             const studentStatsResul:any = await student.findOne({
                 where:{
                     user_id:student_user_id
@@ -226,56 +229,56 @@ export default class DashboardController extends BaseController {
                 attributes:[
                     [
                         db.literal(`(
-                            ${this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "all_topics_count"
                     ],
                     [
                         db.literal(`(
-                            ${this.getDbLieralForAllToipcVideosCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForAllToipcVideosCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "all_videos_count"
                     ],
                     [
                         db.literal(`(
-                            ${this.getDbLieralForAllToipcWorksheetCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForAllToipcWorksheetCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "all_worksheets_count"
                     ],
                     [
                         db.literal(`(
-                            ${this.getDbLieralForAllToipcQuizCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForAllToipcQuizCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "all_quiz_count"
                     ],
                     [
                         db.literal(`(
-                            ${this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "topics_completed_count"
                     ],
                     [
                         db.literal(`(
-                            ${this.getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "videos_completed_count"
                     ],
                     [
                         db.literal(`(
-                            ${this.getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "worksheet_completed_count"
                     ],
                     [
                         db.literal(`(
-                            ${this.getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart,
+                            ${serviceDashboard.getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
                             )`),
                         "quiz_completed_count"
@@ -309,53 +312,6 @@ export default class DashboardController extends BaseController {
             next(err)
         }
     }
-
-
-    
-    getDbLieralForAllToipcsCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-       return  `
-            select count(t.course_topic_id) 
-            from course_topics as t
-            where 
-            ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
-            `
-    }
-    getDbLieralForAllToipcVideosCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-        return this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-        `and t.topic_type = "VIDEO"`
-     }
-    getDbLieralForAllToipcWorksheetCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-    return this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-    `and t.topic_type = "WORKSHEET"`
-    }
-    getDbLieralForAllToipcQuizCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-    return this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-    `and t.topic_type = "QUIZ"`
-    }
-    getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-        return  `
-            select count(utp.user_id) 
-            from user_topic_progress as utp
-            join course_topics as t on t.course_topic_id=utp.course_topic_id
-            where 
-            ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
-            and utp.user_id=\`student\`.\`user_id\`
-            `
-     }
-    getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-        return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-        `and t.topic_type = "VIDEO"`
-    }
-    getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-        return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-        `and t.topic_type = "WORKSHEET"`
-    }
-    getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-        return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-        `and t.topic_type = "QUIZ"`
-    }
-
-
 
     private async getStudentChallengeDetails(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
@@ -420,6 +376,40 @@ export default class DashboardController extends BaseController {
             next(err)
         }
     }
+    private async getTeamProgress(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try{
+            const { student_user_id } = req.params;
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const studentService = new StudentService();
+            
+            let teamMembers:any = await studentService.getTeamMembersForUserIdWithProgressAsOptional(
+                student_user_id,
+                true,
+                addWhereClauseStatusPart,
+                whereClauseStatusPartLiteral)
+
+            if(!teamMembers){
+                throw badData(speeches.TEAM_NOT_FOUND)
+            }
+            if(teamMembers instanceof Error){
+                throw teamMembers
+            }
+
+            res.status(200).send(dispatcher(res,teamMembers,"success"))
+
+        }catch(err){
+            next(err)
+        }
+    }
+    
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////// MAPP STATS
