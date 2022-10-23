@@ -10,15 +10,49 @@ import { reflective_quiz_response } from "../models/reflective_quiz_response.mod
 import { student } from "../models/student.model";
 import BaseService from "./base.service";
 import CRUDService from "./crud.service";
+import DashboardService from "./dashboard.service";
 
 export default class StudentService extends BaseService{
     
     async getTeamMembersForUserId(student_user_id:any){
         try{
+            return await this.getTeamMembersForUserIdWithProgressAsOptional(student_user_id,false);
+        }catch(err){
+            return err;
+        }
+    }
+
+    async getTeamMembersForUserIdWithProgressAsOptional(student_user_id:any,
+        showProgressAsWell=false,addWhereClauseStatusPart=false,whereClauseStatusPartLiteral="1=1"){
+        try{
             if(!student_user_id){
                 throw badRequest(speeches.USER_NOT_FOUND)
             }
+            const serviceDashboard = new DashboardService()
+            let attrsToIncludeForProgress:any = []
+            if(showProgressAsWell){
+                attrsToIncludeForProgress=[
+                    [
+                        //todo:TODO:optimization:this can further be optimised interms of right now total over topics count remains same for all students ..but we are still querying this for all students 
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_topics_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "topics_completed_count"
+                    ],
+                ]    
+            }
             const studentResult = await student.findAll({
+                attributes:{
+                    include:attrsToIncludeForProgress
+                },
                 where:{
                     [Op.and]:[
                         {   team_id:{
@@ -41,7 +75,7 @@ export default class StudentService extends BaseService{
                         }
                     ]
                     
-                }
+                },
             })
 
             if(!studentResult){
