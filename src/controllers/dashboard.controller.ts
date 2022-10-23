@@ -218,10 +218,11 @@ export default class DashboardController extends BaseController {
                 whereClauseStatusPartLiteral = `status = "${paramStatus}"`
                 addWhereClauseStatusPart =true;
             }
-            const studentStatsResul = await student.findOne({
+            const studentStatsResul:any = await student.findOne({
                 where:{
                     user_id:student_user_id
                 },
+                raw:true,
                 attributes:[
                     [
                         db.literal(`(
@@ -279,7 +280,7 @@ export default class DashboardController extends BaseController {
                             )`),
                         "quiz_completed_count"
                     ],
-                    
+                    "badges"
                 ]
             })
             if(!studentStatsResul){
@@ -288,6 +289,19 @@ export default class DashboardController extends BaseController {
             if(studentStatsResul instanceof Error){
                 throw studentStatsResul
             }
+            // console.log(studentStatsResul)
+            const badges = studentStatsResul.badges;
+            let badgesCount = 0
+            if(badges){
+               const badgesParsed =  JSON.parse(badges);
+               if(badgesParsed ){
+                badgesCount = Object.keys(badgesParsed).length
+               }
+               delete studentStatsResul.badges;
+            }
+            studentStatsResul["badges_earned_count"]=badgesCount;
+
+            
 
             res.status(200).send(dispatcher(res,studentStatsResul,"success"))
 
