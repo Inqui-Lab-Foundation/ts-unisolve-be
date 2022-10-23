@@ -16,16 +16,7 @@ phases:
     commands:
       - echo Build completed on `date`
       - touch .env
-      - echo 'DB_TARGET=local
-              DB_CLIENT=mysql
-              DB_PORT=3306
-              DB_HOST=ls-03a76c10579a258436b330b94f51593549b70422.chqqmkdqkqez.ap-south-1.rds.amazonaws.com
-              DB_USER=unisolvedbmaster
-              DB_PASSWORD=qSi-a:Nvz,Kf0wo1-I?k!oU[ba_7m<DA
-              DB_NAME=unisolve_db
-              DB_MIGRATE_FORCE=false
-              DB_MIGRATE_ALTER=true' > .env
-   
+      - echo -e 'DB_TARGET=local\nDB_CLIENT=mysql\nDB_PORT=3306\nDB_HOST=ls-03a76c10579a258436b330b94f51593549b70422.chqqmkdqkqez.ap-south-1.rds.amazonaws.com\nDB_USER=unisolvedbmaster\nDB_PASSWORD=qSi-a:Nvz,Kf0wo1-I?k!oU[ba_7m<DA\nDB_NAME=unisolve_db\nDB_MIGRATE_FORCE=false\nDB_MIGRATE_ALTER=true' > .env
 artifacts:
   files:
     - '**/*'
