@@ -7,9 +7,9 @@ const database = new Sequelize(
     {
         host: process.env.DB_HOST,
         dialect: 'mysql',
-        logging: console.log,
-        logQueryParameters: true,
-        // logging: false,
+        // logging: console.log,
+        // logQueryParameters: true,
+        logging: false,
         pool: {
             max: 9,
             min: 6,

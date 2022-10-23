@@ -1,13 +1,14 @@
 import { Model } from "sequelize";
+import { constents } from "../configs/constents.config";
 import { speeches } from "../configs/speeches.config";
 import TranslationsProvider from "../utils/translations/translationProvider";
 
 export default class TranslationService {
 
     
-    private currentLocale=TranslationsProvider.getDefaultLocale()
+    private currentLocale:any = constents.translations_flags.default_locale
 
-    constructor(argCurrentLocale:string=TranslationsProvider.getDefaultLocale(),initProviderAsWell=false){
+    constructor(argCurrentLocale:string=constents.translations_flags.default_locale,initProviderAsWell=false){
         this.setCurrentLocale(argCurrentLocale)
         if(initProviderAsWell){
             TranslationsProvider.init()
