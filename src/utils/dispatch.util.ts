@@ -48,6 +48,7 @@ export default function dispatcher(res:Response,data: any, status:string="succes
                 break;
         }
         // console.log(resObj)
+        // console.log(res.locals)
         if(res && res.locals && res.locals.translationService){
             if(res.locals.translationService.currentLocale != constents.translations_flags.default_locale){
                 resObj = res.locals.translationService.translateEntireObj(resObj);

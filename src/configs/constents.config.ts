@@ -38,6 +38,14 @@ export const constents = {
     },
     default: 'ACTIVE'
   },
+  tut_videos_type_flags: {
+    list: {
+      'ALL': 'ALL',
+      'MENTOR': 'MENTOR',
+      'STUDENT': 'STUDENT',
+    },
+    default: 'ALL'
+  },
   organization_status_flags: {
     list: {
       'NEW': 'NEW',
