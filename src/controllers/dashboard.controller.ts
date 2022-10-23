@@ -18,6 +18,8 @@ import { readFileSync } from 'fs';
 import { internal, notFound } from 'boom';
 import { student } from '../models/student.model';
 import { team } from '../models/team.model';
+import { challenge_response } from '../models/challenge_response.model';
+import StudentService from '../services/students.service';
 
 
 export default class DashboardController extends BaseController {
@@ -45,10 +47,9 @@ export default class DashboardController extends BaseController {
 
         //student Stats...
         this.router.get(`${this.path}/studentStats/:student_user_id`, this.getStudentStats.bind(this))
-        this.router.get(`${this.path}/studentStats/:student_user_id/`, this.getStudentStats.bind(this))
-
-        //challenge stats
-        this.router.get(`${this.path}/challengeDetails/:team_id`, this.challengeDetails.bind(this))
+        this.router.get(`${this.path}/studentStats/:student_user_id/challenges`, this.getStudentChallengeDetails.bind(this))
+        
+        
         super.initializeRoutes();
     }
 
@@ -340,6 +341,72 @@ export default class DashboardController extends BaseController {
         `and t.topic_type = "QUIZ"`
     }
 
+
+
+    private async getStudentChallengeDetails(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            
+            const { student_user_id } = req.params;
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const studentService = new StudentService();
+            const endDate = "20th November 2022 at 12pm"
+            let challenge_submission_status= false
+            let result:any = {
+                end_date:"20th November 2022 at 12pm"
+            }
+            let teamMembers:any = await studentService.getTeamMembersForUserId(student_user_id)
+            if(!teamMembers){
+                teamMembers=[]
+            }
+            if(teamMembers instanceof Error){
+                throw teamMembers
+            }
+            result = {
+                ...result,
+                "challenge_submission_status":challenge_submission_status,
+                "team_members":teamMembers
+            }
+            // console.log("teamMembers",teamMembers)
+            if(teamMembers.length<=0){
+                res.status(200).send(dispatcher(res,result,"success"))
+                return;
+            }
+            
+            const studentChallengeSubmission  = await challenge_response.findAll({
+                where:{
+                    team_id:teamMembers[0].team_id
+                }        
+            })
+
+            if(!studentChallengeSubmission){
+                res.status(200).send(dispatcher(res,result,"success"))
+                return;
+            }
+            if (studentChallengeSubmission instanceof Error) {
+                throw studentChallengeSubmission
+            }
+            
+            challenge_submission_status=true;
+            result = {
+                ...result,
+                "challenge_submission_status":challenge_submission_status,
+                "team_members":teamMembers
+            }
+            res.status(200).send(dispatcher(res,result,"success"))
+            return;
+        } catch (err) {
+            next(err)
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////// MAPP STATS
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -371,82 +438,4 @@ export default class DashboardController extends BaseController {
             next(error);
         }
     };
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    ///////// CHALLENGE STATS
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
-    private async challengeDetails(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        try {
-            console.log(req.params.team_id)
-            const { team_id } = req.params;
-            const paramStatus: any = req.query.status;
-            let whereClauseStatusPart: any = {};
-            let whereClauseStatusPartLiteral = "1=1";
-            let addWhereClauseStatusPart = false
-            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
-                addWhereClauseStatusPart = true;
-            }
-            const student_stats = await team.findOne({
-                where: { team_id: team_id },
-                    include: {
-                        model: student, 
-                        attributes: ["student_id"],
-                    }
-                })
-                // attributes: [
-                //     [db.literal(`(
-                //     select count(*) 
-                //     from students as s
-                //     where 
-                //     ${addWhereClauseStatusPart ? "s." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
-                //     and s.team_id=\`${team_id}\`))`), "students_count"
-                //     ],
-                    // [
-                    //     db.literal(`(
-                    // select count(c.team_id) 
-                    // from challenge_responses as c 
-                    // where c.team_id in (
-                    //     select team_id 
-                    //     from teams as t
-                    //     where 
-                    //     ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
-                    //     and t.mentor_id=\`mentor\`.\`user_id\`) 
-                    // and c.status not in ('DRAFT')
-                    // )`),
-                    //     "ideas_count"
-                    // ],
-                    // [
-                    //     db.literal(`(
-                    // select count(t.team_id) 
-                    // from teams as t
-                    // where 
-                    // ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
-                    // and t.mentor_id=\`mentor\`.\`user_id\`
-                    // )`),
-                    //     "teams_count"
-                    // ]
-                // ],
-                // include: {
-                //     model: organization,
-                //     attributes: [
-                //         'organization_name',
-                //         'district'
-                //     ]
-                // }
-            // })
-            console.log(student_stats)
-            if (student_stats instanceof Error) {
-                throw student_stats
-            }
-            if (student_stats) {
-                res.status(200).json(dispatcher(res, student_stats, "success"))
-            } else {
-                res.status(500).json(dispatcher(res, "something went wrong", "error"))
-            }
-        } catch (err) {
-            next(err)
-        }
-    }
 };
