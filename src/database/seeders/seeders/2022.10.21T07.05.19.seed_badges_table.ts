@@ -6,15 +6,21 @@ export const tableName = badge.tableName;
 export const up: Migration = async ({ context: sequelize }) => {
 	// await sequelize.query(`raise fail('up migration not implemented')`); //call direct sql 
 	//or below implementation 
-	await createBadge(sequelize,"Pre Survey Completed")
+	await createBadge(sequelize, "Pre Survey Completed",)
 	await createBadge(sequelize,"Course Completed")
+	await createBadge(sequelize, "The Inspirer", "", "/assets/images/badges/The_Inspirer_Individual_Badge.png")
+	await createBadge(sequelize, "The Team Player", "", "/assets/images/badges/The_Team_Player_Individual_Badge.png")
+	await createBadge(sequelize, "The Finder", "", "/assets/images/badges/The_Finder_Individual_Badge.png")
+	await createBadge(sequelize, "The Explorer", "", "/assets/images/badges/The_Explorer_Individual_Badge.png")
+	await createBadge(sequelize, "The Ideator", "", "/assets/images/badges/The_Ideator_Individual_Badge.png")
+	await createBadge(sequelize, "The Solver", "", "/assets/images/badges/The_Solver_Individual_Badge.png")
 };
 
 async function createBadge(
 	sequelize: any,
 	name: string,
 	desc: string="",
-	icon: string="/assets/images/default.jpg",) {
+	icon: string = "/assets/images/badges/default.jpg",) {
 		const badgeCreated = await badge.create({
 			name: name,
 			desc: desc,
