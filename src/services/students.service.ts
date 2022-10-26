@@ -23,7 +23,7 @@ export default class StudentService extends BaseService{
     }
 
     async getTeamMembersForUserIdWithProgressAsOptional(student_user_id:any,
-        showProgressAsWell=false,addWhereClauseStatusPart=false,whereClauseStatusPartLiteral="1=1"){
+        showProgressAsWell=false,addWhereClauseStatusPart=false,whereClauseStatusPartLiteral="1=1",showCurrUserAsWell=true){
         try{
             if(!student_user_id){
                 throw badRequest(speeches.USER_NOT_FOUND)
@@ -49,6 +49,14 @@ export default class StudentService extends BaseService{
                     ],
                 ]    
             }
+            let whereClauseShowCurrUserPart = {}
+            if(!showCurrUserAsWell){
+                whereClauseShowCurrUserPart = { 
+                    user_id:{
+                        [Op.notIn]: [student_user_id],
+                    }
+                }
+            }
             const studentResult = await student.findAll({
                 attributes:{
                     include:attrsToIncludeForProgress
@@ -69,10 +77,7 @@ export default class StudentService extends BaseService{
                                 ],
                             }
                         },
-                        {   user_id:{
-                                [Op.notIn]: [student_user_id],
-                            }
-                        }
+                        whereClauseShowCurrUserPart
                     ]
                     
                 },
