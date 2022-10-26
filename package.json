@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "npm run start:dev",
+    "start": "npm run start:prod",
     "start:dev": "nodemon",
     "start:prod": "pm2 start processes.json",
     "start:QA": "pm2 start  processes.json --env testing",
