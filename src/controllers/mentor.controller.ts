@@ -47,7 +47,7 @@ export default class MentorController extends BaseController {
         this.router.delete(`${this.path}/:mentor_user_id/deleteAllData`, this.deleteAllData.bind(this));
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
         this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
-        
+
         super.initializeRoutes();
     }
 
@@ -132,6 +132,42 @@ export default class MentorController extends BaseController {
                 // }
             }
             return res.status(200).send(dispatcher(res, data, 'success'));
+        } catch (error) {
+            next(error);
+        }
+    }
+    protected async updateData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            console.log(req.body.username)
+            const { model, id } = req.params;
+            if (model) {
+                this.model = model;
+            };
+            const user_id = res.locals.user_id
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const modelLoaded = await this.loadModel(model);
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded)
+            const findMentorDetail = await this.crudService.findOne(modelLoaded, { where: where });
+            console.log(findMentorDetail.dataValues.user_id);
+            if (!findMentorDetail || findMentorDetail instanceof Error) {
+                throw notFound();
+            } else {
+                const mentorData = await this.crudService.update(modelLoaded, payload, { where: where });
+                const userData = await this.crudService.update(user, { username: req.body.username }, { where: { user_id: findMentorDetail.dataValues.user_id } });
+                console.log(mentorData, userData);
+                if (!mentorData || !userData) {
+                    throw badRequest()
+                }
+                if (mentorData instanceof Error) {
+                    throw mentorData;
+                }
+                if (userData instanceof Error) {
+                    throw userData;
+                }
+                const data = { userData, mentor };
+                return res.status(200).send(dispatcher(res, data, 'updated'));
+            }
         } catch (error) {
             next(error);
         }
