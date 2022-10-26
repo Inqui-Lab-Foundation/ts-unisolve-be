@@ -118,7 +118,7 @@ export const speeches = {
     TEACHER_OBJECT: "Teacher object required",
     STUDENT_OBJECT: "Student object required",
     ROADMAP_FILE_CORRUPTED:"Roadmao file is corrupted, Please contact the administrator.",
-    BADGE_IDS_ARRAY_REQUIRED:"Badge_ids array required",
+    BADGE_IDS_ARRAY_REQUIRED:"badge_ids or badge_slugs any one of these array are required",
     VIDEO_STREAM_ID_REQUIRED:"Video stream id is required",
     TYPE_INVALID:"Invalid Type",
     TYPE_REQUIRED:"Type is required"
