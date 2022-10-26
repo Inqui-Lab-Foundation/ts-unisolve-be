@@ -169,6 +169,16 @@ export default class StudentController extends BaseController {
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
+                    attributes: [
+                        "student_id",
+                        "user_id",
+                        "UUID",
+                        "full_name",
+                        "date_of_birth",
+                        "qualification",
+                        "badges",
+                        "status"
+                    ],
                     where: {
                         [Op.and]: [
                             whereClauseStatusPart,
@@ -191,7 +201,11 @@ export default class StudentController extends BaseController {
                             include: {
                                 model: organization,
                                 attributes: [
-                                    'organization_name',
+                                    "organization_name",
+                                    "city",
+                                    "district",
+                                    "state",
+                                    "country",
                                 ],
                             }
                         }
@@ -289,13 +303,20 @@ export default class StudentController extends BaseController {
             // console.log("came here");
             const student_user_id: any = req.params.student_user_id;
             const badges_ids: any = req.body.badge_ids;
-            if (!badges_ids || !badges_ids.length || badges_ids.length <= 0) {
-                throw badRequest(speeches.BADGE_IDS_ARRAY_REQUIRED)
+            const badges_slugs: any = req.body.badge_slugs;
+            let areSlugsBeingUsed  = true;
+            if (!badges_slugs || !badges_slugs.length || badges_slugs.length <= 0) {
+                areSlugsBeingUsed = false;
             }
 
+            if (!areSlugsBeingUsed && (!badges_ids || !badges_ids.length || badges_ids.length <= 0)) {
+                throw badRequest(speeches.BADGE_IDS_ARRAY_REQUIRED)
+            }
+            
             const serviceStudent = new StudentService()
-            let studentBadgesObj: any = serviceStudent.getStudentBadges(student_user_id);
+            let studentBadgesObj: any = await serviceStudent.getStudentBadges(student_user_id);
             ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
+            // console.log(studentBadgesObj)
             if (studentBadgesObj instanceof Error) {
                 throw studentBadgesObj
             }
@@ -304,9 +325,24 @@ export default class StudentController extends BaseController {
             }
             const success: any = []
             const errors: any = []
-            for (var i = 0; i < badges_ids.length; i++) {
-                const badgeId = badges_ids[i];
-                const badgeResultForId = await this.crudService.findOne(badge, { where: { badge_id: badgeId } })
+            
+            let forLoopArr = badges_slugs;
+            
+            if(!areSlugsBeingUsed){
+                forLoopArr  = badges_ids
+            }
+
+            for (var i = 0; i < forLoopArr.length; i++) {
+                let badgeId = forLoopArr[i];
+                let badgeFindWhereClause:any = {
+                    slug:badgeId
+                }
+                if(!areSlugsBeingUsed){
+                    badgeFindWhereClause = {
+                        badge_id:badgeId
+                    }
+                }
+                const badgeResultForId = await this.crudService.findOne(badge, { where: badgeFindWhereClause})
                 if (!badgeResultForId) {
                     errors.push({ id: badgeId, err: badRequest(speeches.DATA_NOT_FOUND) })
                     continue;
@@ -317,13 +353,14 @@ export default class StudentController extends BaseController {
                 }
 
                 const date = new Date();
-                const studentHasBadgeObjForId = studentBadgesObj[badgeId]
+                const studentHasBadgeObjForId = studentBadgesObj[badgeResultForId.dataValues.slug]
                 if (!studentHasBadgeObjForId || !studentHasBadgeObjForId.completed_date) {
-                    studentBadgesObj[badgeId] = {
+                    studentBadgesObj[badgeResultForId.dataValues.slug] = {
                         completed_date: ("" + date.getFullYear() + "-" + "" + (date.getMonth() + 1) + "-" + "" + date.getDay())
                     }
                 }
             }
+            // console.log(studentBadgesObj)
             const studentBadgesObjJson = JSON.stringify(studentBadgesObj)
             const result: any = await student.update({ badges: studentBadgesObjJson }, {
                 where: {
@@ -337,8 +374,16 @@ export default class StudentController extends BaseController {
             if (!result) {
                 return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
             }
+            let dispatchStatus = "updated"
+            let resStatus = 202
+            let dispatchStatusMsg = speeches.USER_BADGES_LINKED
+            if(errors&& errors.length>0){
+                dispatchStatus = "error"
+                dispatchStatusMsg="error"
+                resStatus=400
+            }
 
-            return res.status(202).send(dispatcher(res, { errs: errors, success: studentBadgesObj }, 'updated', speeches.USER_BADGES_LINKED, 202));
+            return res.status(resStatus).send(dispatcher(res, { errs: errors, success: studentBadgesObj }, dispatchStatus, dispatchStatusMsg, resStatus));
         } catch (err) {
             next(err)
         }
@@ -388,8 +433,10 @@ export default class StudentController extends BaseController {
             // console.log(studentBadgesObj);
             for (var i = 0; i < allBadgesResult.length; i++) {
                 const currBadge: any = allBadgesResult[i];
-                if (studentBadgesObj.hasOwnProperty("" + currBadge.badge_id)) {
-                    currBadge["student_status"] = studentBadgesObj[("" + currBadge.badge_id)].completed_date
+                // console.log(currBadge.slug)
+                // console.log(studentBadgesObj)
+                if (studentBadgesObj.hasOwnProperty("" + currBadge.slug)) {
+                    currBadge["student_status"] = studentBadgesObj[("" + currBadge.slug)].completed_date
                 } else {
                     currBadge["student_status"] = null;
                 }
