@@ -169,6 +169,16 @@ export default class StudentController extends BaseController {
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
+                    attributes: [
+                        "student_id",
+                        "user_id",
+                        "UUID",
+                        "full_name",
+                        "date_of_birth",
+                        "qualification",
+                        "badges",
+                        "status"
+                    ],
                     where: {
                         [Op.and]: [
                             whereClauseStatusPart,
@@ -191,7 +201,11 @@ export default class StudentController extends BaseController {
                             include: {
                                 model: organization,
                                 attributes: [
-                                    'organization_name',
+                                    "organization_name",
+                                    "city",
+                                    "district",
+                                    "state",
+                                    "country",
                                 ],
                             }
                         }
