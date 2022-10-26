@@ -294,8 +294,9 @@ export default class StudentController extends BaseController {
             }
 
             const serviceStudent = new StudentService()
-            let studentBadgesObj: any = serviceStudent.getStudentBadges(student_user_id);
+            let studentBadgesObj: any = await serviceStudent.getStudentBadges(student_user_id);
             ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
+            // console.log(studentBadgesObj)
             if (studentBadgesObj instanceof Error) {
                 throw studentBadgesObj
             }
@@ -324,6 +325,7 @@ export default class StudentController extends BaseController {
                     }
                 }
             }
+            // console.log(studentBadgesObj)
             const studentBadgesObjJson = JSON.stringify(studentBadgesObj)
             const result: any = await student.update({ badges: studentBadgesObjJson }, {
                 where: {
