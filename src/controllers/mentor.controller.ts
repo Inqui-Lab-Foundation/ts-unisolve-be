@@ -6,6 +6,7 @@ import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
 import { baseConfig } from '../configs/base.config';
 import { user } from '../models/user.model';
+import db from "../utils/dbconnection.util"
 import { mentorSchema, mentorUpdateSchema } from '../validations/mentor.validationa';
 import dispatcher from '../utils/dispatch.util';
 import authService from '../services/auth.service';
@@ -75,6 +76,13 @@ export default class MentorController extends BaseController {
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
+                    attributes: {
+                        include: [
+                            [
+                                db.literal(`( SELECT username FROM users AS u WHERE u.user_id = \`mentor\`.\`user_id\`)`), 'username'
+                            ]
+                        ]
+                    },
                     where: {
                         [Op.and]: [
                             whereClauseStatusPart,
@@ -95,15 +103,44 @@ export default class MentorController extends BaseController {
                             "state",
                             "country"
                         ]
-                    }
+                    },
                 });
             } else {
                 try {
                     const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                        attributes: {
+                            attributes: [
+                                "mentor_id",
+                                "user_id",
+                                "full_name",
+                                "otp",
+                                "mobile",
+                            ],
+                            include: [
+                                [
+                                    db.literal(`( SELECT username FROM users AS u WHERE u.user_id = \`mentor\`.\`user_id\`)`), 'username'
+                                ]
+                            ],
+                        },
                         where: {
                             [Op.and]: [
                                 whereClauseStatusPart,
                                 condition
+                            ]
+                        },
+                        include: {
+                            model: organization,
+                            attributes: [
+                                "organization_code",
+                                "organization_name",
+                                "organization_id",
+                                "principal_name",
+                                "principal_mobile",
+                                "principal_email",
+                                "city",
+                                "district",
+                                "state",
+                                "country"
                             ]
                         }, limit, offset
                     })
