@@ -10,13 +10,13 @@ phases:
       - npm install
   build:
      commands:
+      - aws s3 cp s3://codepipeline-ap-south-1-203395984745/configs/prod/.env .
+      - cat .env
       - echo npm run build
       - npm run build
   post_build:
     commands:
       - echo Build completed on `date`
-      - touch .env   
-      - echo -e 'DB_TARGET=local\nDB_CLIENT=mysql\nDB_PORT=3306\nDB_HOST=ls-2e30f132c7afdaa9f2fd5a98d1538cb1cc67d30a.chqqmkdqkqez.ap-south-1.rds.amazonaws.com\nDB_USER=unisolvedbmaster\nDB_PASSWORD=t_R6tVR^^G[R9g%D8?(VSS))[uXrd`rK\nDB_NAME=unisolve_db\nDB_MIGRATE_FORCE=false\nDB_MIGRATE_ALTER=true' > .env
 artifacts:
   files:
     - '**/*'
