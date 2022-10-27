@@ -356,7 +356,8 @@ export default class StudentController extends BaseController {
                 const studentHasBadgeObjForId = studentBadgesObj[badgeResultForId.dataValues.slug]
                 if (!studentHasBadgeObjForId || !studentHasBadgeObjForId.completed_date) {
                     studentBadgesObj[badgeResultForId.dataValues.slug] = {
-                        completed_date: ("" + date.getFullYear() + "-" + "" + (date.getMonth() + 1) + "-" + "" + date.getDay())
+                        completed_date: (new Date())
+                        // completed_date: ("" + date.getFullYear() + "-" + "" + (date.getMonth() + 1) + "-" + "" + date.getDay())
                     }
                 }
             }
