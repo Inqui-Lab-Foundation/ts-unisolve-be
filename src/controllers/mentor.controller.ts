@@ -79,7 +79,7 @@ export default class MentorController extends BaseController {
                     attributes: {
                         include: [
                             [
-                                db.literal(`( SELECT username FROM users AS u WHERE u.user_id = \`mentor\`.\`user_id\`)`), 'username'
+                                db.literal(`( SELECT username FROM users AS u WHERE u.user_id = \`mentor\`.\`user_id\`)`), 'username_email'
                             ]
                         ]
                     },
