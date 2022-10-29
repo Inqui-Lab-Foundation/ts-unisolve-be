@@ -580,13 +580,13 @@ export default class authService {
             let result: any = {};
             let errors: any = [];
             let models = [
-                student,
-                user,
                 quiz_response,
                 quiz_survey_response,
                 reflective_quiz_response,
                 user_topic_progress,
-                worksheet_response
+                worksheet_response,
+                student,
+                user,
             ];
             for (let i = 0; i < models.length; i++) {
                 let deleted = await this.crudService.delete(models[i], { where: { user_id } });
