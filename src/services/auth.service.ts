@@ -575,6 +575,31 @@ export default class authService {
             return error;
         }
     }
+    async deleteStudentAndStudentResponse(user_id: any) {
+        try {
+            let result: any = {};
+            let errors: any = [];
+            let models = [
+                student,
+                user,
+                quiz_response,
+                quiz_survey_response,
+                reflective_quiz_response,
+                user_topic_progress,
+                worksheet_response
+            ];
+            for (let i = 0; i < models.length; i++) {
+                let deleted = await this.crudService.delete(models[i], { where: { user_id } });
+                if (!deleted || deleted instanceof Error) errors.push(deleted);
+                let data = models[i].tableName;
+                result[`${data}`] = deleted
+            }
+            if (errors) errors.forEach((e: any) => { throw new Error(e.message) })
+            return result;
+        } catch (error) {
+            return error;
+        }
+    }
     async bulkDeleteMentorResponse(user_id: any) {
         try {
             let result: any = {};
