@@ -14,6 +14,10 @@ import {  quizSchema, quizSubmitResponseSchema, quizSubmitResponsesSchema, quizU
 import ValidationsHolder from "../validations/validationHolder";
 import BaseController from "./base.controller";
 import db from "../utils/dbconnection.util";
+import { quiz_survey } from "../models/quiz_survey.model";
+import { mentor } from "../models/mentor.model";
+import { organization } from "../models/organization.model";
+import { user } from "../models/user.model";
 export default class QuizSurveyController extends BaseController {
 
     model = "quiz_survey";
@@ -29,7 +33,79 @@ export default class QuizSurveyController extends BaseController {
         this.router.get(this.path+"/:id/nextQuestion/",this.getNextQuestion.bind(this));
         this.router.post(this.path+"/:id/response/",validationMiddleware(quizSubmitResponseSchema),this.submitResponseSingle.bind(this));
         this.router.post(this.path+"/:id/responses/",validationMiddleware(quizSubmitResponsesSchema),this.submitResponses.bind(this));
+
+        this.router.get(this.path+"/:quiz_survey_id/status/",this.getQuizSurveyStatus.bind(this));
+
         super.initializeRoutes();
+    }
+    protected async getQuizSurveyStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try{
+            const {quiz_survey_id} = req.params
+
+            const quizSureyResult = await quiz_survey.findOne({where:{
+                quiz_survey_id:quiz_survey_id
+            }})
+            if(!quizSureyResult){
+                throw badRequest(speeches.INVALID_DATA)
+            }
+            if(quizSureyResult instanceof Error){
+                throw quizSureyResult
+            }
+
+            const { page, size, status } = req.query;
+            let condition = {}
+            // condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+
+            const paramStatus:any = req.query.status;
+            let whereClauseStatusPart:any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if(paramStatus && (paramStatus in constents.common_status_flags.list)){
+                whereClauseStatusPart = {"status":paramStatus}
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart =true;
+            }
+            
+            const mentorsResult = mentor.findAll({
+                attributes:{
+                    include:[
+                        [
+                            // Note the wrapping parentheses in the call below!
+                            db.literal(`(
+                                SELECT CASE WHEN EXISTS 
+                                    (SELECT user_id 
+                                    FROM quiz_survey_responses as qsp 
+                                    WHERE qsp.user_id =  \`mentor\`.\`user_id\`
+                                    AND qsp.quiz_survey_id = ${quiz_survey_id}) 
+                                THEN  
+                                    "COMPLETED"
+                                ELSE 
+                                    "INCOMPLETE"
+                                END as quiz_survey_status
+                            )`),
+                            'quiz_survey_status'
+                        ],
+                    ]
+                },
+                where:{
+                    [Op.and]:[
+                        whereClauseStatusPart,
+                        condition
+                    ]
+                },
+                include:[
+                    {model:organization},
+                    {model:user}
+                ],
+                limit,offset
+            })
+
+
+        }catch(err){
+            next(err)
+        }
+
     }
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {

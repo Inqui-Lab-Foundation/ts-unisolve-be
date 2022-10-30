@@ -49,9 +49,19 @@ export default class MentorController extends BaseController {
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
         this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
 
+        this.router.put(`${this.path}/regStatus`, this.getMentorRegStatus.bind(this));
+
         super.initializeRoutes();
     }
+    protected async getMentorRegStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try{
+            
 
+
+        }catch(err){
+            next(err)
+        }
+    }
     //TODO: Override the getDate function for mentor and join org details and user details
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {

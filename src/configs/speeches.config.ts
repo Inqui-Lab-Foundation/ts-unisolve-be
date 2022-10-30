@@ -121,5 +121,6 @@ export const speeches = {
     BADGE_IDS_ARRAY_REQUIRED:"badge_ids or badge_slugs any one of these array are required",
     VIDEO_STREAM_ID_REQUIRED:"Video stream id is required",
     TYPE_INVALID:"Invalid Type",
-    TYPE_REQUIRED:"Type is required"
+    TYPE_REQUIRED:"Type is required",
+    INVALID_DATA:"Invalid Data, please check validity of data in the payload."
 }
