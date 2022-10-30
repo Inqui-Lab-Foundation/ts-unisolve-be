@@ -70,15 +70,15 @@ export default class MentorController extends BaseController {
                 whereClauseStatusPartLiteral = `status = "${paramStatus}"`
                 addWhereClauseStatusPart = true;
             }
-            const mentorsResult = mentor.findAll({
+            const mentorsResult = await mentor.findAll({
                 attributes: [
                     "mobile",
                     "full_name",
                     "mentor_id",
-                    "created_by ",
-                    "created_at ",
-                    "updated_at ",
-                    "updated_by "
+                    "created_by",
+                    "created_at",
+                    "updated_at",
+                    "updated_by"
                 ],
                 where: {
                     [Op.and]: [
@@ -106,6 +106,13 @@ export default class MentorController extends BaseController {
                 ],
                 limit, offset
             });
+            if(!mentorsResult){
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if(mentorsResult instanceof Error){
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res,mentorsResult,"success"))
         } catch (err) {
             next(err)
         }

@@ -34,7 +34,7 @@ export default class QuizSurveyController extends BaseController {
         this.router.post(this.path+"/:id/response/",validationMiddleware(quizSubmitResponseSchema),this.submitResponseSingle.bind(this));
         this.router.post(this.path+"/:id/responses/",validationMiddleware(quizSubmitResponsesSchema),this.submitResponses.bind(this));
 
-        this.router.get(this.path+"/:quiz_survey_id/status/",this.getQuizSurveyStatus.bind(this));
+        this.router.get(this.path+"/:quiz_survey_id/mentorSurveyStatus/",this.getQuizSurveyStatus.bind(this));
 
         super.initializeRoutes();
     }
@@ -67,16 +67,22 @@ export default class QuizSurveyController extends BaseController {
                 addWhereClauseStatusPart =true;
             }
             
-            const mentorsResult = mentor.findAll({
-                attributes:{
-                    include:[
+            const mentorsResult = await mentor.findAll({
+                attributes:[
+                        "mobile",
+                        "full_name",
+                        "mentor_id",
+                        "created_by",
+                        "created_at",
+                        "updated_at",
+                        "updated_by",
                         [
                             // Note the wrapping parentheses in the call below!
                             db.literal(`(
                                 SELECT CASE WHEN EXISTS 
                                     (SELECT user_id 
                                     FROM quiz_survey_responses as qsp 
-                                    WHERE qsp.user_id =  \`mentor\`.\`user_id\`
+                                    WHERE qsp.user_id = \`mentor\`.\`user_id\`
                                     AND qsp.quiz_survey_id = ${quiz_survey_id}) 
                                 THEN  
                                     "COMPLETED"
@@ -86,22 +92,21 @@ export default class QuizSurveyController extends BaseController {
                             )`),
                             'quiz_survey_status'
                         ],
-                    ]
-                },
-                where:{
-                    [Op.and]:[
-                        whereClauseStatusPart,
-                        condition
-                    ]
-                },
+                    ],
                 include:[
                     {model:organization},
                     {model:user}
                 ],
                 limit,offset
-            })
+            });
 
-
+            if(!mentorsResult){
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if(mentorsResult instanceof Error){
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res,mentorsResult,"success"))
         }catch(err){
             next(err)
         }
