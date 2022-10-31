@@ -70,15 +70,14 @@ export default class MentorController extends BaseController {
                 whereClauseStatusPartLiteral = `status = "${paramStatus}"`
                 addWhereClauseStatusPart = true;
             }
-            const mentorsResult = await mentor.findAll({
+            const mentorsResult = await organization.findAll({
                 attributes: [
-                    "mobile",
-                    "full_name",
-                    "mentor_id",
-                    "created_by",
-                    "created_at",
-                    "updated_at",
-                    "updated_by"
+                    "organization_code",
+                    "organization_name",
+                    "city",
+                    "district",
+                    "state",
+                    "country"
                 ],
                 where: {
                     [Op.and]: [
@@ -88,19 +87,22 @@ export default class MentorController extends BaseController {
                 },
                 include: [
                     {
-                        model: organization, attributes: [
-                            "organization_code",
-                            "organization_name",
-                            "city",
-                            "district",
-                            "state",
-                            "country"
-                        ]
-                    },
-                    {
-                        model: user, attributes: [
-                            "username",
-                            "user_id"
+                        model: mentor, attributes: [
+                            "mobile",
+                            "full_name",
+                            "mentor_id",
+                            "created_by",
+                            "created_at",
+                            "updated_at",
+                            "updated_by"
+                        ],
+                        include: [
+                            {
+                                model: user, attributes: [
+                                    "username",
+                                    "user_id"
+                                ]
+                            }
                         ]
                     }
                 ],
