@@ -163,6 +163,14 @@ export const constents = {
     },
     default: "DRAFT"
   },
+  quiz_survey_status_flags: {
+    list: {
+      "ALL": "ALL",
+      "COMPLETED": "COMPLETED",
+      "INCOMPLETE": "INCOMPLETE",
+    },
+    default: "ALL"
+  },
   translations_flags:{
     default_locale: "en"
   },
