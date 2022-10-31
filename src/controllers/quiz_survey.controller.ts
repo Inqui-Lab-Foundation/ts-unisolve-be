@@ -14,6 +14,11 @@ import {  quizSchema, quizSubmitResponseSchema, quizSubmitResponsesSchema, quizU
 import ValidationsHolder from "../validations/validationHolder";
 import BaseController from "./base.controller";
 import db from "../utils/dbconnection.util";
+import { quiz_survey } from "../models/quiz_survey.model";
+import { mentor } from "../models/mentor.model";
+import { organization } from "../models/organization.model";
+import { user } from "../models/user.model";
+import { student } from "../models/student.model";
 export default class QuizSurveyController extends BaseController {
 
     model = "quiz_survey";
@@ -29,7 +34,136 @@ export default class QuizSurveyController extends BaseController {
         this.router.get(this.path+"/:id/nextQuestion/",this.getNextQuestion.bind(this));
         this.router.post(this.path+"/:id/response/",validationMiddleware(quizSubmitResponseSchema),this.submitResponseSingle.bind(this));
         this.router.post(this.path+"/:id/responses/",validationMiddleware(quizSubmitResponsesSchema),this.submitResponses.bind(this));
+
+        this.router.get(this.path+"/:quiz_survey_id/surveyStatus",this.getQuizSurveyStatus.bind(this));
+
         super.initializeRoutes();
+    }
+    protected async getQuizSurveyStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try{
+            const {quiz_survey_id} = req.params
+
+            const quizSureyResult = await quiz_survey.findOne({where:{
+                quiz_survey_id:quiz_survey_id
+            }})
+            if(!quizSureyResult){
+                throw badRequest(speeches.INVALID_DATA)
+            }
+            if(quizSureyResult instanceof Error){
+                throw quizSureyResult
+            }
+            let quizSurveyStatusParam:any = req.query.quizSurveyStatus;
+            if(!quizSurveyStatusParam || !(quizSurveyStatusParam in constents.quiz_survey_status_flags.list)){
+                quizSurveyStatusParam=constents.quiz_survey_status_flags.default
+            }
+            let condition = {}
+            const userIdsObjWithQuizCompletedArr = await quiz_survey_response.findAll({
+                attributes:[
+                    "user_id"
+                ],
+                raw:true,
+                where:{
+                    quiz_survey_id : quiz_survey_id,
+                }
+            })
+
+            if(userIdsObjWithQuizCompletedArr instanceof Error){
+                throw userIdsObjWithQuizCompletedArr
+            }
+
+            const userIdsWithQuizCompletedArr=userIdsObjWithQuizCompletedArr.map((element)=>{
+                return element.user_id
+            });
+            // console.log("userIdsWithQuizCompletedArr",userIdsWithQuizCompletedArr)
+            if(quizSurveyStatusParam == constents.quiz_survey_status_flags.list["COMPLETED"]){
+                condition = {
+                    user_id:{
+                        [Op.in]:userIdsWithQuizCompletedArr
+                    }
+                }
+            }else if(quizSurveyStatusParam == constents.quiz_survey_status_flags.list["INCOMPLETE"]){
+                condition = {
+                    user_id:{
+                        [Op.notIn]:userIdsWithQuizCompletedArr
+                    }
+                }
+            }
+            // console.log("condition",condition)
+            let roleParam:any = req.query.role;
+            if(!roleParam || !(roleParam in constents.user_role_flags.list)){
+                roleParam=constents.user_role_flags.list["MENTOR"]
+            }
+            let roleBasedModelToBeUsed:any = mentor;
+            let roleBasedIncludeArrToBeUsed:any = [
+                {model:organization},
+                {model:user},
+            ];
+            if(roleParam!=constents.user_role_flags.list["MENTOR"]){
+                roleBasedModelToBeUsed = student
+                roleBasedIncludeArrToBeUsed = [
+                    {model:user},
+                ];
+            }
+
+            const { page, size, status } = req.query;
+            
+            // condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+
+            const paramStatus:any = req.query.status;
+            let whereClauseStatusPart:any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if(paramStatus && (paramStatus in constents.common_status_flags.list)){
+                whereClauseStatusPart = {"status":paramStatus}
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart =true;
+            }
+            // console.log("came here",roleBasedModelToBeUsed)
+            const mentorsResult = await roleBasedModelToBeUsed.findAll({
+                attributes:{ 
+                    include:[
+                        [
+                            // Note the wrapping parentheses in the call below!
+                            db.literal(`(
+                                SELECT CASE WHEN EXISTS 
+                                    (SELECT user_id 
+                                    FROM quiz_survey_responses as qsp 
+                                    WHERE qsp.user_id = \`${roleBasedModelToBeUsed.name}\`.\`user_id\`
+                                    AND qsp.quiz_survey_id = ${quiz_survey_id}) 
+                                THEN  
+                                    "COMPLETED"
+                                ELSE 
+                                    "INCOMPLETE"
+                                END as quiz_survey_status
+                            )`),
+                            'quiz_survey_status'
+                        ],
+                    ]
+                },
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart,
+                        condition
+                    ]
+                },
+                include:roleBasedIncludeArrToBeUsed,
+                limit,offset
+            });
+            // console.log("mentorsResult",mentorsResult)
+
+            if(!mentorsResult){
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if(mentorsResult instanceof Error){
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res,mentorsResult,"success"))
+        }catch(err){
+            console.log(err)
+            next(err)
+        }
+
     }
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {

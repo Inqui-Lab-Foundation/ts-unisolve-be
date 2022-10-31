@@ -49,9 +49,76 @@ export default class MentorController extends BaseController {
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
         this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
 
+        this.router.get(`${this.path}/regStatus`, this.getMentorRegStatus.bind(this));
+
         super.initializeRoutes();
     }
+    protected async getMentorRegStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, status } = req.query;
+            let condition = {}
+            // condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
 
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const mentorsResult = await organization.findAll({
+                attributes: [
+                    "organization_code",
+                    "organization_name",
+                    "city",
+                    "district",
+                    "state",
+                    "country"
+                ],
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart,
+                        condition
+                    ]
+                },
+                include: [
+                    {
+                        model: mentor, attributes: [
+                            "mobile",
+                            "full_name",
+                            "mentor_id",
+                            "created_by",
+                            "created_at",
+                            "updated_at",
+                            "updated_by"
+                        ],
+                        include: [
+                            {
+                                model: user, attributes: [
+                                    "username",
+                                    "user_id"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                limit, offset
+            });
+            if(!mentorsResult){
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if(mentorsResult instanceof Error){
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res,mentorsResult,"success"))
+        } catch (err) {
+            next(err)
+        }
+    }
     //TODO: Override the getDate function for mentor and join org details and user details
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
