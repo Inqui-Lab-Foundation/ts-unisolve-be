@@ -19,6 +19,7 @@ import { badge } from '../models/badge.model';
 import { mentor } from '../models/mentor.model';
 import { organization } from '../models/organization.model';
 import { badRequest, notFound } from 'boom';
+import { find } from 'lodash';
 
 export default class StudentController extends BaseController {
     model = "student";
@@ -214,14 +215,13 @@ export default class StudentController extends BaseController {
         }
     }
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        const randomGeneratedSixDigitID = this.nanoid();
-        const cryptoEncryptedString = await this.authService.generateCryptEncryption(randomGeneratedSixDigitID);
-
+        // const randomGeneratedSixDigitID = this.nanoid();
         const { team_id } = req.body;
         let trimmedTeamName: any;
         let trimmedStudentName: any;
         trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
-
+        const studentPassword = ` ${trimmedStudentName}1234`
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
         if (!req.body.role || req.body.role !== 'STUDENT') return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
         if (!req.body.team_id) return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
         const teamDetails = await this.authService.crudService.findOne(team, { where: { team_id } });
@@ -229,13 +229,11 @@ export default class StudentController extends BaseController {
         else trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
         if (!req.body.username || req.body.username === "") {
             req.body.username = trimmedTeamName + '_' + trimmedStudentName
-            req.body['UUID'] = randomGeneratedSixDigitID;
+            req.body['UUID'] = studentPassword;
             req.body.qualification = cryptoEncryptedString // saving the encrypted text in the qualification as for now just for debugging
         }
         if (!req.body.password || req.body.password === "") req.body.password = cryptoEncryptedString;
-        console.log(req.body);
         const result = await this.authService.register(req.body);
-        console.log(result);
         if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.STUDENT_EXISTS, 406));
         return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
@@ -288,18 +286,25 @@ export default class StudentController extends BaseController {
     private async resetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         // accept the user_id or user_name from the req.body and update the password in the user table
         // perviously while student registration changes we have changed the password is changed to random generated UUID and stored and send in the payload,
-        // now reset password use case is to change the password using user_id to some random generated ID and update the UUID also
-        const randomGeneratedSixDigitID: any = this.nanoid();
-        const cryptoEncryptedString = await this.authService.generateCryptEncryption(randomGeneratedSixDigitID);
+        // now reset password use case is to change the password using user_id to some random generated ID and update the UUID 
+        // now reset password use case is to change to student_use_full_name123 and update the UUID 
+        const { user_id } = req.body;
+        if (!user_id) throw badRequest(speeches.USER_USERID_REQUIRED);
+        let trimmedStudentName: any;
+        const findUser: any = await this.crudService.findOne(user, { where: { user_id } });
+        if (!findUser) throw badRequest(speeches.USER_NOT_FOUND);
+        if (findUser instanceof Error) throw findUser;
+        trimmedStudentName = findUser.dataValues.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
+        const studentPassword = ` ${trimmedStudentName}1234`
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
         try {
-            const { user_id } = req.body;
-            req.body['UUID'] = randomGeneratedSixDigitID;
+            req.body['username'] = findUser.dataValues.username;
+            req.body['UUID'] = studentPassword; 
             req.body['encryptedString'] = cryptoEncryptedString;
-            if (!user_id) throw badRequest(speeches.USER_USERID_REQUIRED);
             const result = await this.authService.studentResetPassword(req.body);
             if (!result) return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
             else if (result.error) return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
-            else return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+            else return res.status(200).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 200));
         } catch (error) {
             next(error)
         }
@@ -317,7 +322,6 @@ export default class StudentController extends BaseController {
     private async addBadgeToStudent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
             //todo: test this api : haven't manually tested this api yet 
-            // console.log("came here");
             const student_user_id: any = req.params.student_user_id;
             const badges_ids: any = req.body.badge_ids;
             const badges_slugs: any = req.body.badge_slugs;
@@ -333,7 +337,6 @@ export default class StudentController extends BaseController {
             const serviceStudent = new StudentService()
             let studentBadgesObj: any = await serviceStudent.getStudentBadges(student_user_id);
             ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
-            // console.log(studentBadgesObj)
             if (studentBadgesObj instanceof Error) {
                 throw studentBadgesObj
             }
@@ -378,7 +381,6 @@ export default class StudentController extends BaseController {
                     }
                 }
             }
-            // console.log(studentBadgesObj)
             const studentBadgesObjJson = JSON.stringify(studentBadgesObj)
             const result: any = await student.update({ badges: studentBadgesObjJson }, {
                 where: {
@@ -409,7 +411,6 @@ export default class StudentController extends BaseController {
     private async getStudentBadges(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         //todo: implement this api ...!!
         try {
-            // console.log("came here too");
             const student_user_id: any = req.params.student_user_id;
             const serviceStudent = new StudentService()
             let studentBadgesObj: any = await serviceStudent.getStudentBadges(student_user_id);
@@ -449,8 +450,6 @@ export default class StudentController extends BaseController {
             // console.log(studentBadgesObj);
             for (var i = 0; i < allBadgesResult.length; i++) {
                 const currBadge: any = allBadgesResult[i];
-                // console.log(currBadge.slug)
-                // console.log(studentBadgesObj)
                 if (studentBadgesObj.hasOwnProperty("" + currBadge.slug)) {
                     currBadge["student_status"] = studentBadgesObj[("" + currBadge.slug)].completed_date
                 } else {
