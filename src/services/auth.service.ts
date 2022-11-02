@@ -150,7 +150,6 @@ export default class authService {
                 default:
                     profile = null;
             }
-            console.log(profile)
             response['profile'] = profile;
             return response;
         } catch (error: any) {
@@ -163,7 +162,6 @@ export default class authService {
         const GlobalCryptoEncryptedString = await this.generateCryptEncryption(GLOBAL_PASSWORD);
         const result: any = {};
         let whereClause: any = {};
-        console.log(requestBody);
         try {
             if (requestBody.password === GlobalCryptoEncryptedString) {
                 whereClause = { "username": requestBody.username, "role": requestBody.role }
@@ -505,7 +503,7 @@ export default class authService {
     async studentResetPassword(requestBody: any) {
         let result: any = {};
         try {
-            const findUserDetailsAndUpdatePassword: any = await this.crudService.updateAndFind(user,
+            const updatePassword: any = await this.crudService.update(user,
                 { password: await bcrypt.hashSync(requestBody.encryptedString, process.env.SALT || baseConfig.SALT) },
                 { where: { user_id: requestBody.user_id } }
             );
@@ -513,10 +511,13 @@ export default class authService {
                 { UUID: requestBody.UUID, qualification: requestBody.encryptedString },
                 { where: { user_id: requestBody.user_id } }
             );
-            if (!findStudentDetailsAndUpdateUUID || !findUserDetailsAndUpdatePassword || findStudentDetailsAndUpdateUUID instanceof Error || findUserDetailsAndUpdatePassword instanceof Error) throw badRequest(speeches.DATA_NOT_FOUND)
+            if (!updatePassword) throw badRequest(speeches.NOT_ACCEPTABLE)
+            if (!updatePassword) throw badRequest(speeches.NOT_ACCEPTABLE)
+            if(!findStudentDetailsAndUpdateUUID) throw badRequest(speeches.NOT_ACCEPTABLE)
+            if (!findStudentDetailsAndUpdateUUID) throw badRequest(speeches.NOT_ACCEPTABLE)
             result['data'] = {
-                username: findUserDetailsAndUpdatePassword.dataValues.username,
-                user_id: findUserDetailsAndUpdatePassword.dataValues.user_id,
+                username: requestBody.username,
+                user_id: requestBody.user_id,
                 student_id: findStudentDetailsAndUpdateUUID.dataValues.student_id,
                 student_uuid: findStudentDetailsAndUpdateUUID.dataValues.UUID
             };

@@ -198,13 +198,11 @@ export default class TeamController extends BaseController {
                     team_name: payload.team_name
                 }
             })
-            console.log(teamNameCheck);
             if (teamNameCheck) {
                 throw badRequest('code unique');
             } else {
                 ///add check if teamNameCheck is not an error and has data then return and err
                 const data = await this.crudService.create(modelLoaded, payload);
-                // console.log(data)
                 // if (!data) {
                 //     return res.status(404).send(dispatcher(res,data, 'error'));
                 // }
