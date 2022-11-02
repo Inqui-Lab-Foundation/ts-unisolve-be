@@ -242,7 +242,6 @@ export default class MentorController extends BaseController {
     }
     protected async updateData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
-            console.log(req.body.username)
             const { model, id } = req.params;
             if (model) {
                 this.model = model;
@@ -253,13 +252,11 @@ export default class MentorController extends BaseController {
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded)
             const findMentorDetail = await this.crudService.findOne(modelLoaded, { where: where });
-            console.log(findMentorDetail.dataValues.user_id);
             if (!findMentorDetail || findMentorDetail instanceof Error) {
                 throw notFound();
             } else {
                 const mentorData = await this.crudService.update(modelLoaded, payload, { where: where });
                 const userData = await this.crudService.update(user, { username: req.body.username }, { where: { user_id: findMentorDetail.dataValues.user_id } });
-                console.log(mentorData, userData);
                 if (!mentorData || !userData) {
                     throw badRequest()
                 }
@@ -289,7 +286,6 @@ export default class MentorController extends BaseController {
         req.body['reg_status'] = '3';
         if (!req.body.password || req.body.password == null) req.body.password = '';
         const result: any = await this.authService.mentorRegister(req.body);
-        // console.log(result.output.payload.message);
         if (result && result.output && result.output.payload && result.output.payload.message == 'Email') {
             return res.status(406).send(dispatcher(res, result.data, 'error', speeches.MENTOR_EXISTS, 406));
         }
@@ -300,7 +296,6 @@ export default class MentorController extends BaseController {
         let otp = await this.authService.triggerOtpMsg(req.body.mobile); //async function but no need to await ...since we yet do not care about the outcome of the sms trigger ....!!this may need to change later on ...!!
         otp = String(otp)
         let hashString = await this.authService.generateCryptEncryption(otp);
-        console.log(hashString);
         const updatePassword = await this.authService.crudService.update(user,
             { password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT) },
             { where: { user_id: result.dataValues.user_id } });
@@ -326,7 +321,6 @@ export default class MentorController extends BaseController {
         req.body['role'] = 'MENTOR'
         try {
             const result = await this.authService.login(req.body);
-            // console.log(result);
             if (!result) {
                 return res.status(404).send(dispatcher(res, result, 'error', speeches.USER_NOT_FOUND));
             }
@@ -468,8 +462,6 @@ export default class MentorController extends BaseController {
             const arrayOfteams = teamResult.map((teamSingleresult: any) => {
                 return teamSingleresult.team_id;
             })
-            // console.log("teamResult",teamResult)
-            // console.log("arrayOfteams",arrayOfteams)
             if (arrayOfteams && arrayOfteams.length > 0) {
                 const studentUserIds = await student.findAll({
                     where: { team_id: arrayOfteams },
@@ -478,10 +470,7 @@ export default class MentorController extends BaseController {
                 })
 
                 if (studentUserIds && !(studentUserIds instanceof Error)) {
-
-                    // console.log("studentUserIds",studentUserIds)
                     const arrayOfStudentuserIds = studentUserIds.map((student) => student.user_id)
-                    // console.log("arrayOfStudentuserIds",arrayOfStudentuserIds)
 
                     for (var i = 0; i < arrayOfStudentuserIds.length; i++) {
                         const deletStudentResponseData = await this.authService.bulkDeleteUserResponse(arrayOfStudentuserIds[i])
