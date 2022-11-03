@@ -164,6 +164,7 @@ export default class ReportController extends BaseController {
             }
             let disBasedWhereClause:any = {}
             if(dis){
+                dis = dis.trim()
                 disBasedWhereClause = {
                     district:dis  
                 }
