@@ -38,6 +38,14 @@ export const constents = {
     },
     default: 'ACTIVE'
   },
+  tut_videos_type_flags: {
+    list: {
+      'ALL': 'ALL',
+      'MENTOR': 'MENTOR',
+      'STUDENT': 'STUDENT',
+    },
+    default: 'ALL'
+  },
   organization_status_flags: {
     list: {
       'NEW': 'NEW',
@@ -154,6 +162,14 @@ export const constents = {
       "REJECTEDROUND1": "REJECTEDROUND1"
     },
     default: "DRAFT"
+  },
+  quiz_survey_status_flags: {
+    list: {
+      "ALL": "ALL",
+      "COMPLETED": "COMPLETED",
+      "INCOMPLETE": "INCOMPLETE",
+    },
+    default: "ALL"
   },
   translations_flags:{
     default_locale: "en"

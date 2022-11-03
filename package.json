@@ -4,9 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "npm run start:dev",
+    "start": "npm run start:prod",
     "start:dev": "nodemon",
-    "start:prod": "pm2 start  processes.json",
+    "start:prod": "pm2 start processes.json",
     "start:QA": "pm2 start  processes.json --env testing",
     "build": "tsc -p tsconfig.prod.json",
     "copy:assets": "cp 'config/singUp.json' 'dist/config/singUp.json'",

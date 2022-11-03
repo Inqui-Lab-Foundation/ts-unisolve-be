@@ -1,16 +1,18 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
+import { Op } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
-
+import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
 import { baseConfig } from '../configs/base.config';
 import { user } from '../models/user.model';
+import db from "../utils/dbconnection.util"
 import { mentorSchema, mentorUpdateSchema } from '../validations/mentor.validationa';
 import dispatcher from '../utils/dispatch.util';
 import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
-import { badRequest, internal } from 'boom';
+import { badRequest, internal, notFound } from 'boom';
 import { mentor } from '../models/mentor.model';
 import { where } from 'sequelize/types';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
@@ -18,12 +20,14 @@ import { quiz_survey_response } from '../models/quiz_survey_response.model';
 import { quiz_response } from '../models/quiz_response.model';
 import { team } from '../models/team.model';
 import { student } from '../models/student.model';
+import { constents } from '../configs/constents.config';
+import { organization } from '../models/organization.model';
 
 export default class MentorController extends BaseController {
     model = "mentor";
     authService: authService = new authService;
     private password = process.env.GLOBAL_PASSWORD;
-
+    private nanoid = customAlphabet('0123456789', 6);
     protected initializePath(): void {
         this.path = '/mentors';
     }
@@ -43,7 +47,231 @@ export default class MentorController extends BaseController {
         this.router.put(`${this.path}/updateMobile`, this.updateMobile.bind(this));
         this.router.delete(`${this.path}/:mentor_user_id/deleteAllData`, this.deleteAllData.bind(this));
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
+        this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
+
+        this.router.get(`${this.path}/regStatus`, this.getMentorRegStatus.bind(this));
+
         super.initializeRoutes();
+    }
+    protected async getMentorRegStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, status } = req.query;
+            let condition = {}
+            // condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const mentorsResult = await organization.findAll({
+                attributes: [
+                    "organization_code",
+                    "organization_name",
+                    "city",
+                    "district",
+                    "state",
+                    "country"
+                ],
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart,
+                        condition
+                    ]
+                },
+                include: [
+                    {
+                        model: mentor, attributes: [
+                            "mobile",
+                            "full_name",
+                            "mentor_id",
+                            "created_by",
+                            "created_at",
+                            "updated_at",
+                            "updated_by"
+                        ],
+                        include: [
+                            {
+                                model: user, attributes: [
+                                    "username",
+                                    "user_id"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                limit, offset
+            });
+            if(!mentorsResult){
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if(mentorsResult instanceof Error){
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res,mentorsResult,"success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    //TODO: Override the getDate function for mentor and join org details and user details
+    protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let data: any;
+            const { model, id } = req.params;
+            const paramStatus: any = req.query.status;
+            if (model) {
+                this.model = model;
+            };
+            // pagination
+            const { page, size, status } = req.query;
+            let condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(model).catch(error => {
+                next(error)
+            });
+            const where: any = {};
+            let whereClauseStatusPart: any = {};
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+            }
+            if (id) {
+                where[`${this.model}_id`] = req.params.id;
+                data = await this.crudService.findOne(modelClass, {
+                    attributes: {
+                        include: [
+                            [
+                                db.literal(`( SELECT username FROM users AS u WHERE u.user_id = \`mentor\`.\`user_id\`)`), 'username_email'
+                            ]
+                        ]
+                    },
+                    where: {
+                        [Op.and]: [
+                            whereClauseStatusPart,
+                            where,
+                        ]
+                    },
+                    include: {
+                        model: organization,
+                        attributes: [
+                            "organization_code",
+                            "organization_name",
+                            "organization_id",
+                            "principal_name",
+                            "principal_mobile",
+                            "principal_email",
+                            "city",
+                            "district",
+                            "state",
+                            "country"
+                        ]
+                    },
+                });
+            } else {
+                try {
+                    const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                        attributes: {
+                            attributes: [
+                                "mentor_id",
+                                "user_id",
+                                "full_name",
+                                "otp",
+                                "mobile",
+                            ],
+                            include: [
+                                [
+                                    db.literal(`( SELECT username FROM users AS u WHERE u.user_id = \`mentor\`.\`user_id\`)`), 'username'
+                                ]
+                            ],
+                        },
+                        where: {
+                            [Op.and]: [
+                                whereClauseStatusPart,
+                                condition
+                            ]
+                        },
+                        include: {
+                            model: organization,
+                            attributes: [
+                                "organization_code",
+                                "organization_name",
+                                "organization_id",
+                                "principal_name",
+                                "principal_mobile",
+                                "principal_email",
+                                "city",
+                                "district",
+                                "state",
+                                "country"
+                            ]
+                        }, limit, offset
+                    })
+                    const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
+                    data = result;
+                } catch (error: any) {
+                    return res.status(500).send(dispatcher(res, data, 'error'))
+                }
+
+            }
+            // if (!data) {
+            //     return res.status(404).send(dispatcher(res,data, 'error'));
+            // }
+            if (!data || data instanceof Error) {
+                if (data != null) {
+                    throw notFound(data.message)
+                } else {
+                    throw notFound()
+                }
+                res.status(200).send(dispatcher(res, null, "error", speeches.DATA_NOT_FOUND));
+                // if(data!=null){
+                //     throw 
+                (data.message)
+                // }else{
+                //     throw notFound()
+                // }
+            }
+            return res.status(200).send(dispatcher(res, data, 'success'));
+        } catch (error) {
+            next(error);
+        }
+    }
+    protected async updateData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { model, id } = req.params;
+            if (model) {
+                this.model = model;
+            };
+            const user_id = res.locals.user_id
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const modelLoaded = await this.loadModel(model);
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded)
+            const findMentorDetail = await this.crudService.findOne(modelLoaded, { where: where });
+            if (!findMentorDetail || findMentorDetail instanceof Error) {
+                throw notFound();
+            } else {
+                const mentorData = await this.crudService.update(modelLoaded, payload, { where: where });
+                const userData = await this.crudService.update(user, { username: req.body.username }, { where: { user_id: findMentorDetail.dataValues.user_id } });
+                if (!mentorData || !userData) {
+                    throw badRequest()
+                }
+                if (mentorData instanceof Error) {
+                    throw mentorData;
+                }
+                if (userData instanceof Error) {
+                    throw userData;
+                }
+                const data = { userData, mentor };
+                return res.status(200).send(dispatcher(res, data, 'updated'));
+            }
+        } catch (error) {
+            next(error);
+        }
     }
     // TODO: update the register flow by adding a flag called reg_statue in mentor tables
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -58,7 +286,6 @@ export default class MentorController extends BaseController {
         req.body['reg_status'] = '3';
         if (!req.body.password || req.body.password == null) req.body.password = '';
         const result: any = await this.authService.mentorRegister(req.body);
-        // console.log(result.output.payload.message);
         if (result && result.output && result.output.payload && result.output.payload.message == 'Email') {
             return res.status(406).send(dispatcher(res, result.data, 'error', speeches.MENTOR_EXISTS, 406));
         }
@@ -68,11 +295,14 @@ export default class MentorController extends BaseController {
         // const otp = await this.authService.generateOtp();
         let otp = await this.authService.triggerOtpMsg(req.body.mobile); //async function but no need to await ...since we yet do not care about the outcome of the sms trigger ....!!this may need to change later on ...!!
         otp = String(otp)
-        let hashString = await this.authService.HashPassword(otp);
-        console.log(hashString);
+        let hashString = await this.authService.generateCryptEncryption(otp);
         const updatePassword = await this.authService.crudService.update(user,
             { password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT) },
             { where: { user_id: result.dataValues.user_id } });
+        const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
+            { otp: otp },
+            { where: { user_id: result.dataValues.user_id } }
+        );
         const data = result.dataValues;
         return res.status(201).send(dispatcher(res, data, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
@@ -91,7 +321,6 @@ export default class MentorController extends BaseController {
         req.body['role'] = 'MENTOR'
         try {
             const result = await this.authService.login(req.body);
-            // console.log(result);
             if (!result) {
                 return res.status(404).send(dispatcher(res, result, 'error', speeches.USER_NOT_FOUND));
             }
@@ -233,8 +462,6 @@ export default class MentorController extends BaseController {
             const arrayOfteams = teamResult.map((teamSingleresult: any) => {
                 return teamSingleresult.team_id;
             })
-            // console.log("teamResult",teamResult)
-            // console.log("arrayOfteams",arrayOfteams)
             if (arrayOfteams && arrayOfteams.length > 0) {
                 const studentUserIds = await student.findAll({
                     where: { team_id: arrayOfteams },
@@ -243,10 +470,7 @@ export default class MentorController extends BaseController {
                 })
 
                 if (studentUserIds && !(studentUserIds instanceof Error)) {
-
-                    // console.log("studentUserIds",studentUserIds)
                     const arrayOfStudentuserIds = studentUserIds.map((student) => student.user_id)
-                    // console.log("arrayOfStudentuserIds",arrayOfStudentuserIds)
 
                     for (var i = 0; i < arrayOfStudentuserIds.length; i++) {
                         const deletStudentResponseData = await this.authService.bulkDeleteUserResponse(arrayOfStudentuserIds[i])
@@ -299,6 +523,7 @@ export default class MentorController extends BaseController {
             if (!mobile) {
                 throw badRequest(speeches.MOBILE_NUMBER_REQUIRED);
             }
+            // req.body['otp'] = 
             const result = await this.authService.mentorResetPassword(req.body);
             if (!result) {
                 return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
@@ -311,4 +536,33 @@ export default class MentorController extends BaseController {
             next(error)
         }
     }
+    private async manualResetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        // accept the user_id or user_name from the req.body and update the password in the user table
+        // perviously while student registration changes we have changed the password is changed to random generated UUID and stored and send in the payload,
+        // now reset password use case is to change the password using user_id to some random generated ID and update the UUID also
+        const randomGeneratedSixDigitID: any = this.nanoid();
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(randomGeneratedSixDigitID);
+        try {
+            const { user_id } = req.body;
+            req.body['otp'] = randomGeneratedSixDigitID;
+            req.body['encryptedString'] = cryptoEncryptedString;
+            if (!user_id) throw badRequest(speeches.USER_USERID_REQUIRED);
+            const result = await this.authService.manualMentorResetPassword(req.body);
+            if (!result) return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+            else if (result.error) return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
+            else return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        } catch (error) {
+            next(error)
+        }
+        // const generatedUUID = this.nanoid();
+        // req.body['generatedPassword'] = generatedUUID;
+        // const result = await this.authService.restPassword(req.body, res);
+        // if (!result) {
+        //     return res.status(404).send(dispatcher(res, result.user_res, 'error', speeches.USER_NOT_FOUND));
+        // } else if (result.match) {
+        //     return res.status(404).send(dispatcher(res, result.match, 'error', speeches.USER_PASSWORD));
+        // } else {
+        //     return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        // }
+    };
 };

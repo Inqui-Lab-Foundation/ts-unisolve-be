@@ -11,9 +11,15 @@ import validationMiddleware from '../middlewares/validation.middleware';
 import { constents } from '../configs/constents.config';
 import CryptoJS from 'crypto-js';
 import { Op } from 'sequelize';
-import { badRequest, notFound } from 'boom';
 import { user } from '../models/user.model';
 import { team } from '../models/team.model';
+import { student } from '../models/student.model';
+import StudentService from '../services/students.service';
+import { badge } from '../models/badge.model';
+import { mentor } from '../models/mentor.model';
+import { organization } from '../models/organization.model';
+import { badRequest, notFound } from 'boom';
+import { find } from 'lodash';
 
 export default class StudentController extends BaseController {
     model = "student";
@@ -35,108 +41,10 @@ export default class StudentController extends BaseController {
         this.router.get(`${this.path}/logout`, this.logout.bind(this));
         this.router.put(`${this.path}/changePassword`, validationMiddleware(studentChangePasswordSchema), this.changePassword.bind(this));
         // this.router.put(`${this.path}/updatePassword`, validationMiddleware(studentChangePasswordSchema), this.updatePassword.bind(this));
-        this.router.post(`${this.path}/resetPassword`, validationMiddleware(studentResetPasswordSchema), this.resetPassword.bind(this));
+        this.router.put(`${this.path}/resetPassword`, validationMiddleware(studentResetPasswordSchema), this.resetPassword.bind(this));
+        this.router.post(`${this.path}/:student_user_id/badges`, this.addBadgeToStudent.bind(this));
+        this.router.get(`${this.path}/:student_user_id/badges`, this.getStudentBadges.bind(this));
         super.initializeRoutes();
-    }
-    private HashPassword(value: any): any {
-        const key = CryptoJS.enc.Hex.parse('253D3FB468A0E24677C28A624BE0F939');
-        const iv = CryptoJS.enc.Hex.parse('00000000000000000000000000000000');
-        const hashedPassword = CryptoJS.AES.encrypt(value, key, {
-            iv: iv,
-            padding: CryptoJS.pad.NoPadding
-        }).toString();
-        return hashedPassword;
-    }
-    private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        const { team_id } = req.body;
-        const generatedUUID = this.nanoid();
-        const hashedPassword = this.HashPassword(generatedUUID);
-        let trimmedTeamName: any;
-        let trimmedStudentName: any;
-        trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
-        if (!req.body.role || req.body.role !== 'STUDENT') {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
-        }
-        if (!req.body.team_id) {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
-        }
-        const teamDetails = await this.authService.crudService.findOne(team, { where: { team_id } });
-        if (!teamDetails) {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.TEAM_NOT_FOUND, 406));
-        } else {
-            trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
-        }
-        // console.log(trimmedTeamName, trimmedStudentName);
-        if (!req.body.username || req.body.username === "") {
-            req.body.username = trimmedTeamName + '_' + trimmedStudentName
-            req.body['UUID'] = generatedUUID;
-            req.body.qualification = hashedPassword
-        }
-        if (!req.body.password || req.body.password === "") req.body.password = hashedPassword;
-        console.log(hashedPassword);
-        const result = await this.authService.register(req.body);
-        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.STUDENT_EXISTS, 406));
-        // result.profile.dataValues['password'] = generatedUUID;
-        return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
-    }
-    private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        let teamDetails: any;
-        let studentDetails: any;
-        let result;
-        req.body['role'] = 'STUDENT'
-        result = await this.authService.login(req.body);
-        if (!result) {
-            return res.status(404).send(dispatcher(res, result, 'error', speeches.USER_NOT_FOUND));
-        } else if (result.error) {
-            return res.status(401).send(dispatcher(res, result.error, 'error', speeches.USER_RISTRICTED, 401));
-        } else {
-            studentDetails = await this.authService.getServiceDetails('student', { user_id: result.data.user_id });
-            teamDetails = await this.authService.getServiceDetails('team', { team_id: studentDetails.dataValues.team_id });
-            result.data['team_id'] = studentDetails.dataValues.team_id;
-            result.data['student_id'] = studentDetails.dataValues.student_id;
-            if (!teamDetails) {
-                result.data['mentor_id'] = null;
-                result.data['team_name'] = null;
-            } else {
-                result.data['mentor_id'] = teamDetails.dataValues.mentor_id;
-                result.data['team_name'] = teamDetails.dataValues.team_name;
-            }
-            return res.status(200).send(dispatcher(res, result.data, 'success', speeches.USER_LOGIN_SUCCESS));
-        }
-    }
-    private async logout(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        const result = await this.authService.logout(req.body, res);
-        if (result.error) {
-            next(result.error);
-        } else {
-            return res.status(200).send(dispatcher(res, speeches.LOGOUT_SUCCESS, 'success'));
-        }
-    }
-    private async changePassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        const result = await this.authService.changePassword(req.body, res);
-        if (!result) {
-            return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
-        } else if (result.error) {
-            return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
-        }
-        else if (result.match) {
-            return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_PASSWORD));
-        } else {
-            return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
-        }
-    }
-    private async resetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        // accept the user_id or user_name from the req.body and update the password in the user table
-        const generatedUUID = this.nanoid()
-        req.body['generatedPassword'] = generatedUUID;
-        const result = await this.authService.restPassword(req.body, res);
-        if (!result) {
-            return res.status(404).send(dispatcher(res, result.user_res, 'error', speeches.USER_NOT_FOUND));
-        } else if (result.match) {
-            return res.status(404).send(dispatcher(res, result.match, 'error', speeches.USER_PASSWORD));
-        } else {
-            return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
-        }
     }
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
@@ -161,11 +69,46 @@ export default class StudentController extends BaseController {
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
+                    attributes: [
+                        "student_id",
+                        "user_id",
+                        "UUID",
+                        "full_name",
+                        "date_of_birth",
+                        "qualification",
+                        "badges",
+                        "status"
+                    ],
                     where: {
                         [Op.and]: [
                             whereClauseStatusPart,
                             where,
-                        ]
+                        ],
+                    },
+                    include: {
+                        model: team,
+                        attributes: [
+                            'team_id',
+                            'team_name',
+                            'mentor_id'
+                        ],
+                        include: {
+                            model: mentor,
+                            attributes: [
+                                'organization_code',
+                                'full_name',
+                            ],
+                            include: {
+                                model: organization,
+                                attributes: [
+                                    "organization_name",
+                                    "city",
+                                    "district",
+                                    "state",
+                                    "country",
+                                ],
+                            }
+                        }
                     }
                 });
             } else {
@@ -252,6 +195,272 @@ export default class StudentController extends BaseController {
             return res.status(200).send(dispatcher(res, student_data, 'updated'));
         } catch (error) {
             next(error);
+        }
+    }
+    protected async deleteData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { model, id } = req.params;
+            if (model) this.model = model;
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const getUserIdFromStudentData = await this.crudService.findOne(student, { where: { student_id: where.student_id } });
+            if (!getUserIdFromStudentData) throw notFound(speeches.USER_NOT_FOUND);
+            if (getUserIdFromStudentData instanceof Error) throw getUserIdFromStudentData;
+            const user_id = getUserIdFromStudentData.dataValues.user_id;
+            const deleteUserStudentAndRemoveAllResponses = await this.authService.deleteStudentAndStudentResponse(user_id);
+            const data = deleteUserStudentAndRemoveAllResponses
+            return res.status(200).send(dispatcher(res, data, 'deleted'));
+        } catch (error) {
+            next(error);
+        }
+    }
+    private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        // const randomGeneratedSixDigitID = this.nanoid();
+        const { team_id } = req.body;
+        let trimmedTeamName: any;
+        let trimmedStudentName: any;
+        trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
+        const studentPassword = ` ${trimmedStudentName}1234`
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
+        if (!req.body.role || req.body.role !== 'STUDENT') return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
+        if (!req.body.team_id) return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
+        const teamDetails = await this.authService.crudService.findOne(team, { where: { team_id } });
+        if (!teamDetails) return res.status(406).send(dispatcher(res, null, 'error', speeches.TEAM_NOT_FOUND, 406));
+        else trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
+        if (!req.body.username || req.body.username === "") {
+            req.body.username = trimmedTeamName + '_' + trimmedStudentName
+            req.body['UUID'] = studentPassword;
+            req.body.qualification = cryptoEncryptedString // saving the encrypted text in the qualification as for now just for debugging
+        }
+        if (!req.body.password || req.body.password === "") req.body.password = cryptoEncryptedString;
+        const result = await this.authService.register(req.body);
+        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.STUDENT_EXISTS, 406));
+        return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
+    }
+    private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        let teamDetails: any;
+        let studentDetails: any;
+        let result;
+        req.body['role'] = 'STUDENT'
+        result = await this.authService.login(req.body);
+        if (!result) {
+            return res.status(404).send(dispatcher(res, result, 'error', speeches.USER_NOT_FOUND));
+        } else if (result.error) {
+            return res.status(401).send(dispatcher(res, result.error, 'error', speeches.USER_RISTRICTED, 401));
+        } else {
+            studentDetails = await this.authService.getServiceDetails('student', { user_id: result.data.user_id });
+            teamDetails = await this.authService.getServiceDetails('team', { team_id: studentDetails.dataValues.team_id });
+            result.data['team_id'] = studentDetails.dataValues.team_id;
+            result.data['student_id'] = studentDetails.dataValues.student_id;
+            if (!teamDetails) {
+                result.data['mentor_id'] = null;
+                result.data['team_name'] = null;
+            } else {
+                result.data['mentor_id'] = teamDetails.dataValues.mentor_id;
+                result.data['team_name'] = teamDetails.dataValues.team_name;
+            }
+            return res.status(200).send(dispatcher(res, result.data, 'success', speeches.USER_LOGIN_SUCCESS));
+        }
+    }
+    private async logout(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        const result = await this.authService.logout(req.body, res);
+        if (result.error) {
+            next(result.error);
+        } else {
+            return res.status(200).send(dispatcher(res, speeches.LOGOUT_SUCCESS, 'success'));
+        }
+    }
+    private async changePassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        const result = await this.authService.changePassword(req.body, res);
+        if (!result) {
+            return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+        } else if (result.error) {
+            return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
+        }
+        else if (result.match) {
+            return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_PASSWORD));
+        } else {
+            return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        }
+    }
+    private async resetPassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        // accept the user_id or user_name from the req.body and update the password in the user table
+        // perviously while student registration changes we have changed the password is changed to random generated UUID and stored and send in the payload,
+        // now reset password use case is to change the password using user_id to some random generated ID and update the UUID 
+        // now reset password use case is to change to student_use_full_name123 and update the UUID 
+        const { user_id } = req.body;
+        if (!user_id) throw badRequest(speeches.USER_USERID_REQUIRED);
+        let trimmedStudentName: any;
+        const findUser: any = await this.crudService.findOne(user, { where: { user_id } });
+        if (!findUser) throw badRequest(speeches.USER_NOT_FOUND);
+        if (findUser instanceof Error) throw findUser;
+        trimmedStudentName = findUser.dataValues.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
+        const studentPassword = ` ${trimmedStudentName}1234`
+        const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
+        try {
+            req.body['username'] = findUser.dataValues.username;
+            req.body['UUID'] = studentPassword; 
+            req.body['encryptedString'] = cryptoEncryptedString;
+            const result = await this.authService.studentResetPassword(req.body);
+            if (!result) return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+            else if (result.error) return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
+            else return res.status(200).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 200));
+        } catch (error) {
+            next(error)
+        }
+        // const generatedUUID = this.nanoid();
+        // req.body['generatedPassword'] = generatedUUID;
+        // const result = await this.authService.restPassword(req.body, res);
+        // if (!result) {
+        //     return res.status(404).send(dispatcher(res, result.user_res, 'error', speeches.USER_NOT_FOUND));
+        // } else if (result.match) {
+        //     return res.status(404).send(dispatcher(res, result.match, 'error', speeches.USER_PASSWORD));
+        // } else {
+        //     return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+        // }
+    }
+    private async addBadgeToStudent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            //todo: test this api : haven't manually tested this api yet 
+            const student_user_id: any = req.params.student_user_id;
+            const badges_ids: any = req.body.badge_ids;
+            const badges_slugs: any = req.body.badge_slugs;
+            let areSlugsBeingUsed = true;
+            if (!badges_slugs || !badges_slugs.length || badges_slugs.length <= 0) {
+                areSlugsBeingUsed = false;
+            }
+
+            if (!areSlugsBeingUsed && (!badges_ids || !badges_ids.length || badges_ids.length <= 0)) {
+                throw badRequest(speeches.BADGE_IDS_ARRAY_REQUIRED)
+            }
+
+            const serviceStudent = new StudentService()
+            let studentBadgesObj: any = await serviceStudent.getStudentBadges(student_user_id);
+            ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
+            if (studentBadgesObj instanceof Error) {
+                throw studentBadgesObj
+            }
+            if (!studentBadgesObj) {
+                studentBadgesObj = {};
+            }
+            const success: any = []
+            const errors: any = []
+
+            let forLoopArr = badges_slugs;
+
+            if (!areSlugsBeingUsed) {
+                forLoopArr = badges_ids
+            }
+
+            for (var i = 0; i < forLoopArr.length; i++) {
+                let badgeId = forLoopArr[i];
+                let badgeFindWhereClause: any = {
+                    slug: badgeId
+                }
+                if (!areSlugsBeingUsed) {
+                    badgeFindWhereClause = {
+                        badge_id: badgeId
+                    }
+                }
+                const badgeResultForId = await this.crudService.findOne(badge, { where: badgeFindWhereClause })
+                if (!badgeResultForId) {
+                    errors.push({ id: badgeId, err: badRequest(speeches.DATA_NOT_FOUND) })
+                    continue;
+                }
+                if (badgeResultForId instanceof Error) {
+                    errors.push({ id: badgeId, err: badgeResultForId })
+                    continue;
+                }
+
+                const date = new Date();
+                const studentHasBadgeObjForId = studentBadgesObj[badgeResultForId.dataValues.slug]
+                if (!studentHasBadgeObjForId || !studentHasBadgeObjForId.completed_date) {
+                    studentBadgesObj[badgeResultForId.dataValues.slug] = {
+                        completed_date: (new Date())
+                        // completed_date: ("" + date.getFullYear() + "-" + "" + (date.getMonth() + 1) + "-" + "" + date.getDay())
+                    }
+                }
+            }
+            const studentBadgesObjJson = JSON.stringify(studentBadgesObj)
+            const result: any = await student.update({ badges: studentBadgesObjJson }, {
+                where: {
+                    user_id: student_user_id
+                }
+            })
+            if (result instanceof Error) {
+                throw result;
+            }
+
+            if (!result) {
+                return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
+            }
+            let dispatchStatus = "updated"
+            let resStatus = 202
+            let dispatchStatusMsg = speeches.USER_BADGES_LINKED
+            if (errors && errors.length > 0) {
+                dispatchStatus = "error"
+                dispatchStatusMsg = "error"
+                resStatus = 400
+            }
+
+            return res.status(resStatus).send(dispatcher(res, { errs: errors, success: studentBadgesObj }, dispatchStatus, dispatchStatusMsg, resStatus));
+        } catch (err) {
+            next(err)
+        }
+    }
+    private async getStudentBadges(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        //todo: implement this api ...!!
+        try {
+            const student_user_id: any = req.params.student_user_id;
+            const serviceStudent = new StudentService()
+            let studentBadgesObj: any = await serviceStudent.getStudentBadges(student_user_id);
+            ///do not do empty or null check since badges obj can be null if no badges earned yet hence this is not an error condition 
+            if (studentBadgesObj instanceof Error) {
+                throw studentBadgesObj
+            }
+            if (!studentBadgesObj) {
+                studentBadgesObj = {};
+            }
+            const studentBadgesObjKeysArr = Object.keys(studentBadgesObj)
+            const paramStatus: any = req.query.status;
+            const where: any = {};
+            let whereClauseStatusPart: any = {};
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+            }
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+            }
+            const allBadgesResult = await badge.findAll({
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart,
+                        where,
+                    ]
+                },
+                raw: true,
+            });
+
+            if (!allBadgesResult) {
+                throw notFound(speeches.DATA_NOT_FOUND);
+            }
+            if (allBadgesResult instanceof Error) {
+                throw allBadgesResult;
+            }
+            // console.log(studentBadgesObj);
+            for (var i = 0; i < allBadgesResult.length; i++) {
+                const currBadge: any = allBadgesResult[i];
+                if (studentBadgesObj.hasOwnProperty("" + currBadge.slug)) {
+                    currBadge["student_status"] = studentBadgesObj[("" + currBadge.slug)].completed_date
+                } else {
+                    currBadge["student_status"] = null;
+                }
+                allBadgesResult[i] = currBadge
+            }
+
+            return res.status(200).send(dispatcher(res, allBadgesResult, 'success'));
+        } catch (err) {
+            next(err)
         }
     }
 }

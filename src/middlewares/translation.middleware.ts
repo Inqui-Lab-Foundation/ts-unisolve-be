@@ -2,6 +2,7 @@
 // The patch intercepts the send invocation, executes is logic such as atatus.setResponseBody
 
 import { NextFunction, Request,RequestHandler,Response } from "express";
+import { constents } from "../configs/constents.config";
 import TranslationService from "../services/translation.service";
 import TranslationsProvider from "../utils/translations/translationProvider";
 
@@ -25,7 +26,7 @@ export const translationMiddleware = (req:Request,res:Response,next:NextFunction
     
     const trasnlationService = new TranslationService()
     if(!locale || !trasnlationService.getSupportedLocales().includes(locale)){
-        locale  = trasnlationService.getDefaultLocale()
+        locale  = constents.translations_flags.default_locale
     }
     
     trasnlationService.setCurrentLocale(locale);

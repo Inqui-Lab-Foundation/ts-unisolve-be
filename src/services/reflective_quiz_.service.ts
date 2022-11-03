@@ -19,10 +19,10 @@ export default class ReflectiveQuizService extends BaseService{
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
             }
             //check if the given quiz is a valid topic
-            const curr_topic =  await this.crudService.findOne(course_topic,{where:{"topic_type_id":video_id,"topic_type":"QUIZ"}})
-            if(!curr_topic || curr_topic instanceof Error){
-                throw badRequest("INVALID TOPIC");
-            }
+            // const curr_topic =  await this.crudService.findOne(course_topic,{where:{"topic_type_id":video_id,"topic_type":"VIDEO"}})
+            // if(!curr_topic || curr_topic instanceof Error){
+            //     throw badRequest("INVALID TOPIC");
+            // }
     
             const quizRes = await this.crudService.findOne(reflective_quiz_response,{where: {video_id:video_id,user_id:user_id}});
             if(quizRes instanceof Error){

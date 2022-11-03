@@ -41,6 +41,7 @@ export const speeches = {
     USER_ALREADY_EXISTED: "User already existed with the Email and Phone Number.",
     USER_REGISTERED_SUCCESSFULLY: "User registered successfully",
     USER_LOGIN_SUCCESS: "Login Successful",
+    USER_BADGES_LINKED:"Badge added to user successfully",
     LOGOUT_SUCCESS: "Logout Successful",
     USER_EMAIL_REQUIRED: "Email is required, it should not be empty.",
     USER_EMAIL_INVALID: "Email is invalid, it should be a valid email.",
@@ -117,4 +118,9 @@ export const speeches = {
     TEACHER_OBJECT: "Teacher object required",
     STUDENT_OBJECT: "Student object required",
     ROADMAP_FILE_CORRUPTED:"Roadmao file is corrupted, Please contact the administrator.",
+    BADGE_IDS_ARRAY_REQUIRED:"badge_ids or badge_slugs any one of these array are required",
+    VIDEO_STREAM_ID_REQUIRED:"Video stream id is required",
+    TYPE_INVALID:"Invalid Type",
+    TYPE_REQUIRED:"Type is required",
+    INVALID_DATA:"Invalid Data, please check validity of data in the payload."
 }
