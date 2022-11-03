@@ -40,6 +40,8 @@ export default class ReportController extends BaseController {
             let tc:any = req.query.tc;
             let tpost:any = req.query.tpost;
             let rs:any = req.query.rs;
+            let dis:any = req.query.dis;
+
             if(!rs || 
                 !(rs in constents.reports_all_ment_reports_rs_flags.list)){
                     rs="ALL"
@@ -160,6 +162,12 @@ export default class ReportController extends BaseController {
                     ],
                 )
             }
+            let disBasedWhereClause:any = {}
+            if(dis){
+                disBasedWhereClause = {
+                    district:dis  
+                }
+            }
 
             const reportservice =  new ReportService();
             let  rsBasedWhereClause:any = {}
@@ -182,7 +190,8 @@ export default class ReportController extends BaseController {
                 ],
                 where: {
                     [Op.and]: [
-                        rsBasedWhereClause
+                        rsBasedWhereClause,
+                        disBasedWhereClause
                     ]
                 },
             })
