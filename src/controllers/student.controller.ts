@@ -37,6 +37,7 @@ export default class StudentController extends BaseController {
         //example route to add
         //this.router.get(`${this.path}/`, this.getData);
         this.router.post(`${this.path}/register`, this.register.bind(this));
+        this.router.post(`${this.path}/bulkCreateStudent`, this.bulkCreateStudent.bind(this));
         this.router.post(`${this.path}/login`, validationMiddleware(studentLoginSchema), this.login.bind(this));
         this.router.get(`${this.path}/logout`, this.logout.bind(this));
         this.router.put(`${this.path}/changePassword`, validationMiddleware(studentChangePasswordSchema), this.changePassword.bind(this));
@@ -237,6 +238,40 @@ export default class StudentController extends BaseController {
         if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.STUDENT_EXISTS, 406));
         return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
+    private async bulkCreateStudent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            for (let student in req.body) {
+                if (!req.body[student].team_id) throw notFound(speeches.USER_TEAMID_REQUIRED);
+            }
+            let trimmedTeamName: any;
+            let trimmedStudentName: any;
+            let studentPassword: any;
+            let cryptoEncryptedString: any;
+            const teamName = await this.authService.crudService.findOne(team, {
+                attributes: ["team_name"], where: { team_id: req.body[0].team_id }
+            });
+            if (!teamName) throw notFound(speeches.TEAM_NOT_FOUND, 406);
+            if (teamName instanceof Error) throw teamName;
+            for (let student in req.body) {
+                trimmedStudentName = req.body[student].full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
+                trimmedTeamName = teamName.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
+                studentPassword = `${trimmedStudentName}1234`
+                cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
+                req.body[student].username = trimmedTeamName + '_' + trimmedStudentName;
+                req.body[student].full_name = trimmedStudentName;
+                req.body[student].role = 'STUDENT';
+                req.body[student].UUID = studentPassword;
+                req.body[student].password = cryptoEncryptedString;
+                req.body[student].qualification = cryptoEncryptedString; // password filed will hashed further by the backend system hence we saving the encrypted text in the qualification filed as for now just for debugging
+            }
+            // console.log(req.body);
+            const responseFromService = await this.authService.bulkCreateStudentService(req.body);
+            if (responseFromService.error) return res.status(406).send(dispatcher(res, responseFromService.error, 'error', speeches.STUDENT_EXISTS, 406));
+            return res.status(201).send(dispatcher(res, responseFromService, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
+        } catch (error) {
+            next(error);
+        }
+    }
     private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         let teamDetails: any;
         let studentDetails: any;
@@ -299,7 +334,7 @@ export default class StudentController extends BaseController {
         const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
         try {
             req.body['username'] = findUser.dataValues.username;
-            req.body['UUID'] = studentPassword; 
+            req.body['UUID'] = studentPassword;
             req.body['encryptedString'] = cryptoEncryptedString;
             const result = await this.authService.studentResetPassword(req.body);
             if (!result) return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));

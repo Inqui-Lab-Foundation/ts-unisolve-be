@@ -157,6 +157,28 @@ export default class authService {
             return response
         }
     }
+    async bulkCreateStudentService(requestBody: any) {
+        let response: any = {};
+        let errorResponse: any = {};
+        let userProfile: any;
+        for (let student in requestBody) {
+            let userExist = await this.crudService.findOne(user, {
+                attributes: ["user_id"],
+                where: { username: requestBody[student].username }
+            });
+            Object.assign(errorResponse, userExist.dataValues);
+        }
+        if (Object.getOwnPropertyNames(errorResponse).length == 0) {
+            userProfile = await this.crudService.bulkCreate(user, requestBody);
+            for (let user in userProfile) {
+                requestBody[user]["user_id"] = userProfile[user].dataValues.user_id;
+            }
+            response = await this.crudService.bulkCreate(student, requestBody);
+        } else {
+            response['error'] = errorResponse
+        }
+        return response;
+    }
     async login(requestBody: any) {
         const GLOBAL_PASSWORD = 'uniSolve'
         const GlobalCryptoEncryptedString = await this.generateCryptEncryption(GLOBAL_PASSWORD);
@@ -513,7 +535,7 @@ export default class authService {
             );
             if (!updatePassword) throw badRequest(speeches.NOT_ACCEPTABLE)
             if (!updatePassword) throw badRequest(speeches.NOT_ACCEPTABLE)
-            if(!findStudentDetailsAndUpdateUUID) throw badRequest(speeches.NOT_ACCEPTABLE)
+            if (!findStudentDetailsAndUpdateUUID) throw badRequest(speeches.NOT_ACCEPTABLE)
             if (!findStudentDetailsAndUpdateUUID) throw badRequest(speeches.NOT_ACCEPTABLE)
             result['data'] = {
                 username: requestBody.username,
