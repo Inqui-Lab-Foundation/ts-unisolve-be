@@ -80,7 +80,10 @@ export default class StudentController extends BaseController {
                         "date_of_birth",
                         "qualification",
                         "badges",
-                        "status"
+                        "status",
+                        "Age",
+                        "Grade",
+                        "Gender"
                     ],
                     where: {
                         [Op.and]: [
