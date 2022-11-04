@@ -220,7 +220,7 @@ export default class StudentController extends BaseController {
         let trimmedTeamName: any;
         let trimmedStudentName: any;
         trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
-        const studentPassword = ` ${trimmedStudentName}1234`
+        const studentPassword = `${trimmedStudentName}1234`
         const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
         if (!req.body.role || req.body.role !== 'STUDENT') return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
         if (!req.body.team_id) return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
@@ -295,7 +295,7 @@ export default class StudentController extends BaseController {
         if (!findUser) throw badRequest(speeches.USER_NOT_FOUND);
         if (findUser instanceof Error) throw findUser;
         trimmedStudentName = findUser.dataValues.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
-        const studentPassword = ` ${trimmedStudentName}1234`
+        const studentPassword = `${trimmedStudentName}1234`
         const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
         try {
             req.body['username'] = findUser.dataValues.username;
