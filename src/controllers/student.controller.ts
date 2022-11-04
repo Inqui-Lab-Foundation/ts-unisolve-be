@@ -4,6 +4,7 @@ import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
 import dispatcher from '../utils/dispatch.util';
 import { studentSchema, studentLoginSchema, studentUpdateSchema, studentChangePasswordSchema, studentResetPasswordSchema } from '../validations/student.validationa';
+import bcrypt from 'bcrypt';
 import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
@@ -13,6 +14,7 @@ import CryptoJS from 'crypto-js';
 import { Op } from 'sequelize';
 import { user } from '../models/user.model';
 import { team } from '../models/team.model';
+import { baseConfig } from '../configs/base.config';
 import { student } from '../models/student.model';
 import StudentService from '../services/students.service';
 import { badge } from '../models/badge.model';
@@ -163,6 +165,8 @@ export default class StudentController extends BaseController {
             let trimmedTeamName: any;
             let trimmedStudentName: any;
             trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
+            const studentPassword = `${trimmedStudentName}1234`
+            const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
             const teamDetails = await this.authService.crudService.findOne(team, { where: { team_id: req.body.team_id } });
             if (!teamDetails) {
                 return res.status(406).send(dispatcher(res, null, 'error', speeches.TEAM_NOT_FOUND, 406));
@@ -172,6 +176,8 @@ export default class StudentController extends BaseController {
             where[`${this.model}_id`] = req.params.id;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
+            payload['qualification'] = cryptoEncryptedString
+            payload['UUID'] = studentPassword;
             const student_data = await this.crudService.update(modelLoaded, payload, { where: where });
             const studentDetails = await this.crudService.findOne(modelLoaded, { where });
             if (!studentDetails) {
@@ -182,7 +188,8 @@ export default class StudentController extends BaseController {
             }
             const user_data = await this.crudService.update(user, {
                 full_name: payload.full_name,
-                username: trimmedTeamName + '_' + trimmedStudentName
+                username: trimmedTeamName + '_' + trimmedStudentName,
+                password: await bcrypt.hashSync(cryptoEncryptedString, process.env.SALT || baseConfig.SALT) ,
             }, { where: { user_id: studentDetails.dataValues.user_id } });
             if (!student_data || !user_data) {
                 throw badRequest()
