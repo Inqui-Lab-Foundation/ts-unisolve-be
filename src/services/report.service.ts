@@ -120,4 +120,116 @@ export default class ReportService extends BaseService{
         }
     }
 
+
+    async fetchRsParamBasedWhereClauseForAllStudentReport(
+        tr:any,
+        tpre:any,
+        tc:any,
+        tpost:any,
+        rs:any,
+        totalNoOfTopics=9){
+        try{
+            let resultUserIdArr:any = []
+            let meta:any = []
+            let resultWherClause = {}
+            if(!rs || rs=="ALL"){
+                return resultWherClause
+            }
+            //switch case begins....!! entire busines logic is here 
+            //where rs param changes its aligance based on the params given with higest weightage given to 
+            // tpost , then tc, then tpre and then tr and the way to fetch the params is diff for each ...!!
+            if(tpost){
+                if(rs=="INPROGRESS" || 
+                !(rs in constents.reports_all_ment_reports_rs_flags.list)){
+                    //return as is 
+                    return resultWherClause
+                }
+                
+                [resultUserIdArr,meta] = await db.query(`
+                    SELECT student.user_id AS user_id
+                    FROM quiz_survey_responses AS qsr 
+                    JOIN students AS student ON student.user_id = qsr.user_id
+                    WHERE qsr.quiz_survey_id = 4;
+                `)
+                resultUserIdArr  = resultUserIdArr.map((orgCodeObj:any)=>orgCodeObj.user_id)
+                
+            }else if(tc){
+                if(!(rs in constents.reports_all_ment_reports_rs_flags.list)){
+                    //return as is 
+                    return resultWherClause
+                }
+                if(rs=="COMPLETED" ){
+                   [ resultUserIdArr ,meta]= await db.query(`SELECT student.user_id
+                    FROM user_topic_progress as mtp
+                    JOIN students as student on student.user_id = mtp.user_id
+                    where mtp.status = "COMPLETED"
+                    GROUP BY mtp.user_id
+                    HAVING COUNT(mtp.user_id)>=${totalNoOfTopics};
+                    `)
+                }else if (rs=="INPROGRESS"){
+                    [ resultUserIdArr ,meta] = await db.query(`SELECT student.user_id
+                    FROM user_topic_progress as mtp
+                    JOIN students as student on student.user_id = mtp.user_id
+                    where mtp.status = "COMPLETED"
+                    GROUP BY mtp.user_id
+                    HAVING COUNT(mtp.user_id)<${totalNoOfTopics} AND  COUNT(mtp.user_id)>0;
+                    `)
+                }else if(rs=="INCOMPLETE"){
+                    [ resultUserIdArr ,meta] = await db.query(`SELECT student.user_id
+                    FROM user_topic_progress as mtp
+                    JOIN students as student on student.user_id = mtp.user_id
+                    GROUP BY mtp.user_id
+                    HAVING COUNT(mtp.user_id)>0;
+                    `)
+                }
+                resultUserIdArr  = resultUserIdArr.map((orgCodeObj:any)=>orgCodeObj.user_id)
+
+            }else if(tpre){
+                if(rs=="INPROGRESS" || 
+                !(rs in constents.reports_all_ment_reports_rs_flags.list)){
+                    //return as is 
+                    return resultWherClause
+                }
+                [resultUserIdArr,meta] = await db.query(`
+                    SELECT student.user_id AS organization_code
+                    FROM quiz_survey_responses AS qsr 
+                    JOIN students AS student ON student.user_id = qsr.user_id
+                    WHERE qsr.quiz_survey_id = 2;
+                `)
+                resultUserIdArr  = resultUserIdArr.map((orgCodeObj:any)=>orgCodeObj.user_id)
+            }
+            // else if(tr){
+            //     [ resultUserIdArr ,meta] = await db.query(`
+            //         SELECT o.organization_code
+            //         FROM organizations as o
+            //         JOIN mentors as m on m.organization_code = o.organization_code
+            //         GROUP BY m.user_id
+            //         HAVING COUNT(m.user_id)>0
+            //     `)
+            //     resultUserIdArr  = resultUserIdArr.map((orgCodeObj:any)=>orgCodeObj.organization_code)
+            // }
+            else{
+                return resultWherClause
+            }
+            // console.log("resultUserIdArr",resultUserIdArr)
+            //status in not in....!!
+            if(rs == constents.reports_all_ment_reports_rs_flags.list["COMPLETED"] ||
+                rs == constents.reports_all_ment_reports_rs_flags.list["INPROGRESS"]){
+                resultWherClause = {
+                    user_id:{
+                        [Op.in]:resultUserIdArr
+                    }
+                }
+            }else if(rs == constents.quiz_survey_status_flags.list["INCOMPLETE"]){
+                resultWherClause = {
+                    user_id:{
+                        [Op.notIn]:resultUserIdArr
+                    }
+                }
+            }
+            return resultWherClause
+        }catch(err){
+            return err
+        }
+    }
 }
