@@ -87,7 +87,7 @@ export default class DashboardController extends BaseController {
                             from teams as t
                             where 
                             ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
-                            and t.mentor_id=\`mentor\`.\`mentor_id\`)
+                            and t.mentor_id=\`mentor\`.\`user_id\`)
                             )`),
                         "students_count"
                     ],
@@ -111,7 +111,7 @@ export default class DashboardController extends BaseController {
                         from teams as t
                         where 
                         ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
-                        and t.mentor_id=\`mentor\`.\`user_id\`
+                        and t.mentor_id=\`mentor\`.\`mentor_id\`
                         )`),
                         "teams_count"
                     ]
