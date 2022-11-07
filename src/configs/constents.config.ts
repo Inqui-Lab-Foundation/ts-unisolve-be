@@ -174,6 +174,14 @@ export const constents = {
   translations_flags:{
     default_locale: "en"
   },
-  default_image_path: "/images/default.jpg"
-
+  default_image_path: "/images/default.jpg",
+  reports_all_ment_reports_rs_flags: {
+    list: {
+      "ALL": "ALL",
+      "COMPLETED": "COMPLETED",
+      "INCOMPLETE": "INCOMPLETE",
+      "INPROGRESS": "INPROGRESS",
+    },
+    default: "ALL"
+  },
 };

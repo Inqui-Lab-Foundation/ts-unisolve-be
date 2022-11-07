@@ -59,7 +59,7 @@ export default class TranslationsProvider {
             // console.log(localeSpecificTranslations)
             if(localeSpecificTranslations.length>0){
                 localeSpecificTranslations.map((translation)=>{
-                    this.translationsFromDbArr[locale][""+translation.key]=""+translation.value;
+                    this.translationsFromDbArr[locale][(""+translation.key).trim()]=(""+translation.value).trim();
                 }); 
             }
                
@@ -67,9 +67,17 @@ export default class TranslationsProvider {
         // console.log(this.translationsFromDbArr)
     }
     static getTranslationTo(argToLocale:string,argKey:string){
-        // console.log(argKey);
+        argKey = (""+argKey).trim()
+        // if(argKey == "Community Map"){
+        //     console.log("argKey",argKey);
+        // }
         if(this.translationsFromDbArr[argToLocale]){
             const translationsForToLocale = this.translationsFromDbArr[argToLocale]
+            // if(argKey == "Community Map"){
+            //     // console.log("translationsForToLocale",translationsForToLocale)
+            //     console.log("translationsForToLocale[argKey]",translationsForToLocale[argKey]);
+            // } 
+            
             if(translationsForToLocale[argKey]){
                 return translationsForToLocale[argKey]
             }
