@@ -4,6 +4,7 @@ import { constents } from "../configs/constents.config";
 import { teamSchema, teamUpdateSchema } from "../validations/team.validationa";
 import ValidationsHolder from "../validations/validationHolder";
 import BaseController from "./base.controller";
+import authService from '../services/auth.service';
 import db from "../utils/dbconnection.util"
 import dispatcher from "../utils/dispatch.util";
 import { badRequest, notFound } from "boom";
@@ -15,7 +16,7 @@ import { user } from "../models/user.model";
 export default class TeamController extends BaseController {
 
     model = "team";
-
+    authService: authService = new authService;
     protected initializePath(): void {
         this.path = '/teams';
     }
@@ -215,6 +216,54 @@ export default class TeamController extends BaseController {
 
                 return res.status(201).send(dispatcher(res, data, 'created'));
             }
+        } catch (error) {
+            next(error);
+        }
+    }
+    protected async deleteData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let deletingTeamDetails: any;
+            const { model, id } = req.params;
+            if (model) {
+                this.model = model;
+            };
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const getTeamDetails = await this.crudService.findOne(await this.loadModel(model), {
+                attributes: ["team_id", "mentor_id"],
+                where
+            });
+            if (getTeamDetails instanceof Error) throw getTeamDetails;
+            if (!getTeamDetails) throw notFound(speeches.TEAM_NOT_FOUND);
+            // console.log(getTeamDetails);
+            const getStudentDetails = await this.crudService.findAll(student, {
+                attributes: ["student_id", "user_id"],
+                where: { team_id: getTeamDetails.dataValues.team_id }
+            });
+            if (getStudentDetails instanceof Error) throw getTeamDetails;
+            if (getStudentDetails) {
+                for (let student of getStudentDetails) {
+                    // console.log(student);
+                    const deleteUserStudentAndRemoveAllResponses = await this.authService.deleteStudentAndStudentResponse(student.dataValues.user_id);
+                    deletingTeamDetails = await this.crudService.delete(await this.loadModel(model), { where: where });
+                }
+            }
+            deletingTeamDetails = await this.crudService.delete(await this.loadModel(model), { where: where });
+            return res.status(200).send(dispatcher(res, deletingTeamDetails, 'deleted'));
+            //         if (exist(team_id))
+            //             if (check students)
+            // 		bulk delete
+            // Delete teams
+            // 	else
+            // 		Delete teams
+            // else
+            //    No action
+            // if (!data) {
+            //     throw badRequest()
+            // }
+            // if (data instanceof Error) {
+            //     throw data
+            // }
         } catch (error) {
             next(error);
         }

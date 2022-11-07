@@ -618,7 +618,7 @@ export default class authService {
                 user_topic_progress,
                 worksheet_response,
                 student,
-                user,
+                user
             ];
             for (let i = 0; i < models.length; i++) {
                 let deleted = await this.crudService.delete(models[i], { where: { user_id } });
