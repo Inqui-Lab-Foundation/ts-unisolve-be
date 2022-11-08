@@ -112,6 +112,7 @@ export default class DashboardController extends BaseController {
                         where 
                         ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
                         and t.mentor_id=\`mentor\`.\`mentor_id\`
+                        and t.status='ACTIVE'
                         )`),
                         "teams_count"
                     ]
@@ -131,7 +132,7 @@ export default class DashboardController extends BaseController {
             if (mentor_stats) {
                 res.status(200).json(dispatcher(res, mentor_stats, "success"))
             } else {
-                res.status(500).json(dispatcher(res, "somethign went wrong", "error"))
+                res.status(500).json(dispatcher(res, "something went wrong", "error"))
             }
         } catch (err) {
             next(err)
