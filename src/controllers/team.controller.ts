@@ -111,7 +111,8 @@ export default class TeamController extends BaseController {
                                 whereClauseStatusPart,
                                 condition
                             ]
-                        }, limit, offset
+                        }, limit, offset,
+                        order: [["created_at", "DESC"]],
                     })
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
