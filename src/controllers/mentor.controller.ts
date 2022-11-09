@@ -128,7 +128,7 @@ export default class MentorController extends BaseController {
             if (model) {
                 this.model = model;
             };
-            const current_user = res.locals.user_id; 
+            // const current_user = res.locals.user_id; 
             // pagination
             const { page, size, status } = req.query;
             let condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
@@ -141,15 +141,15 @@ export default class MentorController extends BaseController {
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
                 whereClauseStatusPart = { "status": paramStatus }
             }
-            const getUserIdFromMentorId = await mentor.findOne({
-                attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
-            });
-            console.log(getUserIdFromMentorId);
-            if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
-            if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
-            if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
-                throw forbidden();
-            };
+            // const getUserIdFromMentorId = await mentor.findOne({
+            //     attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
+            // });
+            // console.log(getUserIdFromMentorId);
+            // if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
+            // if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
+            // if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
+            //     throw forbidden();
+            // };
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
