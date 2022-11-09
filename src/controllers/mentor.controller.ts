@@ -144,7 +144,7 @@ export default class MentorController extends BaseController {
             // const getUserIdFromMentorId = await mentor.findOne({
             //     attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
             // });
-            // // console.log(getUserIdFromMentorId);
+            // console.log(getUserIdFromMentorId);
             // if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
             // if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
             // if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
