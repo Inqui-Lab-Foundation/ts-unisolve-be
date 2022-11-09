@@ -7,11 +7,12 @@ import BaseController from "./base.controller";
 import authService from '../services/auth.service';
 import db from "../utils/dbconnection.util"
 import dispatcher from "../utils/dispatch.util";
-import { badRequest, notFound } from "boom";
+import { badRequest, forbidden, notFound } from "boom";
 import { speeches } from "../configs/speeches.config";
 import { team } from "../models/team.model";
 import { student } from "../models/student.model";
 import { user } from "../models/user.model";
+import { mentor } from "../models/mentor.model";
 
 export default class TeamController extends BaseController {
 
@@ -35,10 +36,37 @@ export default class TeamController extends BaseController {
             if (model) {
                 this.model = model;
             };
+            const current_user = res.locals.user_id; 
+            if(!current_user){
+                throw forbidden()
+            }
             // pagination
-            const { page, size, mentor_id } = req.query;
+            let mentor_id:any = null
+            const { page, size,  } = req.query;
+            mentor_id =  req.query.mentor_id
             // let condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
-            let condition = mentor_id ? { "mentor_id": mentor_id } : null;
+            let condition =  null;
+            if(mentor_id){
+                const getUserIdFromMentorId = await mentor.findOne({
+                    attributes: ["user_id", "created_by"], 
+                    where: {
+                         mentor_id: mentor_id 
+                        }
+                });
+                console.log(mentor_id);
+                console.log(getUserIdFromMentorId);
+                if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
+                if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
+                const providedMentorsUserId = getUserIdFromMentorId.getDataValue("user_id");
+                condition =  { 
+                    mentor_id:mentor_id,
+                    created_by:providedMentorsUserId
+                }
+                // if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
+                //     throw forbidden();
+                // };
+            }
+            
             const { limit, offset } = this.getPagination(page, size);
             const modelClass = await this.loadModel(model).catch(error => {
                 next(error)
@@ -192,31 +220,41 @@ export default class TeamController extends BaseController {
             if (model) {
                 this.model = model;
             };
+            const current_user = res.locals.user_id; 
             const modelLoaded = await this.loadModel(model);
-            const payload = this.autoFillTrackingColumns(req, res, modelLoaded)
+            req.body.team_name = req.body.team_name.replace(/[\n\r\s\t_]+/g, '').toLowerCase();
+            const getUserIdFromMentorId = await mentor.findOne({
+                attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
+            });
+            console.log(getUserIdFromMentorId);
+            if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
+            if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
+            if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
+                throw forbidden();
+            };
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             const teamNameCheck: any = await team.findOne({
                 where: {
                     mentor_id: payload.mentor_id,
                     team_name: payload.team_name
                 }
-            })
+            });
             if (teamNameCheck) {
                 throw badRequest('code unique');
-            } else {
-                ///add check if teamNameCheck is not an error and has data then return and err
-                const data = await this.crudService.create(modelLoaded, payload);
-                // if (!data) {
-                //     return res.status(404).send(dispatcher(res,data, 'error'));
-                // }
-                if (!data) {
-                    throw badRequest()
-                }
-                if (data instanceof Error) {
-                    throw data;
-                }
-
-                return res.status(201).send(dispatcher(res, data, 'created'));
             }
+            //add check if teamNameCheck is not an error and has data then return and err
+            const data = await this.crudService.create(modelLoaded, payload);
+            if (!data) {
+                return res.status(404).send(dispatcher(res, data, 'error'));
+            }
+            if (!data) {
+                throw badRequest()
+            }
+            if (data instanceof Error) {
+                throw data;
+            }
+            return res.status(201).send(dispatcher(res, data, 'created'));
+            
         } catch (error) {
             next(error);
         }
@@ -224,6 +262,7 @@ export default class TeamController extends BaseController {
     protected async deleteData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
             let deletingTeamDetails: any;
+            let deleteTeam: any = 1;
             const { model, id } = req.params;
             if (model) {
                 this.model = model;
@@ -244,12 +283,14 @@ export default class TeamController extends BaseController {
             if (getStudentDetails instanceof Error) throw getTeamDetails;
             if (getStudentDetails) {
                 for (let student of getStudentDetails) {
-                    // console.log(student);
                     const deleteUserStudentAndRemoveAllResponses = await this.authService.deleteStudentAndStudentResponse(student.dataValues.user_id);
-                    deletingTeamDetails = await this.crudService.delete(await this.loadModel(model), { where: where });
+                    deleteTeam++;
+                    // deletingTeamDetails = await this.crudService.delete(await this.loadModel(model), { where: where });
                 }
+            };
+            if (deleteTeam >= 1) {
+                deletingTeamDetails = await this.crudService.delete(await this.loadModel(model), { where: where });
             }
-            deletingTeamDetails = await this.crudService.delete(await this.loadModel(model), { where: where });
             return res.status(200).send(dispatcher(res, deletingTeamDetails, 'deleted'));
             //         if (exist(team_id))
             //             if (check students)
