@@ -36,10 +36,37 @@ export default class TeamController extends BaseController {
             if (model) {
                 this.model = model;
             };
+            const current_user = res.locals.user_id; 
+            if(!current_user){
+                throw forbidden()
+            }
             // pagination
-            const { page, size, mentor_id } = req.query;
+            let mentor_id:any = null
+            const { page, size,  } = req.query;
+            mentor_id =  req.query.mentor_id
             // let condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
-            let condition = mentor_id ? { "mentor_id": mentor_id } : null;
+            let condition =  null;
+            if(mentor_id){
+                const getUserIdFromMentorId = await mentor.findOne({
+                    attributes: ["user_id", "created_by"], 
+                    where: {
+                         mentor_id: mentor_id 
+                        }
+                });
+                console.log(mentor_id);
+                console.log(getUserIdFromMentorId);
+                if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
+                if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
+                const providedMentorsUserId = getUserIdFromMentorId.getDataValue("user_id");
+                condition =  { 
+                    mentor_id:mentor_id,
+                    created_by:providedMentorsUserId
+                }
+                // if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
+                //     throw forbidden();
+                // };
+            }
+            
             const { limit, offset } = this.getPagination(page, size);
             const modelClass = await this.loadModel(model).catch(error => {
                 next(error)
@@ -226,7 +253,7 @@ export default class TeamController extends BaseController {
             if (data instanceof Error) {
                 throw data;
             }
-            return res.status(201).send(dispatcher(res, "data", 'created'));
+            return res.status(201).send(dispatcher(res, data, 'created'));
             
         } catch (error) {
             next(error);
