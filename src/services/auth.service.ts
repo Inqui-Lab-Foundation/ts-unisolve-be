@@ -779,12 +779,16 @@ export default class authService {
 
     async checkIfTeamHasPlaceForNewMember(argTeamId:any){
         try{
-            const studentResult = await student.findAll({where:{team_id:argTeamId}})
+            let studentResult:any = await student.findAll({where:{team_id:argTeamId}})
+            // console.log("studentResult",studentResult)
+            // console.log("studentResultLength",studentResult.length?"true":"false")
             if(studentResult && studentResult instanceof Error){
                 throw studentResult
             }
-            if(studentResult && studentResult.length &&
-                studentResult.length <constents.TEAMS_MAX_STUDENTS_ALLOWED){
+            if(studentResult &&
+             (studentResult.length==0 ||
+                studentResult.length <constents.TEAMS_MAX_STUDENTS_ALLOWED)
+                ){
                     return true;
             }
             return false
