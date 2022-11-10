@@ -447,7 +447,10 @@ export default class MentorController extends BaseController {
             if (mentorResult instanceof Error) {
                 throw mentorResult
             }
-
+            const mentor_id = mentorResult.dataValues.mentor_id
+            if(!mentor_id){
+                throw internal(speeches.DATA_CORRUPTED+":"+speeches.MENTOR_NOT_EXISTS)
+            }
             const deleteMentorResponseResult = await this.authService.bulkDeleteMentorResponse(mentor_user_id)
             if (!deleteMentorResponseResult) {
                 throw internal("error while deleting mentor response")
@@ -459,7 +462,7 @@ export default class MentorController extends BaseController {
             //get team details
             const teamResult: any = await team.findAll({
                 attributes: ["team_id"],
-                where: { mentor_id: mentor_user_id },
+                where: { mentor_id: mentor_id },
                 raw: true
             })
             if (!teamResult) {
