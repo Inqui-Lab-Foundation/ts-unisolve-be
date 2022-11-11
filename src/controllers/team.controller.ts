@@ -223,7 +223,7 @@ export default class TeamController extends BaseController {
             const current_user = res.locals.user_id; 
             const modelLoaded = await this.loadModel(model);
             // req.body.team_name = req.body.team_name.replace(/[\n\r\s\t_]+/g, '').toLowerCase();
-            req.body.team_name = req.body.team_name.toLowerCase();
+            req.body.team_name = req.body.team_name.trim();
             const getUserIdFromMentorId = await mentor.findOne({
                 attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
             });
@@ -233,8 +233,8 @@ export default class TeamController extends BaseController {
             if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
                 throw forbidden();
             };
-            // console.log(current_user !== getUserIdFromMentorId.getDataValue("user_id"))
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
+            console.log(payload)
             const teamNameCheck: any = await team.findOne({
                 where: {
                     mentor_id: payload.mentor_id,

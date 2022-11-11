@@ -293,7 +293,7 @@ export default class StudentController extends BaseController {
                 studentPassword = `${trimmedStudentName}1234`
                 cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
                 req.body[student].username = trimmedTeamName + '_' + trimmedStudentName;
-                req.body[student].full_name = trimmedStudentName;
+                req.body[student].full_name = req.body[student].full_name.trim();
                 req.body[student].role = 'STUDENT';
                 req.body[student].UUID = studentPassword;
                 req.body[student].password = cryptoEncryptedString;
@@ -303,7 +303,7 @@ export default class StudentController extends BaseController {
             }
             // console.log(req.body);
             const responseFromService = await this.authService.bulkCreateStudentService(req.body);
-            if (responseFromService.error) return res.status(406).send(dispatcher(res, responseFromService.error, 'error', speeches.STUDENT_EXISTS, 406));
+            // if (responseFromService.error) return res.status(406).send(dispatcher(res, responseFromService.error, 'error', speeches.STUDENT_EXISTS, 406));
             return res.status(201).send(dispatcher(res, responseFromService, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
         } catch (error) {
             next(error);
