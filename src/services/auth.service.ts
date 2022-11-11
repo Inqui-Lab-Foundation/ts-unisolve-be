@@ -48,6 +48,7 @@ export default class authService {
                 include: {
                     model: mentor,
                     attributes: [
+                        "mentor_id",
                         'user_id',
                         'full_name',
                         'mobile',
