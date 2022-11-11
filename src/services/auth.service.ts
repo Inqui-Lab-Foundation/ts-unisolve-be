@@ -163,6 +163,7 @@ export default class authService {
         let errorResponse: any = {};
         let userProfile: any;
         for (let student in requestBody) {
+            requestBody[student].password = await bcrypt.hashSync(requestBody[student].password, process.env.SALT || baseConfig.SALT);
             let userExist = await this.crudService.findOne(user, {
                 attributes: ["user_id"],
                 where: { username: requestBody[student].username }
