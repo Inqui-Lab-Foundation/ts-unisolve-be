@@ -295,24 +295,25 @@ export default class authService {
                     ]
                 }
             });
-
+            // const passwordValidation = bcrypt.compareSync(requestBody.body.old_password, user_res.dataValues.password);
+            // console.log("test: ", passwordValidation)
             if (!user_res) {
                 result['user_res'] = user_res;
                 result['error'] = speeches.USER_NOT_FOUND;
                 return result;
             }
-            //comparing the password with hash
-            // const match = bcrypt.compareSync(requestBody.old_password, user_res.dataValues.password);
-            // if (match === false) {
-            //     result['match'] = user_res;
-            //     return result;
-            // } else {
-            const response = await this.crudService.update(user, {
-                password: await bcrypt.hashSync(requestBody.new_password, process.env.SALT || baseConfig.SALT)
-            }, { where: { user_id: user_res.dataValues.user_id } });
-            result['data'] = response;
-            return result;
-            // }
+            // comparing the password with hash
+            const match = bcrypt.compareSync(requestBody.old_password, user_res.dataValues.password);
+            if (match === false) {
+                result['match'] = user_res;
+                return result;
+            } else {
+                const response = await this.crudService.update(user, {
+                    password: await bcrypt.hashSync(requestBody.new_password, process.env.SALT || baseConfig.SALT)
+                }, { where: { user_id: user_res.dataValues.user_id } });
+                result['data'] = response;
+                return result;
+            }
         } catch (error) {
             result['error'] = error;
             return result;
@@ -779,22 +780,22 @@ export default class authService {
         }
     }
 
-    async checkIfTeamHasPlaceForNewMember(argTeamId:any){
-        try{
-            let studentResult:any = await student.findAll({where:{team_id:argTeamId}})
+    async checkIfTeamHasPlaceForNewMember(argTeamId: any) {
+        try {
+            let studentResult: any = await student.findAll({ where: { team_id: argTeamId } })
             // console.log("studentResult",studentResult)
             // console.log("studentResultLength",studentResult.length?"true":"false")
-            if(studentResult && studentResult instanceof Error){
+            if (studentResult && studentResult instanceof Error) {
                 throw studentResult
             }
-            if(studentResult &&
-             (studentResult.length==0 ||
-                studentResult.length <constents.TEAMS_MAX_STUDENTS_ALLOWED)
-                ){
-                    return true;
+            if (studentResult &&
+                (studentResult.length == 0 ||
+                    studentResult.length < constents.TEAMS_MAX_STUDENTS_ALLOWED)
+            ) {
+                return true;
             }
             return false
-        }catch(err){
+        } catch (err) {
             return err
         }
     }
