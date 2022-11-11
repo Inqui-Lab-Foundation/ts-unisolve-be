@@ -222,7 +222,8 @@ export default class TeamController extends BaseController {
             };
             const current_user = res.locals.user_id; 
             const modelLoaded = await this.loadModel(model);
-            req.body.team_name = req.body.team_name.replace(/[\n\r\s\t_]+/g, '').toLowerCase();
+            // req.body.team_name = req.body.team_name.replace(/[\n\r\s\t_]+/g, '').toLowerCase();
+            req.body.team_name = req.body.team_name.toLowerCase();
             const getUserIdFromMentorId = await mentor.findOne({
                 attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
             });
@@ -242,18 +243,19 @@ export default class TeamController extends BaseController {
             if (teamNameCheck) {
                 throw badRequest('code unique');
             }
+            console.log("payload: ", payload)
             //add check if teamNameCheck is not an error and has data then return and err
-            const data = await this.crudService.create(modelLoaded, payload);
-            if (!data) {
-                return res.status(404).send(dispatcher(res, data, 'error'));
-            }
-            if (!data) {
-                throw badRequest()
-            }
-            if (data instanceof Error) {
-                throw data;
-            }
-            return res.status(201).send(dispatcher(res, data, 'created'));
+            // const data = await this.crudService.create(modelLoaded, payload);
+            // if (!data) {
+            //     return res.status(404).send(dispatcher(res, data, 'error'));
+            // }
+            // if (!data) {
+            //     throw badRequest()
+            // }
+            // if (data instanceof Error) {
+            //     throw data;
+            // }
+            // return res.status(201).send(dispatcher(res, data, 'created'));
             
         } catch (error) {
             next(error);
