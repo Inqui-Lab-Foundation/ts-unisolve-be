@@ -233,7 +233,7 @@ export default class TeamController extends BaseController {
             if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
                 throw forbidden();
             };
-            console.log(current_user !== getUserIdFromMentorId.getDataValue("user_id"))
+            // console.log(current_user !== getUserIdFromMentorId.getDataValue("user_id"))
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             const teamNameCheck: any = await team.findOne({
                 where: {
