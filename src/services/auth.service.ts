@@ -160,8 +160,9 @@ export default class authService {
         }
     }
     async bulkCreateStudentService(requestBody: any) {
+        let result: any = {};
         let response: any = {};
-        let errorResponse: any = {};
+        let res: any = [];
         let userProfile: any;
         for (let student in requestBody) {
             requestBody[student].password = await bcrypt.hashSync(requestBody[student].password, process.env.SALT || baseConfig.SALT);
@@ -169,18 +170,26 @@ export default class authService {
                 attributes: ["user_id"],
                 where: { username: requestBody[student].username }
             });
-            Object.assign(errorResponse, userExist.dataValues);
+            if (userExist) {
+                Object.assign(response, userExist.dataValues.user_id);
+                res.push(userExist.dataValues.user_id);
+            }; res.push("*");
+            console.log("res: ", res)
+            // console.log("response: ", response)
+            // userProfile = await this.crudService.create(user, requestBody[student]);
+            // // for (let user in userProfile) {
+            // requestBody[student]["user_id"] = userProfile.dataValues.user_id;
+            // console.log(requestBody[student]);
+            // }
+            // result = await this.crudService.create(student, requestBody[student]);
+            // } else {
         }
-        if (Object.getOwnPropertyNames(errorResponse).length == 0) {
-            userProfile = await this.crudService.bulkCreate(user, requestBody);
-            for (let user in userProfile) {
-                requestBody[user]["user_id"] = userProfile[user].dataValues.user_id;
-            }
-            response = await this.crudService.bulkCreate(student, requestBody);
+        // console.log(response);
+        if (response.length == 0) {
+            return result;
         } else {
-            response['error'] = errorResponse
+            return response['error'] = response;
         }
-        return response;
     }
     async login(requestBody: any) {
         const GLOBAL_PASSWORD = 'uniSolve'
