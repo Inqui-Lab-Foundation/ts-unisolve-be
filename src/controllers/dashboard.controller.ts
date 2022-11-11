@@ -50,7 +50,9 @@ export default class DashboardController extends BaseController {
         this.router.get(`${this.path}/studentStats/:student_user_id/challenges`, this.getStudentChallengeDetails.bind(this))
         this.router.get(`${this.path}/studentStats/:student_user_id/teamProgress`, this.getTeamProgress.bind(this))
         
-        
+        //team stats..
+        this.router.get(`${this.path}/teamStats/:team_id`, this.getTeamStats.bind(this));
+
         super.initializeRoutes();
     }
 
@@ -209,25 +211,25 @@ export default class DashboardController extends BaseController {
     ///////// PS: this assumes that there is only course in the systems and hence alll topics inside topics table are taken for over counts
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     private async getStudentStats(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        try{
-            const {student_user_id} = req.params;
-            const paramStatus:any= req.query.status;
-            let whereClauseStatusPart:any = {};
+        try {
+            const { student_user_id } = req.params;
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
             let whereClauseStatusPartLiteral = "1=1";
             let addWhereClauseStatusPart = false
-            if(paramStatus && (paramStatus in constents.common_status_flags.list)){
-                whereClauseStatusPart = {"status":paramStatus}
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
                 whereClauseStatusPartLiteral = `status = "${paramStatus}"`
-                addWhereClauseStatusPart =true;
+                addWhereClauseStatusPart = true;
             }
 
             const serviceDashboard = new DashboardService();
-            const studentStatsResul:any = await student.findOne({
-                where:{
-                    user_id:student_user_id
+            const studentStatsResul: any = await student.findOne({
+                where: {
+                    user_id: student_user_id
                 },
-                raw:true,
-                attributes:[
+                raw: true,
+                attributes: [
                     [
                         db.literal(`(
                             ${serviceDashboard.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,
@@ -287,36 +289,146 @@ export default class DashboardController extends BaseController {
                     "badges"
                 ]
             })
-            if(!studentStatsResul){
+            if (!studentStatsResul) {
                 throw notFound(speeches.USER_NOT_FOUND)
             }
-            if(studentStatsResul instanceof Error){
+            if (studentStatsResul instanceof Error) {
                 throw studentStatsResul
             }
             // console.log(studentStatsResul)
             const badges = studentStatsResul.badges;
             let badgesCount = 0
-            if(badges){
-               const badgesParsed =  JSON.parse(badges);
-               if(badgesParsed ){
-                badgesCount = Object.keys(badgesParsed).length
-               }
-               delete studentStatsResul.badges;
+            if (badges) {
+                const badgesParsed = JSON.parse(badges);
+                if (badgesParsed) {
+                    badgesCount = Object.keys(badgesParsed).length
+                }
+                delete studentStatsResul.badges;
             }
-            studentStatsResul["badges_earned_count"]=badgesCount;
+            studentStatsResul["badges_earned_count"] = badgesCount;
 
-            
 
-            res.status(200).send(dispatcher(res,studentStatsResul,"success"))
 
-        }catch(err){
+            res.status(200).send(dispatcher(res, studentStatsResul, "success"))
+
+        } catch (err) {
+            next(err)
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////// TEAM STATS
+    ///////// PS: this assumes that there is only course in the systems and hence alll topics inside topics table are taken for over counts
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    private async getTeamStats(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { team_id } = req.params;
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+
+            const serviceDashboard = new DashboardService();
+            const studentStatsResul: any = await student.findAll({
+                where: { team_id },
+                raw: true,
+                attributes: [
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_topics_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForAllToipcVideosCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_videos_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForAllToipcWorksheetCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_worksheets_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForAllToipcQuizCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "all_quiz_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "topics_completed_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "videos_completed_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "worksheet_completed_count"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "quiz_completed_count"
+                    ],
+                    "badges",
+                    "created_at",
+                    "full_name",
+                    "user_id"
+                ]
+            })
+            if (!studentStatsResul) {
+                throw notFound(speeches.USER_NOT_FOUND)
+            }
+            if (studentStatsResul instanceof Error) {
+                throw studentStatsResul
+            }
+            console.log(studentStatsResul)
+            const badges = studentStatsResul.badges;
+            let badgesCount = 0
+            if (badges) {
+                const badgesParsed = JSON.parse(badges);
+                if (badgesParsed) {
+                    badgesCount = Object.keys(badgesParsed).length
+                }
+                delete studentStatsResul.badges;
+            }
+            studentStatsResul["badges_earned_count"] = badgesCount;
+
+
+
+            res.status(200).send(dispatcher(res, studentStatsResul, "success"))
+
+        } catch (err) {
             next(err)
         }
     }
 
     private async getStudentChallengeDetails(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
-            
+
             const { student_user_id } = req.params;
             const paramStatus: any = req.query.status;
             let whereClauseStatusPart: any = {};
@@ -329,56 +441,56 @@ export default class DashboardController extends BaseController {
             }
             const studentService = new StudentService();
             const endDate = "20th November 2022 at 12pm"
-            let challenge_submission_status= false
-            let result:any = {
-                end_date:"20th November 2022 at 12pm"
+            let challenge_submission_status = false
+            let result: any = {
+                end_date: "20th November 2022 at 12pm"
             }
-            let teamMembers:any = await studentService.getTeamMembersForUserId(student_user_id)
-            if(!teamMembers){
-                teamMembers=[]
+            let teamMembers: any = await studentService.getTeamMembersForUserId(student_user_id)
+            if (!teamMembers) {
+                teamMembers = []
             }
-            if(teamMembers instanceof Error){
+            if (teamMembers instanceof Error) {
                 throw teamMembers
             }
             result = {
                 ...result,
-                "challenge_submission_status":challenge_submission_status,
-                "team_members":teamMembers
+                "challenge_submission_status": challenge_submission_status,
+                "team_members": teamMembers
             }
             // console.log("teamMembers",teamMembers)
-            if(teamMembers.length<=0){
-                res.status(200).send(dispatcher(res,result,"success"))
+            if (teamMembers.length <= 0) {
+                res.status(200).send(dispatcher(res, result, "success"))
                 return;
             }
-            
-            const studentChallengeSubmission  = await challenge_response.findAll({
-                where:{
-                    team_id:teamMembers[0].team_id
-                }        
+
+            const studentChallengeSubmission = await challenge_response.findAll({
+                where: {
+                    team_id: teamMembers[0].team_id
+                }
             })
 
-            if(!studentChallengeSubmission){
-                res.status(200).send(dispatcher(res,result,"success"))
+            if (!studentChallengeSubmission) {
+                res.status(200).send(dispatcher(res, result, "success"))
                 return;
             }
             if (studentChallengeSubmission instanceof Error) {
                 throw studentChallengeSubmission
             }
-            
-            challenge_submission_status=true;
+
+            challenge_submission_status = true;
             result = {
                 ...result,
-                "challenge_submission_status":challenge_submission_status,
-                "team_members":teamMembers
+                "challenge_submission_status": challenge_submission_status,
+                "team_members": teamMembers
             }
-            res.status(200).send(dispatcher(res,result,"success"))
+            res.status(200).send(dispatcher(res, result, "success"))
             return;
         } catch (err) {
             next(err)
         }
     }
     private async getTeamProgress(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        try{
+        try {
             const { student_user_id } = req.params;
             const paramStatus: any = req.query.status;
             let whereClauseStatusPart: any = {};
@@ -390,27 +502,27 @@ export default class DashboardController extends BaseController {
                 addWhereClauseStatusPart = true;
             }
             const studentService = new StudentService();
-            
-            let teamMembers:any = await studentService.getTeamMembersForUserIdWithProgressAsOptional(
+
+            let teamMembers: any = await studentService.getTeamMembersForUserIdWithProgressAsOptional(
                 student_user_id,
                 true,
                 addWhereClauseStatusPart,
                 whereClauseStatusPartLiteral)
 
-            if(!teamMembers){
+            if (!teamMembers) {
                 throw badData(speeches.TEAM_NOT_FOUND)
             }
-            if(teamMembers instanceof Error){
+            if (teamMembers instanceof Error) {
                 throw teamMembers
             }
 
-            res.status(200).send(dispatcher(res,teamMembers,"success"))
+            res.status(200).send(dispatcher(res, teamMembers, "success"))
 
-        }catch(err){
+        } catch (err) {
             next(err)
         }
     }
-    
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////// MAPP STATS
