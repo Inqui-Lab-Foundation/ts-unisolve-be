@@ -233,6 +233,7 @@ export default class TeamController extends BaseController {
             if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
                 throw forbidden();
             };
+            // console.log(current_user !== getUserIdFromMentorId.getDataValue("user_id"))
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             const teamNameCheck: any = await team.findOne({
                 where: {
@@ -244,18 +245,18 @@ export default class TeamController extends BaseController {
                 throw badRequest('code unique');
             }
             console.log("payload: ", payload)
-            //add check if teamNameCheck is not an error and has data then return and err
-            // const data = await this.crudService.create(modelLoaded, payload);
-            // if (!data) {
-            //     return res.status(404).send(dispatcher(res, data, 'error'));
-            // }
-            // if (!data) {
-            //     throw badRequest()
-            // }
-            // if (data instanceof Error) {
-            //     throw data;
-            // }
-            // return res.status(201).send(dispatcher(res, data, 'created'));
+            // add check if teamNameCheck is not an error and has data then return and err
+            const data = await this.crudService.create(modelLoaded, payload);
+            if (!data) {
+                return res.status(404).send(dispatcher(res, data, 'error'));
+            }
+            if (!data) {
+                throw badRequest()
+            }
+            if (data instanceof Error) {
+                throw data;
+            }
+            return res.status(201).send(dispatcher(res, data, 'created'));
             
         } catch (error) {
             next(error);
