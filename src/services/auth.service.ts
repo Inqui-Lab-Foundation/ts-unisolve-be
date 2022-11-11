@@ -160,36 +160,37 @@ export default class authService {
         }
     }
     async bulkCreateStudentService(requestBody: any) {
-        let result: any = {};
-        let response: any = {};
-        let res: any = [];
-        let userProfile: any;
-        for (let student in requestBody) {
-            requestBody[student].password = await bcrypt.hashSync(requestBody[student].password, process.env.SALT || baseConfig.SALT);
-            let userExist = await this.crudService.findOne(user, {
-                attributes: ["user_id"],
-                where: { username: requestBody[student].username }
+        /**
+         * for over requestBody and get single user set the password, find the user's if exist push to the error response or create user, student both
+         * 
+         */
+        let userProfile: any
+        let result: any;
+        let errorResponse: any = [];
+        let successResponse: any = [];
+        for (let payload of requestBody) {
+            const trimmedName = payload.full_name.trim();
+            if (!trimmedName || typeof trimmedName == undefined) {
+                errorResponse.push(`'${payload.full_name}'`);
+                continue;
+            }
+            payload.password = await bcrypt.hashSync(payload.password, process.env.SALT || baseConfig.SALT);
+            let checkUserExisted = await this.crudService.findOne(user, {
+                attributes: ["user_id", "username"],
+                where: { username: payload.username }
             });
-            if (userExist) {
-                Object.assign(response, userExist.dataValues.user_id);
-                res.push(userExist.dataValues.user_id);
-            }; res.push("*");
-            console.log("res: ", res)
-            // console.log("response: ", response)
-            // userProfile = await this.crudService.create(user, requestBody[student]);
-            // // for (let user in userProfile) {
-            // requestBody[student]["user_id"] = userProfile.dataValues.user_id;
-            // console.log(requestBody[student]);
-            // }
-            // result = await this.crudService.create(student, requestBody[student]);
-            // } else {
-        }
-        // console.log(response);
-        if (response.length == 0) {
-            return result;
-        } else {
-            return response['error'] = response;
-        }
+            if (!checkUserExisted) {
+                userProfile = await this.crudService.create(user, payload);
+                payload["user_id"] = userProfile.dataValues.user_id;
+                result = await this.crudService.create(student, payload);
+                successResponse.push(payload.full_name);
+            } else {
+                errorResponse.push(payload.full_name);
+            }
+        };
+        let successMsg = successResponse.length ? successResponse.join(', ') + " successfully created. " : ''
+        let errorMsg = errorResponse.length ? errorResponse.join(', ') + " invalid/already existed" : ''
+        return successMsg + errorMsg;
     }
     async login(requestBody: any) {
         const GLOBAL_PASSWORD = 'uniSolve'
