@@ -98,8 +98,8 @@ export default class SupportTicketController extends BaseController {
                                 condition
                             ]
                         },
-                        limit,
-                        offset
+                        limit, offset,
+                        order: [["updated_at", "DESC"]],
                     })
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
