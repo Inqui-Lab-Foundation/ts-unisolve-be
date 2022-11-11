@@ -39,6 +39,7 @@ export default class StudentController extends BaseController {
         //example route to add
         //this.router.get(`${this.path}/`, this.getData);
         this.router.post(`${this.path}/register`, this.register.bind(this));
+        this.router.post(`${this.path}/addStudent`, this.register.bind(this));
         this.router.post(`${this.path}/bulkCreateStudent`, this.bulkCreateStudent.bind(this));
         this.router.post(`${this.path}/login`, validationMiddleware(studentLoginSchema), this.login.bind(this));
         this.router.get(`${this.path}/logout`, this.logout.bind(this));
@@ -226,32 +227,56 @@ export default class StudentController extends BaseController {
         }
     }
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        // const randomGeneratedSixDigitID = this.nanoid();
-        const { team_id } = req.body;
-        let trimmedTeamName: any;
-        let trimmedStudentName: any;
-        trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
-        const studentPassword = `${trimmedStudentName}1234`
-        const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
-        if (!req.body.role || req.body.role !== 'STUDENT') return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
-        if (!req.body.team_id) return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
-        const teamDetails = await this.authService.crudService.findOne(team, { where: { team_id } });
-        if (!teamDetails) return res.status(406).send(dispatcher(res, null, 'error', speeches.TEAM_NOT_FOUND, 406));
-        else trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
-        if (!req.body.username || req.body.username === "") {
-            req.body.username = trimmedTeamName + '_' + trimmedStudentName
-            req.body['UUID'] = studentPassword;
-            req.body.qualification = cryptoEncryptedString // saving the encrypted text in the qualification as for now just for debugging
+        try{
+            // const randomGeneratedSixDigitID = this.nanoid();
+            const { team_id } = req.body;
+            let trimmedTeamName: any;
+            let trimmedStudentName: any;
+            trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
+            const studentPassword = `${trimmedStudentName}1234`
+            const cryptoEncryptedString = await this.authService.generateCryptEncryption(studentPassword);
+            if (!req.body.role || req.body.role !== 'STUDENT') return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
+            if (!req.body.team_id) return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_TEAMID_REQUIRED, 406));
+            if(team_id){
+                const teamCanAddMember = await this.authService.checkIfTeamHasPlaceForNewMember(team_id)
+                if(!teamCanAddMember){
+                    throw badRequest(speeches.TEAM_MAX_MEMBES_EXCEEDED)
+                }
+                if(teamCanAddMember instanceof Error){
+                    throw teamCanAddMember;
+                }
+            }
+            const teamDetails = await this.authService.crudService.findOne(team, { where: { team_id } });
+            if (!teamDetails) return res.status(406).send(dispatcher(res, null, 'error', speeches.TEAM_NOT_FOUND, 406));
+            else trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
+            if (!req.body.username || req.body.username === "") {
+                req.body.username = trimmedTeamName + '_' + trimmedStudentName
+                req.body['UUID'] = studentPassword;
+                req.body.qualification = cryptoEncryptedString // saving the encrypted text in the qualification as for now just for debugging
+            }
+            if (!req.body.password || req.body.password === "") req.body.password = cryptoEncryptedString;
+            const payload = this.autoFillTrackingColumns(req,res,student)
+            const result = await this.authService.register(payload);
+            if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.STUDENT_EXISTS, 406));
+            return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
+        }catch(err){
+            next(err)
         }
-        if (!req.body.password || req.body.password === "") req.body.password = cryptoEncryptedString;
-        const result = await this.authService.register(req.body);
-        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.STUDENT_EXISTS, 406));
-        return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
     private async bulkCreateStudent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
             for (let student in req.body) {
                 if (!req.body[student].team_id) throw notFound(speeches.USER_TEAMID_REQUIRED);
+                const team_id = req.body[student].team_id
+                if(team_id){
+                    const teamCanAddMember = await this.authService.checkIfTeamHasPlaceForNewMember(team_id)
+                    if(!teamCanAddMember){
+                        throw badRequest(speeches.TEAM_MAX_MEMBES_EXCEEDED)
+                    }
+                    if(teamCanAddMember instanceof Error){
+                        throw teamCanAddMember;
+                    }
+                }
             }
             let trimmedTeamName: any;
             let trimmedStudentName: any;
@@ -273,6 +298,8 @@ export default class StudentController extends BaseController {
                 req.body[student].UUID = studentPassword;
                 req.body[student].password = cryptoEncryptedString;
                 req.body[student].qualification = cryptoEncryptedString; // password filed will hashed further by the backend system hence we saving the encrypted text in the qualification filed as for now just for debugging
+                req.body[student].created_by = res.locals.user_id
+                req.body[student].updated_by = res.locals.user_id
             }
             // console.log(req.body);
             const responseFromService = await this.authService.bulkCreateStudentService(req.body);

@@ -26,6 +26,7 @@ import { func, invalid } from 'joi';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
 import { badRequest, internal, notAcceptable, notFound } from 'boom';
 import { notFoundError } from '../docs/errors';
+import { constents } from '../configs/constents.config';
 export default class authService {
 
     crudService: CRUDService = new CRUDService;
@@ -125,9 +126,9 @@ export default class authService {
                 return response
             }
             const result = await this.crudService.create(user, requestBody);
-            console.log(result)
+            // console.log(result)
             let whereClass = { ...requestBody, user_id: result.dataValues.user_id };
-            console.log(whereClass);
+            // console.log(whereClass);
             switch (requestBody.role) {
                 case 'STUDENT': {
                     profile = await this.crudService.create(student, whereClass);
@@ -773,6 +774,26 @@ export default class authService {
         } catch (error) {
             result['error'] = error;
             return result;
+        }
+    }
+
+    async checkIfTeamHasPlaceForNewMember(argTeamId:any){
+        try{
+            let studentResult:any = await student.findAll({where:{team_id:argTeamId}})
+            // console.log("studentResult",studentResult)
+            // console.log("studentResultLength",studentResult.length?"true":"false")
+            if(studentResult && studentResult instanceof Error){
+                throw studentResult
+            }
+            if(studentResult &&
+             (studentResult.length==0 ||
+                studentResult.length <constents.TEAMS_MAX_STUDENTS_ALLOWED)
+                ){
+                    return true;
+            }
+            return false
+        }catch(err){
+            return err
         }
     }
 }
