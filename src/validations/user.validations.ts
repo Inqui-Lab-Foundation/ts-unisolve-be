@@ -3,7 +3,7 @@ import { constents } from '../configs/constents.config';
 import { speeches } from '../configs/speeches.config';
 
 export const userSchema = Joi.object().keys({
-    username: Joi.string().trim().min(1).regex(constents.ALPHA_NUMERIC_PATTERN).required().messages({
+    username: Joi.string().trim().min(1).required().messages({
         'string.empty': speeches.USER_USERNAME_REQUIRED
     }),
     full_name: Joi.string().trim().min(1).regex(constents.ALPHA_NUMERIC_PATTERN).required().messages({
@@ -34,7 +34,7 @@ export const UpdateMentorUsernameSchema = Joi.object().keys({
     mobile: Joi.string().required().messages({
         'string.empty': speeches.MOBILE_NUMBER_REQUIRED
     }),
-    username: Joi.string().trim().min(1).regex(constents.ALPHA_NUMERIC_PATTERN).required().messages({
+    username: Joi.string().trim().min(1).required().messages({
         'string.empty': speeches.USER_EMAIL_REQUIRED
     })
 });

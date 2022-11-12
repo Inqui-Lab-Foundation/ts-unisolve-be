@@ -265,9 +265,9 @@ export default class StudentController extends BaseController {
     }
     private async bulkCreateStudent(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
-            if (req.body.length >= constents.TEAMS_MAX_STUDENTS_ALLOWED) {
-                throw badRequest(speeches.TEAM_MAX_MEMBES_EXCEEDED);
-            }
+            // if (req.body.length >= constents.TEAMS_MAX_STUDENTS_ALLOWED) {
+            //     throw badRequest(speeches.TEAM_MAX_MEMBES_EXCEEDED);
+            // }
             for (let student in req.body) {
                 if (!req.body[student].team_id) throw notFound(speeches.USER_TEAMID_REQUIRED);
                 const team_id = req.body[student].team_id
