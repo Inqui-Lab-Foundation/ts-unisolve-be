@@ -24,6 +24,7 @@ export const speeches = {
     DATA_NOT_FOUND: "Data not found",
     UPLOAD_FAILD: "File upload failed",
     MENTOR_EXISTS: "Email ID already exists",
+    MENTOR_NOT_EXISTS: "Mentor not found",
     MOBILE_EXISTS: "Mobile Number already exists",
     STUDENT_EXISTS: "Student already exists",
     ADMIN_EXISTS: "Admin already exists",
@@ -55,7 +56,7 @@ export const speeches = {
     TEAM_NAME_REQUIRED: "Team name is required, it should not be empty.",
     TEAM_NAME_ID: "Team ID is required, it should not be empty.",
     TEAM_NOT_FOUND: "Team not found, check the teamID.",
-
+    TEAM_MAX_MEMBES_EXCEEDED:`Team can have at max ${""+constents.TEAMS_MAX_STUDENTS_ALLOWED} members`,
     //quiz submit response keys
     QUIZ_ID_REQUIRED: "Quiz ID is required, it should not be empty.",
     CHALLENGE_ID_REQUIRED: "Challenge ID is required, it should not be empty.",
@@ -121,5 +122,6 @@ export const speeches = {
     BADGE_IDS_ARRAY_REQUIRED:"badge_ids or badge_slugs any one of these array are required",
     VIDEO_STREAM_ID_REQUIRED:"Video stream id is required",
     TYPE_INVALID:"Invalid Type",
-    TYPE_REQUIRED:"Type is required"
+    TYPE_REQUIRED:"Type is required",
+    INVALID_DATA:"Invalid Data, please check validity of data in the payload."
 }

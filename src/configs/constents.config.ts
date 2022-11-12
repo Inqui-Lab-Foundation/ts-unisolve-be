@@ -163,9 +163,26 @@ export const constents = {
     },
     default: "DRAFT"
   },
+  quiz_survey_status_flags: {
+    list: {
+      "ALL": "ALL",
+      "COMPLETED": "COMPLETED",
+      "INCOMPLETE": "INCOMPLETE",
+    },
+    default: "ALL"
+  },
   translations_flags:{
     default_locale: "en"
   },
-  default_image_path: "/images/default.jpg"
-
+  default_image_path: "/images/default.jpg",
+  reports_all_ment_reports_rs_flags: {
+    list: {
+      "ALL": "ALL",
+      "COMPLETED": "COMPLETED",
+      "INCOMPLETE": "INCOMPLETE",
+      "INPROGRESS": "INPROGRESS",
+    },
+    default: "ALL"
+  },
+  TEAMS_MAX_STUDENTS_ALLOWED:5
 };

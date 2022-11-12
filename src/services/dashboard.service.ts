@@ -59,10 +59,10 @@ export default class DashboardService extends BaseService{
                 organization_code: schoolIdsInDistrict
             }
         });
-        const mentorIdInDistrict = mentorReg.map((Element: any) => Element.dataValues.user_id);//changed this to  user_id from mentor_id, because teams has mentor linked with team via user_id as value in the mentor_id collumn of the teams table
+        const mentorIdInDistrict = mentorReg.map((Element: any) => Element.dataValues.mentor_id);//changed this to  user_id from mentor_id, because teams has mentor linked with team via user_id as value in the mentor_id collumn of the teams table
         const schoolRegistered = await this.crudService.findAll(mentor, {
             where: {
-                user_id: mentorIdInDistrict,
+                mentor_id: mentorIdInDistrict,
             },
             group: ['organization_code']
         });
