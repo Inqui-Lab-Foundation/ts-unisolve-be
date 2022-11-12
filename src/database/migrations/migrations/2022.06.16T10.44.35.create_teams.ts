@@ -48,7 +48,7 @@ export const up: Migration = async ({ context: sequelize }) => {
     const transaction = await sequelize.getQueryInterface().sequelize.transaction();
   try{
       await sequelize.getQueryInterface().createTable(tableName, tableStructre);
-      await sequelize.getQueryInterface().addIndex(tableName, ['mentor_id'], { name: 'FK_TEAMS_MENTID',transaction });
+    //   await sequelize.getQueryInterface().addIndex(tableName, ['mentor_id'], { name: 'FK_TEAMS_MENTID',transaction });
 
       await transaction.commit();
   }catch(err){
