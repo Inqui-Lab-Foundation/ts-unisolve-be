@@ -207,7 +207,6 @@ export default class authService {
                     "role": requestBody.role
                 }
             }
-            console.log("whereClause: ", whereClause)
             const user_res: any = await this.crudService.findOne(user, {
                 where: whereClause
             })
