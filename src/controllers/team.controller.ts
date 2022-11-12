@@ -222,19 +222,22 @@ export default class TeamController extends BaseController {
             };
             const current_user = res.locals.user_id; 
             const modelLoaded = await this.loadModel(model);
-            // req.body.team_name = req.body.team_name.replace(/[\n\r\s\t_]+/g, '').toLowerCase();
-            req.body.team_name = req.body.team_name.trim();
+            // console.log(req.body.team_name);
+            // req.body.team_name = req.body.team_name.trim();
+            // if (!req.body.team_name) {
+            //     throw badRequest(speeches.TEAM_NAME_REQUIRED);
+            // }
             const getUserIdFromMentorId = await mentor.findOne({
                 attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
             });
-            console.log(getUserIdFromMentorId);
+            // console.log(getUserIdFromMentorId);
             if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
             if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
             if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
                 throw forbidden();
             };
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
-            console.log(payload)
+            // console.log(payload)
             const teamNameCheck: any = await team.findOne({
                 where: {
                     mentor_id: payload.mentor_id,
@@ -244,7 +247,7 @@ export default class TeamController extends BaseController {
             if (teamNameCheck) {
                 throw badRequest('code unique');
             }
-            console.log("payload: ", payload)
+            // console.log("payload: ", payload)
             // add check if teamNameCheck is not an error and has data then return and err
             const data = await this.crudService.create(modelLoaded, payload);
             if (!data) {

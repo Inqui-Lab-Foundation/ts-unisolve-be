@@ -184,5 +184,6 @@ export const constents = {
     },
     default: "ALL"
   },
-  TEAMS_MAX_STUDENTS_ALLOWED:5
+  TEAMS_MAX_STUDENTS_ALLOWED: 5,
+  ALPHA_NUMERIC_PATTERN : /^[a-zA-Z0-9 ]*$/,
 };
