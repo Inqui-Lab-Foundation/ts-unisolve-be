@@ -67,6 +67,7 @@ export const up: Migration = async ({ context: sequelize }) => {
   try{
       await sequelize.getQueryInterface().createTable(tableName, tableStructrue);
       await sequelize.getQueryInterface().addIndex(tableName, ['username'], { name: 'IDX_USR_UN',transaction });
+      await sequelize.getQueryInterface().addIndex(tableName, ['username'], { name: 'IDX_USR_UN',transaction });
 
       await transaction.commit();
   }catch(err){
