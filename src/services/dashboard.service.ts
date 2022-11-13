@@ -2,6 +2,7 @@ import { challenge_response } from "../models/challenge_response.model";
 import { dashboard_map_stat } from "../models/dashboard_map_stat.model";
 import { mentor } from "../models/mentor.model";
 import { organization } from "../models/organization.model";
+import { student } from "../models/student.model";
 import { team } from "../models/team.model";
 import BaseService from "./base.service";
 
@@ -23,7 +24,8 @@ export default class DashboardService extends BaseService{
                 reg_schools: stats.registeredSchoolIdsInDistrict.length,
                 teams: stats.teamIdInDistrict.length,
                 ideas: stats.challengeInDistrict.length,
-                district_name: district.district
+                district_name: district.district,
+                students:stats.studentsInDistric.length
             })
         }
 
@@ -34,7 +36,8 @@ export default class DashboardService extends BaseService{
             reg_schools: statsForAllDistrics.registeredSchoolIdsInDistrict.length,
             teams: statsForAllDistrics.teamIdInDistrict.length,
             ideas: statsForAllDistrics.challengeInDistrict.length,
-            district_name: "all"
+            district_name: "all",
+            students:statsForAllDistrics.studentsInDistric.length,
         })
 
         await this.crudService.delete(dashboard_map_stat, { where: {}, truncate: true });
@@ -47,7 +50,10 @@ export default class DashboardService extends BaseService{
 
         let whereClause = {}
         if(argdistric){
-            whereClause={ district: argdistric }
+            whereClause={ 
+                district: argdistric ,
+                status:"ACTIVE"
+            }
         }
         const overAllSchool = await this.crudService.findAll(organization, {
             where: whereClause
@@ -75,11 +81,24 @@ export default class DashboardService extends BaseService{
             where: { team_id: teamIdInDistrict }
         });
         const challengeInDistrict = challengeReg.map((Element: any) => Element.dataValues.challenge_response_id);
+        
+        const studentsResult = await student.findAll({
+            attributes:[
+                "user_id",
+                "student_id"
+            ],
+            where:{
+                team_id:teamIdInDistrict
+            }
+        })
+        const studentsInDistric = studentsResult.map((Element: any) => Element.dataValues.student_id);
+
         return {
             schoolIdsInDistrict:schoolIdsInDistrict,
             registeredSchoolIdsInDistrict:registeredSchoolIdsInDistrict,
             teamIdInDistrict:teamIdInDistrict,
-            challengeInDistrict:challengeInDistrict
+            challengeInDistrict:challengeInDistrict,
+            studentsInDistric:studentsInDistric
         }
     }
 
@@ -116,6 +135,7 @@ export default class DashboardService extends BaseService{
              where 
              ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
              and utp.user_id=\`student\`.\`user_id\`
+             and utp.status = "COMPLETED"
              `
       }
      getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
