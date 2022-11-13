@@ -179,19 +179,21 @@ export default class StudentController extends BaseController {
                 trimmedTeamName = teamDetails.dataValues.team_name.replace(/[\n\r\s\t\_]+/g, '').toLowerCase();
             }
             where[`${this.model}_id`] = req.params.id;
+            const username = trimmedTeamName + '_' + trimmedStudentName;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             payload['qualification'] = cryptoEncryptedString
             payload['UUID'] = studentPassword;
-            const studentDetails = await this.crudService.findOne(modelLoaded, { where: { full_name: req.body.full_name } });
+            const studentDetails = await this.crudService.findOne(user, { where: { username: username } });
+            console.log(studentDetails);
             if (studentDetails) {
-                if (studentDetails.dataValues.full_name == req.body.full_name) throw badRequest(speeches.USER_FULLNAME_EXISTED);
+                if (studentDetails.dataValues.username == username) throw badRequest(speeches.USER_FULLNAME_EXISTED);
                 if (studentDetails instanceof Error) throw studentDetails;
             };
             const student_data = await this.crudService.updateAndFind(modelLoaded, payload, { where: where });
             const user_data = await this.crudService.update(user, {
                 full_name: payload.full_name,
-                username: trimmedTeamName + '_' + trimmedStudentName,
+                username: username,
                 password: await bcrypt.hashSync(cryptoEncryptedString, process.env.SALT || baseConfig.SALT),
             }, { where: { user_id: student_data.dataValues.user_id } });
             if (!student_data || !user_data) {
