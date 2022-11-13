@@ -135,6 +135,7 @@ export default class DashboardService extends BaseService{
              where 
              ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
              and utp.user_id=\`student\`.\`user_id\`
+             and utp.status = "COMPLETED"
              `
       }
      getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
