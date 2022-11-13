@@ -127,28 +127,55 @@ export default class DashboardService extends BaseService{
      return this.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
      `and t.topic_type = "QUIZ"`
      }
+     getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
+        return `
+        select utp.user_id
+                from user_topic_progress as utp
+                join course_topics as t on t.course_topic_id=utp.course_topic_id
+                where 
+                1=1
+                and utp.user_id=\`student\`.\`user_id\`
+                and utp.status = "COMPLETED"
+                group by utp.user_id,utp.course_topic_id
+        `
+     }
+
      getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
          return  `
-             select count(utp.user_id) 
-             from user_topic_progress as utp
-             join course_topics as t on t.course_topic_id=utp.course_topic_id
-             where 
-             ${addWhereClauseStatusPart?"t."+whereClauseStatusPartLiteral:whereClauseStatusPartLiteral}
-             and utp.user_id=\`student\`.\`user_id\`
-             and utp.status = "COMPLETED"
-             `
+            select count(*) from (
+            ${this.getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)}
+            ) as count
+        `
       }
      getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-         return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-         `and t.topic_type = "VIDEO"`
+        return  `
+            select count(*) from (
+            ${this.getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)}
+            and t.topic_type = "VIDEO"
+            ) as count
+        `
+        //  return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+        //  `and t.topic_type = "VIDEO"`
      }
      getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-         return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-         `and t.topic_type = "WORKSHEET"`
+        return  `
+            select count(*) from (
+            ${this.getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)}
+            and t.topic_type = "WORKSHEET"
+            ) as count
+        `
+        //  return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+        //  `and t.topic_type = "WORKSHEET"`
      }
      getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart:any,whereClauseStatusPartLiteral:any){
-         return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-         `and t.topic_type = "QUIZ"`
+        return  `
+            select count(*) from (
+            ${this.getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)}
+            and t.topic_type = "QUIZ"
+            ) as count
+        `
+        //  return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
+        //  `and t.topic_type = "QUIZ"`
      }
 
 }
