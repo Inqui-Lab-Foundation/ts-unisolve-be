@@ -14,10 +14,7 @@ const getRawSqlClient = () => {
 	// });
 
 	return {
-		query: async (sql: string, values?: unknown[]) => {
-			console.log(sql);
-			// sequelize.query(sql, { bind: values })
-		}
+		query: async (sql: string, values?: unknown[]) => sequelize.query(sql, { bind: values }),
 	};
 };
 
