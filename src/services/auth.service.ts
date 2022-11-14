@@ -174,7 +174,7 @@ export default class authService {
                 errorResponse.push(`'${payload.full_name}'`);
                 continue;
             }
-            payload.password = await bcrypt.hashSync(payload.password, process.env.SALT || baseConfig.SALT);
+            // payload.password = await bcrypt.hashSync(payload.password, process.env.SALT || baseConfig.SALT);
             let checkUserExisted = await this.crudService.findOne(user, {
                 attributes: ["user_id", "username"],
                 where: { username: payload.username }
@@ -209,7 +209,7 @@ export default class authService {
             }
             const user_res: any = await this.crudService.findOne(user, {
                 where: whereClause
-            });
+            })
             if (!user_res) {
                 return false;
             } else {
