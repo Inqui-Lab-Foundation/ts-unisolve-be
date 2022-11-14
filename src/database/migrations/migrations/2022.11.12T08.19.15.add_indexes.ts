@@ -255,6 +255,6 @@ export const down: Migration = async ({ context: sequelize }) => {
 		});
 		throw Error("not yet implemented")
 	} catch (error) {
-		console.log(error);
+		throw error;
 	}
 };

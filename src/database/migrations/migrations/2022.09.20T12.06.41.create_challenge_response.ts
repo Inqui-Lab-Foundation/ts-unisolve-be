@@ -75,7 +75,7 @@ export const down: Migration = async ({ context: sequelize }) => {
 		  await sequelize.query(`DROP TABLE ${tableName}`, options);
 		  await sequelize.query("SET FOREIGN_KEY_CHECKS = 1", options);
 		});
-	  } catch (error) {
-		console.log(error);
-	  }
+} catch (error) {
+	throw error	  
+}
 };
