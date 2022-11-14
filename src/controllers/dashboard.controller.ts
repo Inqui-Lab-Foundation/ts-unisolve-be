@@ -529,8 +529,8 @@ export default class DashboardController extends BaseController {
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     private async refreshMapStats(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
-            const job = new DashboardMapStatsJob()
-            const result = await job.executeJob();
+            const service = new DashboardService()
+            const result = await service.resetMapStats()
             res.status(200).json(dispatcher(res, result, "success"))
         } catch (err) {
             next(err);
