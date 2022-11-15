@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
@@ -48,8 +48,12 @@ export default class MentorController extends BaseController {
         this.router.delete(`${this.path}/:mentor_user_id/deleteAllData`, this.deleteAllData.bind(this));
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
         this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
-
         this.router.get(`${this.path}/regStatus`, this.getMentorRegStatus.bind(this));
+        this.router.get(`${this.path}/regList`, this.getMentorRegList.bind(this));
+        this.router.get(this.path + "/preSurvey", this.mentorPreSurvey.bind(this));
+        this.router.get(this.path + "/courseComplete", this.courseComplete.bind(this));
+        this.router.get(this.path + "/courseInComplete", this.courseInComplete.bind(this));
+        this.router.get(this.path + "/notRegistered", this.notRegistered.bind(this));
 
         super.initializeRoutes();
     }
@@ -108,13 +112,223 @@ export default class MentorController extends BaseController {
                 ],
                 limit, offset
             });
-            if(!mentorsResult){
+            if (!mentorsResult) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
-            if(mentorsResult instanceof Error){
+            if (mentorsResult instanceof Error) {
                 throw mentorsResult
             }
-            res.status(200).send(dispatcher(res,mentorsResult,"success"))
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async getMentorRegList(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, status } = req.query;
+            let condition = {}
+            // condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(this.model).catch(error => {
+                next(error)
+            });
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const mentorsResult = await mentor.findAll({
+                attributes: [
+                    "full_name",
+                    "mobile",
+                    "created_by",
+                    "created_at",
+                    "updated_at",
+                    "updated_by"
+                ],
+                raw: true,
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart,
+                        condition
+                    ]
+                },
+                include: [
+                    {
+                        model: organization,
+                        attributes: [
+                            "organization_code",
+                            "district",
+                            "organization_name"
+                        ]
+                    },
+                    {
+                        model: user,
+                        attributes: [
+                            "username",
+                            "user_id"
+                        ]
+                    }
+                ],
+                limit, offset
+            });
+            if (!mentorsResult) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (mentorsResult instanceof Error) {
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async mentorPreSurvey(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, role } = req.query;
+            let condition = role ? role : 'MENTOR';
+            // let condition = role ? { role: { [Op.eq]: role } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(this.model).catch(error => {
+                next(error)
+            });
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const mentorsResult = await quiz_survey_response.findAll({
+                attributes: [
+                    "quiz_response_id",
+                    "updated_at"
+                ],
+                raw: true,
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart
+                    ]
+                },
+                include: [
+                    {
+                        model: user,
+                        attributes: [
+                            "full_name",
+                            "created_at",
+                            "updated_at"
+                        ],
+                        where: { role: condition }
+                    }
+                ],
+                limit, offset
+            });
+            if (!mentorsResult) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (mentorsResult instanceof Error) {
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async courseComplete(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, role } = req.query;
+            let condition = role ? { role: { [Op.eq]: role } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(this.model).catch(error => {
+                next(error)
+            });
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const mentorsResult = await db.query("SELECT mentors.organization_code, mentors.district, mentors.full_name,(SELECT COUNT(mentor_topic_progress_id)FROM mentor_topic_progress AS mentor_progress WHERE mentor_progress.user_id=mentors.user_id) AS 'count' FROM mentors LEFT OUTER JOIN mentor_topic_progress AS mentor_progress ON mentors.user_id=mentor_progress.user_id where (SELECT COUNT(mentor_topic_progress_id)FROM mentor_topic_progress AS mentor_progress WHERE mentor_progress.user_id=mentors.user_id)= 9 GROUP BY mentor_progress.user_id", { type: QueryTypes.SELECT });
+            if (!mentorsResult) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (mentorsResult instanceof Error) {
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async courseInComplete(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, role } = req.query;
+            let condition = role ? { role: { [Op.eq]: role } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(this.model).catch(error => {
+                next(error)
+            });
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const mentorsResult = await db.query("SELECT mentors.organization_code, mentors.district, mentors.full_name,(SELECT COUNT(mentor_topic_progress_id)FROM mentor_topic_progress AS mentor_progress WHERE mentor_progress.user_id=mentors.user_id) AS 'count' FROM mentors LEFT OUTER JOIN mentor_topic_progress AS mentor_progress ON mentors.user_id=mentor_progress.user_id where (SELECT COUNT(mentor_topic_progress_id)FROM mentor_topic_progress AS mentor_progress WHERE mentor_progress.user_id=mentors.user_id) != 9 GROUP BY mentor_progress.user_id", { type: QueryTypes.SELECT });
+            console.log(mentorsResult);
+            if (!mentorsResult) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (mentorsResult instanceof Error) {
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async notRegistered(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, role } = req.query;
+            let condition = role ? { role: { [Op.eq]: role } } : null;
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(this.model).catch(error => {
+                next(error)
+            });
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            const mentorsResult = await db.query("SELECT * FROM organizations WHERE NOT EXISTS(SELECT mentors.organization_code  from mentors WHERE organizations.organization_code = mentors.organization_code) ", { type: QueryTypes.SELECT });
+            if (!mentorsResult) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (mentorsResult instanceof Error) {
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
         } catch (err) {
             next(err)
         }
@@ -448,8 +662,8 @@ export default class MentorController extends BaseController {
                 throw mentorResult
             }
             const mentor_id = mentorResult.dataValues.mentor_id
-            if(!mentor_id){
-                throw internal(speeches.DATA_CORRUPTED+":"+speeches.MENTOR_NOT_EXISTS)
+            if (!mentor_id) {
+                throw internal(speeches.DATA_CORRUPTED + ":" + speeches.MENTOR_NOT_EXISTS)
             }
             const deleteMentorResponseResult = await this.authService.bulkDeleteMentorResponse(mentor_user_id)
             if (!deleteMentorResponseResult) {
