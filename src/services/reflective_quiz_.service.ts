@@ -24,7 +24,7 @@ export default class ReflectiveQuizService extends BaseService{
             //     throw badRequest("INVALID TOPIC");
             // }
     
-            const quizRes = await this.crudService.findOne(reflective_quiz_response,{where: {video_id:video_id,user_id:user_id}});
+            const quizRes = await this.crudService.findOne(reflective_quiz_response, { where: { video_id: video_id, user_id: user_id, status: 'ACTIVE' } });
             if(quizRes instanceof Error){
                 throw internal(quizRes.message)
             }
