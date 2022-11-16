@@ -55,7 +55,7 @@ export default class QuizController extends BaseController {
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
             }
             //check if the given quiz is a valid topic
-            const curr_topic = await this.crudService.findOne(course_topic, { where: { "topic_type_id": quiz_id, "topic_type": "QUIZ" } })
+            const curr_topic = await this.crudService.findOne(course_topic, { where: { "topic_type_id": quiz_id, "topic_type": "QUIZ", status: 'ACTIVE' } })
             if (!curr_topic || curr_topic instanceof Error) {
 
                 //here we have made a mjor assumption that mentor quiz_id and student quiz ids will be diff and that one quiz_id cannot be added in both student and mentor course_topic tables(these are two diff tables) , if u do so it will be considered as student course api
