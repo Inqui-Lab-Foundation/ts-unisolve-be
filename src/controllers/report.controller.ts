@@ -1,4 +1,4 @@
-import { Request,Response,NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { mentor } from "../models/mentor.model";
 import { organization } from "../models/organization.model";
 import TranslationService from "../services/translation.service";
@@ -16,6 +16,7 @@ import { speeches } from "../configs/speeches.config";
 import ReportService from "../services/report.service";
 import { Op, QueryTypes } from 'sequelize';
 import { user } from "../models/user.model";
+import { team } from "../models/team.model";
 
 export default class ReportController extends BaseController {
 
@@ -30,11 +31,13 @@ export default class ReportController extends BaseController {
     protected initializeRoutes(): void {
         //example route to add 
         this.router.get(`${this.path}/allMentorReports`, this.getAllMentorReports.bind(this));
-        this.router.get(`${this.path}/regList`, this.getMentorRegList.bind(this));
+        this.router.get(`${this.path}/mentorRegList`, this.getMentorRegList.bind(this));
         this.router.get(this.path + "/preSurvey", this.mentorPreSurvey.bind(this));
         this.router.get(this.path + "/courseComplete", this.courseComplete.bind(this));
         this.router.get(this.path + "/courseInComplete", this.courseInComplete.bind(this));
         this.router.get(this.path + "/notRegistered", this.notRegistered.bind(this));
+        this.router.get(this.path + "/notRegister", this.notRegistered.bind(this));
+        this.router.get(this.path + "/teamRegistered", this.teamRegistered.bind(this));
         // super.initializeRoutes();
     }
 
@@ -248,26 +251,97 @@ export default class ReportController extends BaseController {
             next(err)
         }
     }
-
-    protected async getAllMentorReports(req:Request,res:Response,next:NextFunction){
-        try{
-            
-            let tr:any = req.query.tr;
-            let tpre:any = req.query.tpre;
-            let tc:any = req.query.tc;
-            let tpost:any = req.query.tpost;
-            let rs:any = req.query.rs;
-            let dis:any = req.query.dis;
-
-            if(!rs || 
-                !(rs in constents.reports_all_ment_reports_rs_flags.list)){
-                    rs="ALL"
+    protected async teamRegistered(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { quiz_survey_id } = req.params
+            const { page, size, role } = req.query;
+            let condition = role ? role : 'MENTOR';
+            const { limit, offset } = this.getPagination(page, size);
+            const modelClass = await this.loadModel(this.model).catch(error => {
+                next(error)
+            });
+            const paramStatus: any = req.query.status;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
             }
-            let attrToBeInCluded:any = [
+            const teamResult = await mentor.findAll({
+                attributes: [
+                    "full_name",
+                    "mentor_id",
+                    [
+                        db.literal(`(
+                            SELECT COUNT(*)
+                            FROM teams AS t
+                            WHERE t.mentor_id = \`mentor\`.\`mentor_id\`)`), 'Team_count'
+                    ],
+                ],
+                raw: true,
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart
+                    ]
+                },
+                group: ['mentor_id'],
+                include: [
+                    {
+                        model: team,
+                        attributes: [
+                            "team_id",
+                            "team_name",
+                            [
+                                db.literal(`(
+                            SELECT COUNT(*)
+                            FROM students AS s
+                            WHERE s.team_id = \`team\`.\`team_id\`)`), 'student_count'
+                            ],
+                            
+                        ]
+                    },
+                    {
+                        model: organization,
+                        attributes: [
+                            "organization_code",
+                            "organization_name",
+                            "district"
+                        ]
+                    }
+                ], limit, offset
+            });
+            if (!teamResult) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (teamResult instanceof Error) {
+                throw teamResult
+            }
+            res.status(200).send(dispatcher(res, teamResult, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async getAllMentorReports(req: Request, res: Response, next: NextFunction) {
+        try {
+
+            let tr: any = req.query.tr;
+            let tpre: any = req.query.tpre;
+            let tc: any = req.query.tc;
+            let tpost: any = req.query.tpost;
+            let rs: any = req.query.rs;
+            let dis: any = req.query.dis;
+
+            if (!rs ||
+                !(rs in constents.reports_all_ment_reports_rs_flags.list)) {
+                rs = "ALL"
+            }
+            let attrToBeInCluded: any = [
                 "user_id"
             ]
             let totalNoOfTopics = 9
-            if(tpre && tpre > 0 ){
+            if (tpre && tpre > 0) {
                 attrToBeInCluded.push(
                     [
                         // Note the wrapping parentheses in the call below!
@@ -297,7 +371,7 @@ export default class ReportController extends BaseController {
                 )
             }
 
-            if(tpost && tpost >0){
+            if (tpost && tpost > 0) {
                 attrToBeInCluded.push(
                     [
                         // Note the wrapping parentheses in the call below!
@@ -327,25 +401,25 @@ export default class ReportController extends BaseController {
                 )
             }
 
-            if(tc && tc >0){
+            if (tc && tc > 0) {
                 const allMentorTopicsResult = await mentor_course_topic.findAll({
-                    where:{
-                        status:"ACTIVE"
+                    where: {
+                        status: "ACTIVE"
                     },
-                    raw:true,
+                    raw: true,
                 })
-                
-                if(!allMentorTopicsResult){
+
+                if (!allMentorTopicsResult) {
                     throw internal(speeches.INTERNAL)
                 }
-                if(allMentorTopicsResult instanceof Error){
+                if (allMentorTopicsResult instanceof Error) {
                     throw allMentorTopicsResult
                 }
-                if(!allMentorTopicsResult.length){
+                if (!allMentorTopicsResult.length) {
                     throw internal(speeches.INTERNAL)
                 }
                 totalNoOfTopics = allMentorTopicsResult.length
-                
+
                 attrToBeInCluded.push(
                     [
                         // Note the wrapping parentheses in the call below!
@@ -379,30 +453,30 @@ export default class ReportController extends BaseController {
                     ],
                 )
             }
-            let disBasedWhereClause:any = {}
-            if(dis){
+            let disBasedWhereClause: any = {}
+            if (dis) {
                 dis = dis.trim()
                 disBasedWhereClause = {
-                    district:dis  
+                    district: dis
                 }
             }
 
-            const reportservice =  new ReportService();
-            let  rsBasedWhereClause:any = {}
+            const reportservice = new ReportService();
+            let rsBasedWhereClause: any = {}
             rsBasedWhereClause = await reportservice.fetchOrgCodeArrToIncInAllMentorReportBasedOnReportStatusParam(
-                tr,tpre,tc,tpost,rs,totalNoOfTopics
+                tr, tpre, tc, tpost, rs, totalNoOfTopics
             )
-            
+
             //actual query being called here ...this result is to be returned...!!
-            const organisationsResult:any = await organization.findAll({
-                include:[
+            const organisationsResult: any = await organization.findAll({
+                include: [
                     {
-                        model:mentor,
-                        attributes:{
-                            include:attrToBeInCluded
+                        model: mentor,
+                        attributes: {
+                            include: attrToBeInCluded
                         },
-                        include:[
-                            {model:user}
+                        include: [
+                            { model: user }
                         ]
                     }
                 ],
@@ -414,15 +488,15 @@ export default class ReportController extends BaseController {
                 },
             })
 
-            if(!organisationsResult){
+            if (!organisationsResult) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
-            if(organisationsResult instanceof Error){
+            if (organisationsResult instanceof Error) {
                 throw organisationsResult
             }
 
-            res.status(200).send(dispatcher(res,organisationsResult, 'success'));
-        }catch(err){
+            res.status(200).send(dispatcher(res, organisationsResult, 'success'));
+        } catch (err) {
             next(err)
         }
     }
