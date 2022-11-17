@@ -61,7 +61,6 @@ export default class VideoController extends BaseController {
                 whereClauseStatusPart = { "status": "ACTIVE" };
                 boolStatusWhereClauseRequired = true;
             }
-            console.log(whereClauseStatusPart);
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {

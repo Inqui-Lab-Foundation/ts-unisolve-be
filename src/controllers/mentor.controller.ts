@@ -63,11 +63,18 @@ export default class MentorController extends BaseController {
             const paramStatus: any = req.query.status;
             let whereClauseStatusPart: any = {};
             let whereClauseStatusPartLiteral = "1=1";
-            let addWhereClauseStatusPart = false
+            let boolStatusWhereClauseRequired = false;
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
-                addWhereClauseStatusPart = true;
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    boolStatusWhereClauseRequired = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    boolStatusWhereClauseRequired = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
+                boolStatusWhereClauseRequired = true;
             }
             const mentorsResult = await organization.findAll({
                 attributes: [

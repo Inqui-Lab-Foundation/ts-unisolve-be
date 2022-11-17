@@ -49,7 +49,7 @@ export default class DashboardController extends BaseController {
         this.router.get(`${this.path}/studentStats/:student_user_id`, this.getStudentStats.bind(this))
         this.router.get(`${this.path}/studentStats/:student_user_id/challenges`, this.getStudentChallengeDetails.bind(this))
         this.router.get(`${this.path}/studentStats/:student_user_id/teamProgress`, this.getTeamProgress.bind(this))
-        
+
         //team stats..
         this.router.get(`${this.path}/teamStats/:team_id`, this.getTeamStats.bind(this));
 

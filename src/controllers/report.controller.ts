@@ -56,8 +56,15 @@ export default class ReportController extends BaseController {
             let whereClauseStatusPartLiteral = "1=1";
             let addWhereClauseStatusPart = false
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    addWhereClauseStatusPart = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    addWhereClauseStatusPart = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
                 addWhereClauseStatusPart = true;
             }
             const mentorsResult = await mentor.findAll({
@@ -121,8 +128,15 @@ export default class ReportController extends BaseController {
             let whereClauseStatusPartLiteral = "1=1";
             let addWhereClauseStatusPart = false
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    addWhereClauseStatusPart = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    addWhereClauseStatusPart = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
                 addWhereClauseStatusPart = true;
             }
             const mentorsResult = await quiz_survey_response.findAll({
@@ -174,8 +188,15 @@ export default class ReportController extends BaseController {
             let whereClauseStatusPartLiteral = "1=1";
             let addWhereClauseStatusPart = false
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    addWhereClauseStatusPart = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    addWhereClauseStatusPart = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
                 addWhereClauseStatusPart = true;
             }
             const mentorsResult = await db.query("SELECT mentors.organization_code, mentors.district, mentors.full_name,(SELECT COUNT(mentor_topic_progress_id)FROM mentor_topic_progress AS mentor_progress WHERE mentor_progress.user_id=mentors.user_id) AS 'count' FROM mentors LEFT OUTER JOIN mentor_topic_progress AS mentor_progress ON mentors.user_id=mentor_progress.user_id where (SELECT COUNT(mentor_topic_progress_id)FROM mentor_topic_progress AS mentor_progress WHERE mentor_progress.user_id=mentors.user_id)= 9 GROUP BY mentor_progress.user_id", { type: QueryTypes.SELECT });
@@ -265,8 +286,15 @@ export default class ReportController extends BaseController {
             let whereClauseStatusPartLiteral = "1=1";
             let addWhereClauseStatusPart = false
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    addWhereClauseStatusPart = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    addWhereClauseStatusPart = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
                 addWhereClauseStatusPart = true;
             }
             const teamResult = await mentor.findAll({
@@ -299,7 +327,7 @@ export default class ReportController extends BaseController {
                             FROM students AS s
                             WHERE s.team_id = \`team\`.\`team_id\`)`), 'student_count'
                             ],
-                            
+
                         ]
                     },
                     {
