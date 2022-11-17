@@ -148,6 +148,21 @@ export default class DashboardService extends BaseService {
             ) as count
         `
     }
+    getDbLieralForPreSurveyStatus(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
+        return `
+            select count(*) from quiz_survey_responses as preSurvey where preSurvey.user_id = \`student\`.\`user_id\` and preSurvey.quiz_survey_id = 2 is true
+        `
+    }
+    getDbLieralForPostSurveyStatus(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
+        return `
+            select count(*) from quiz_survey_responses as preSurvey where preSurvey.user_id = \`student\`.\`user_id\` and preSurvey.quiz_survey_id = 4 is true
+        `
+    }
+    getDbLieralIdeaSubmission(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
+        return `
+        select count(*) from challenge_responses as idea where idea.team_id = \`student\`.\`team_id\` 
+        `
+    }
     getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
         return `
             select count(*) from (
