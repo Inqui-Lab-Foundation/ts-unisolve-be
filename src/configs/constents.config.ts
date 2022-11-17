@@ -34,7 +34,8 @@ export const constents = {
       'ACTIVE': 'ACTIVE',
       'INACTIVE': 'INACTIVE',
       'DELETED': 'DELETED',
-      'LOCKED': 'LOCKED'
+      'LOCKED': 'LOCKED',
+      'ALL': 'ALL'
     },
     default: 'ACTIVE'
   },
