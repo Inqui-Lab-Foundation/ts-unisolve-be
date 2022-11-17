@@ -34,7 +34,8 @@ export const constents = {
       'ACTIVE': 'ACTIVE',
       'INACTIVE': 'INACTIVE',
       'DELETED': 'DELETED',
-      'LOCKED': 'LOCKED'
+      'LOCKED': 'LOCKED',
+      'ALL': 'ALL'
     },
     default: 'ACTIVE'
   },
@@ -184,4 +185,6 @@ export const constents = {
     },
     default: "ALL"
   },
+  TEAMS_MAX_STUDENTS_ALLOWED: 5,
+  ALPHA_NUMERIC_PATTERN : /^[a-zA-Z0-9 ]*$/,
 };

@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
@@ -12,7 +12,7 @@ import dispatcher from '../utils/dispatch.util';
 import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
-import { badRequest, internal, notFound } from 'boom';
+import { badRequest, forbidden, internal, notFound } from 'boom';
 import { mentor } from '../models/mentor.model';
 import { where } from 'sequelize/types';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
@@ -48,7 +48,6 @@ export default class MentorController extends BaseController {
         this.router.delete(`${this.path}/:mentor_user_id/deleteAllData`, this.deleteAllData.bind(this));
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
         this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
-
         this.router.get(`${this.path}/regStatus`, this.getMentorRegStatus.bind(this));
 
         super.initializeRoutes();
@@ -64,11 +63,18 @@ export default class MentorController extends BaseController {
             const paramStatus: any = req.query.status;
             let whereClauseStatusPart: any = {};
             let whereClauseStatusPartLiteral = "1=1";
-            let addWhereClauseStatusPart = false
+            let boolStatusWhereClauseRequired = false;
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
-                addWhereClauseStatusPart = true;
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    boolStatusWhereClauseRequired = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    boolStatusWhereClauseRequired = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
+                boolStatusWhereClauseRequired = true;
             }
             const mentorsResult = await organization.findAll({
                 attributes: [
@@ -108,17 +114,18 @@ export default class MentorController extends BaseController {
                 ],
                 limit, offset
             });
-            if(!mentorsResult){
+            if (!mentorsResult) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
-            if(mentorsResult instanceof Error){
+            if (mentorsResult instanceof Error) {
                 throw mentorsResult
             }
-            res.status(200).send(dispatcher(res,mentorsResult,"success"))
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
         } catch (err) {
             next(err)
         }
     }
+    
     //TODO: Override the getDate function for mentor and join org details and user details
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
@@ -128,6 +135,7 @@ export default class MentorController extends BaseController {
             if (model) {
                 this.model = model;
             };
+            // const current_user = res.locals.user_id; 
             // pagination
             const { page, size, status } = req.query;
             let condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
@@ -140,6 +148,15 @@ export default class MentorController extends BaseController {
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
                 whereClauseStatusPart = { "status": paramStatus }
             }
+            // const getUserIdFromMentorId = await mentor.findOne({
+            //     attributes: ["user_id", "created_by"], where: { mentor_id: req.body.mentor_id }
+            // });
+            // console.log(getUserIdFromMentorId);
+            // if (!getUserIdFromMentorId) throw badRequest(speeches.MENTOR_NOT_EXISTS);
+            // if (getUserIdFromMentorId instanceof Error) throw getUserIdFromMentorId;
+            // if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
+            //     throw forbidden();
+            // };
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
@@ -292,17 +309,17 @@ export default class MentorController extends BaseController {
         if (result && result.output && result.output.payload && result.output.payload.message == 'Mobile') {
             return res.status(406).send(dispatcher(res, result.data, 'error', speeches.MOBILE_EXISTS, 406));
         }
-        // const otp = await this.authService.generateOtp();
-        let otp = await this.authService.triggerOtpMsg(req.body.mobile); //async function but no need to await ...since we yet do not care about the outcome of the sms trigger ....!!this may need to change later on ...!!
-        otp = String(otp)
-        let hashString = await this.authService.generateCryptEncryption(otp);
-        const updatePassword = await this.authService.crudService.update(user,
-            { password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT) },
-            { where: { user_id: result.dataValues.user_id } });
-        const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
-            { otp: otp },
-            { where: { user_id: result.dataValues.user_id } }
-        );
+        // // const otp = await this.authService.generateOtp();
+        // let otp = await this.authService.triggerOtpMsg(req.body.mobile); //async function but no need to await ...since we yet do not care about the outcome of the sms trigger ....!!this may need to change later on ...!!
+        // otp = String(otp)
+        // let hashString = await this.authService.generateCryptEncryption(otp);
+        // const updatePassword = await this.authService.crudService.update(user,
+        //     { password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT) },
+        //     { where: { user_id: result.dataValues.user_id } });
+        // const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
+        //     { otp: otp },
+        //     { where: { user_id: result.dataValues.user_id } }
+        // );
         const data = result.dataValues;
         return res.status(201).send(dispatcher(res, data, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
@@ -437,7 +454,10 @@ export default class MentorController extends BaseController {
             if (mentorResult instanceof Error) {
                 throw mentorResult
             }
-
+            const mentor_id = mentorResult.dataValues.mentor_id
+            if (!mentor_id) {
+                throw internal(speeches.DATA_CORRUPTED + ":" + speeches.MENTOR_NOT_EXISTS)
+            }
             const deleteMentorResponseResult = await this.authService.bulkDeleteMentorResponse(mentor_user_id)
             if (!deleteMentorResponseResult) {
                 throw internal("error while deleting mentor response")
@@ -449,7 +469,7 @@ export default class MentorController extends BaseController {
             //get team details
             const teamResult: any = await team.findAll({
                 attributes: ["team_id"],
-                where: { mentor_id: mentor_user_id },
+                where: { mentor_id: mentor_id },
                 raw: true
             })
             if (!teamResult) {
