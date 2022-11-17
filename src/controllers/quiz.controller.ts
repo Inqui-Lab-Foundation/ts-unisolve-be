@@ -72,12 +72,19 @@ export default class QuizController extends BaseController {
                 throw internal(quizRes.message)
             }
             let whereClauseStatusPart: any = {}
-            let boolStatusWhereClauseRequired = false
+            let boolStatusWhereClauseRequired = false;
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    boolStatusWhereClauseRequired = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    boolStatusWhereClauseRequired = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
                 boolStatusWhereClauseRequired = true;
             }
-    
             let level = "HARD"
             let question_no = 1
             let nextQuestion: any = null;
