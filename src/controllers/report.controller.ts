@@ -37,7 +37,7 @@ export default class ReportController extends BaseController {
         this.router.get(this.path + "/courseInComplete", this.courseInComplete.bind(this));
         this.router.get(this.path + "/notRegistered", this.notRegistered.bind(this));
         this.router.get(this.path + "/notRegister", this.notRegistered.bind(this));
-        this.router.get(this.path + "/teamRegistered", this.teamRegistered.bind(this));
+        this.router.get(this.path + "/mentorTeamsStudents", this.teamRegistered.bind(this));
         // super.initializeRoutes();
     }
 
