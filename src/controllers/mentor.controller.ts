@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
-import { Op } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import { customAlphabet } from 'nanoid';
 import { speeches } from '../configs/speeches.config';
@@ -48,7 +48,6 @@ export default class MentorController extends BaseController {
         this.router.delete(`${this.path}/:mentor_user_id/deleteAllData`, this.deleteAllData.bind(this));
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
         this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
-
         this.router.get(`${this.path}/regStatus`, this.getMentorRegStatus.bind(this));
 
         super.initializeRoutes();
@@ -64,11 +63,18 @@ export default class MentorController extends BaseController {
             const paramStatus: any = req.query.status;
             let whereClauseStatusPart: any = {};
             let whereClauseStatusPartLiteral = "1=1";
-            let addWhereClauseStatusPart = false
+            let boolStatusWhereClauseRequired = false;
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
-                addWhereClauseStatusPart = true;
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    boolStatusWhereClauseRequired = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    boolStatusWhereClauseRequired = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
+                boolStatusWhereClauseRequired = true;
             }
             const mentorsResult = await organization.findAll({
                 attributes: [
@@ -108,17 +114,18 @@ export default class MentorController extends BaseController {
                 ],
                 limit, offset
             });
-            if(!mentorsResult){
+            if (!mentorsResult) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
-            if(mentorsResult instanceof Error){
+            if (mentorsResult instanceof Error) {
                 throw mentorsResult
             }
-            res.status(200).send(dispatcher(res,mentorsResult,"success"))
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
         } catch (err) {
             next(err)
         }
     }
+    
     //TODO: Override the getDate function for mentor and join org details and user details
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
@@ -448,8 +455,8 @@ export default class MentorController extends BaseController {
                 throw mentorResult
             }
             const mentor_id = mentorResult.dataValues.mentor_id
-            if(!mentor_id){
-                throw internal(speeches.DATA_CORRUPTED+":"+speeches.MENTOR_NOT_EXISTS)
+            if (!mentor_id) {
+                throw internal(speeches.DATA_CORRUPTED + ":" + speeches.MENTOR_NOT_EXISTS)
             }
             const deleteMentorResponseResult = await this.authService.bulkDeleteMentorResponse(mentor_user_id)
             if (!deleteMentorResponseResult) {
