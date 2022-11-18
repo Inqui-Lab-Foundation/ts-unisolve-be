@@ -28,7 +28,7 @@ export default class ChallengeController extends BaseController {
     }
     protected initializeRoutes(): void {
         //example route to add 
-        this.router.post(this.path + "/:id/responses/", validationMiddleware(challengeSubmitResponsesSchema), this.submitResponses.bind(this));
+        this.router.post(this.path + "/:id/submission/", validationMiddleware(challengeSubmitResponsesSchema), this.submitResponses.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
         super.initializeRoutes();
     }
@@ -237,6 +237,13 @@ export default class ChallengeController extends BaseController {
                     results.push(result);
                 }
             }
+            const updateStatus = await this.crudService.update(challenge_response, { status: req.body.status }, {
+                where: {
+                    [Op.and]: [
+                        { team_id: team_id }
+                    ]
+                }
+            });
             res.status(200).send(dispatcher(res,result))
         } catch (err) {
             next(err)

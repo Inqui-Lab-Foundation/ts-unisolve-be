@@ -7,6 +7,7 @@ export class challenge_response extends Model<InferAttributes<challenge_response
     declare challenge_id: ForeignKey<number>;
     declare team_id: ForeignKey<number>;
     declare idea_name: String;
+    declare sdg: String;
     declare response: string;
     declare initiated_by: String;
     declare submitted_by: String;
@@ -38,6 +39,10 @@ challenge_response.init(
             allowNull: false
         },
         idea_name: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        sdg: {
             type: DataTypes.STRING,
             allowNull: true
         },
