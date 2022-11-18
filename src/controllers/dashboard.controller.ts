@@ -393,6 +393,27 @@ export default class DashboardController extends BaseController {
                             )`),
                         "quiz_completed_count"
                     ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForPreSurveyStatus(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "pre_survey_status"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForPostSurveyStatus(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "post_survey_status"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralIdeaSubmission(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "idea_submission"
+                    ],
                     "badges",
                     "created_at",
                     "full_name",
