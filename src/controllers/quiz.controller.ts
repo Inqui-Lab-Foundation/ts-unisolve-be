@@ -191,7 +191,11 @@ export default class QuizController extends BaseController {
         try {
 
             const quiz_id = req.params.id;
-            const { quiz_question_id, selected_option } = req.body;
+
+            const { quiz_question_id  } = req.body;
+            let selected_option = req.body.selected_option;
+            selected_option = res.locals.translationService.getTranslationKey(selected_option)
+            // console.log(selected_option)
             const user_id = res.locals.user_id;
             if (!quiz_id) {
                 throw badRequest(speeches.QUIZ_ID_REQUIRED);
