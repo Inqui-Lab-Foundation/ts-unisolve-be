@@ -49,6 +49,13 @@ export default class DashboardService extends BaseService {
     async getMapStatsForDistrict(argdistric: any = null) {
 
         let whereClause = {}
+        let schoolIdsInDistrict:any =[];
+        let mentorIdInDistrict:any =[];
+        let registeredSchoolIdsInDistrict:any =[];
+        let teamIdInDistrict:any =[];
+        let challengeInDistrict:any =[];
+        let studentsInDistric:any =[];
+
         if (argdistric) {
             whereClause = {
                 district: argdistric,
@@ -58,30 +65,88 @@ export default class DashboardService extends BaseService {
         const overAllSchool = await this.crudService.findAll(organization, {
             where: whereClause
         });
-        const schoolIdsInDistrict = overAllSchool.map((Element: any) => Element.dataValues.organization_code);
+        // if(argdistric=="b"){
+        //     console.log(argdistric)
+        //     console.log(overAllSchool)
+        // }
+        if(!overAllSchool || (!overAllSchool.length) || overAllSchool.length==0){
+            return {
+                schoolIdsInDistrict: schoolIdsInDistrict,
+                registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
+                teamIdInDistrict: teamIdInDistrict,
+                challengeInDistrict: challengeInDistrict,
+                studentsInDistric: studentsInDistric
+            }
+        }
+        schoolIdsInDistrict = overAllSchool.map((Element: any) => Element.dataValues.organization_code);
 
         const mentorReg = await this.crudService.findAll(mentor, {
             where: {
                 organization_code: schoolIdsInDistrict
             }
         });
-        const mentorIdInDistrict = mentorReg.map((Element: any) => Element.dataValues.mentor_id);//changed this to  user_id from mentor_id, because teams has mentor linked with team via user_id as value in the mentor_id collumn of the teams table
+        if(!mentorReg || (!mentorReg.length) || mentorReg.length==0){
+            return {
+                schoolIdsInDistrict: schoolIdsInDistrict,
+                registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
+                teamIdInDistrict: teamIdInDistrict,
+                challengeInDistrict: challengeInDistrict,
+                studentsInDistric: studentsInDistric
+            }
+        }
+        mentorIdInDistrict = mentorReg.map((Element: any) => Element.dataValues.mentor_id);//changed this to  user_id from mentor_id, because teams has mentor linked with team via user_id as value in the mentor_id collumn of the teams table
+        
         const schoolRegistered = await this.crudService.findAll(mentor, {
             where: {
                 mentor_id: mentorIdInDistrict,
             },
             group: ['organization_code']
         });
-        const registeredSchoolIdsInDistrict = schoolRegistered.map((Element: any) => Element.dataValues.organization_code);
+        if(!schoolRegistered || (!schoolRegistered.length) || schoolRegistered.length==0){
+            // return {
+            //     schoolIdsInDistrict: schoolIdsInDistrict,
+            //     registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
+            //     teamIdInDistrict: teamIdInDistrict,
+            //     challengeInDistrict: challengeInDistrict,
+            //     studentsInDistric: studentsInDistric
+            // }
+            registeredSchoolIdsInDistrict=[]
+        }else{
+            registeredSchoolIdsInDistrict = schoolRegistered.map((Element: any) => Element.dataValues.organization_code);
+        }
+        
+
         const teamReg = await this.crudService.findAll(team, {
             where: { mentor_id: mentorIdInDistrict }
         });
-        const teamIdInDistrict = teamReg.map((Element: any) => Element.dataValues.team_id);
+        if(!teamReg || (!teamReg.length) || teamReg.length==0){
+            return {
+                schoolIdsInDistrict: schoolIdsInDistrict,
+                registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
+                teamIdInDistrict: teamIdInDistrict,
+                challengeInDistrict: challengeInDistrict,
+                studentsInDistric: studentsInDistric
+            }
+        }
+        teamIdInDistrict = teamReg.map((Element: any) => Element.dataValues.team_id);
+        
         const challengeReg = await this.crudService.findAll(challenge_response, {
             where: { team_id: teamIdInDistrict }
         });
-        const challengeInDistrict = challengeReg.map((Element: any) => Element.dataValues.challenge_response_id);
-
+        if(!challengeReg || (!challengeReg.length) || challengeReg.length==0){
+            // return {
+            //     schoolIdsInDistrict: schoolIdsInDistrict,
+            //     registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
+            //     teamIdInDistrict: teamIdInDistrict,
+            //     challengeInDistrict: challengeInDistrict,
+            //     studentsInDistric: studentsInDistric
+            // }
+            challengeInDistrict=[]
+        }else{
+            challengeInDistrict = challengeReg.map((Element: any) => Element.dataValues.challenge_response_id);
+        }
+        
+        
         const studentsResult = await student.findAll({
             attributes: [
                 "user_id",
@@ -91,7 +156,19 @@ export default class DashboardService extends BaseService {
                 team_id: teamIdInDistrict
             }
         })
-        const studentsInDistric = studentsResult.map((Element: any) => Element.dataValues.student_id);
+        if(!studentsResult || (!studentsResult.length) || studentsResult.length==0){
+            // return {
+            //     schoolIdsInDistrict: schoolIdsInDistrict,
+            //     registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
+            //     teamIdInDistrict: teamIdInDistrict,
+            //     challengeInDistrict: challengeInDistrict,
+            //     studentsInDistric: studentsInDistric
+            // }
+            studentsInDistric=[]
+        }else{
+            studentsInDistric = studentsResult.map((Element: any) => Element.dataValues.student_id);
+        }
+        studentsInDistric = studentsResult.map((Element: any) => Element.dataValues.student_id);
 
         return {
             schoolIdsInDistrict: schoolIdsInDistrict,
