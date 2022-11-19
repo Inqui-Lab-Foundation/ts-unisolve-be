@@ -88,6 +88,44 @@ export default class TranslationsProvider {
         return argKey;
     }
 
+    static getTranslationKeyForValue(argToLocale: string, argValue: string) {
+        // console.log(typeof argKey);
+        if (typeof argValue == 'string') {
+            argValue = ("" + argValue).trim()
+        }
+        // if(argValue == "b"){
+        //     console.log("argValue",argValue);
+        //     console.log("argToLocale",argToLocale);
+        // }
+        if (this.translationsFromDbArr[argToLocale]) {
+            const translationsForToLocale = this.translationsFromDbArr[argToLocale]
+            // if(argKey == "Community Map"){
+            //     // console.log("translationsForToLocale",translationsForToLocale)
+            //     console.log("translationsForToLocale[argKey]",translationsForToLocale[argKey]);
+            // }
+            
+            
+            const objKeys = Object.keys(translationsForToLocale)
+            let translatedObjKey=null
+            for(var i =0;i<objKeys.length;i++){
+                const objkey = objKeys[i]
+                if(translationsForToLocale[objkey] == argValue){
+                    translatedObjKey =  objkey
+                    // console.log("objkey",objkey)
+                    // console.log("translationsForToLocale[objkey]",translationsForToLocale[objkey])
+                    break;
+                }
+            }
+            
+            
+            if (translatedObjKey) {
+                // console.log("translatedObjKey",translatedObjKey)
+                return translatedObjKey;
+            }
+        }
+        return argValue;
+    }
+
 
     static getSpeechesFor(arglocale: string = this.defaultLocale) {
         switch (arglocale) {
