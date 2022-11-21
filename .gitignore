@@ -11,6 +11,7 @@ logs
 .env.dev
 .env.qa
 .env.local
+.env.staging
 .temp
 experiments
 src/migrations/cli/*
