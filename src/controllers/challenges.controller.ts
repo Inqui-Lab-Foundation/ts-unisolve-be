@@ -173,9 +173,7 @@ export default class ChallengeController extends BaseController {
                 result = resultModel.dataValues
                 // }
                 return user_response;
-                console.log("here.. 175")
             } else {
-                console.log("here.. 176")
                 user_response[questionAnswered.dataValues.challenge_question_id] = responseObjToAdd;
                 // team_id  1, challenge_id = 1, responses = {
                 //     q_1: {
@@ -234,7 +232,6 @@ export default class ChallengeController extends BaseController {
             let result: any = {}
             for (const element of responses) {
                 result = await this.insertSingleResponse(team_id, user_id, challenge_id, element.challenge_question_id, element.selected_option)
-                console.log(results)
                 if (!result || result instanceof Error) {
                     throw badRequest();
                 } else {
@@ -274,13 +271,17 @@ export default class ChallengeController extends BaseController {
             if (challengeRes) {
                 throw notAcceptable(speeches.DATA_EXIST)
             }
-            let result: any;
-            result = await this.crudService.create(challenge_response, {
-                ...req.body,
-                challenge_id,
-                team_id,
-                response: JSON.stringify({ null: null })
-            });
+            let dataUpset = {
+                sdg: req.body.sdg,
+                challenge_id: challenge_id,
+                team_id: team_id,
+                submitted_by: team_id,
+                initiated_by: user_id,
+                updated_by: user_id,
+                created_by: user_id,
+                response: JSON.stringify({})
+            }
+            let result: any = await this.crudService.create(challenge_response, dataUpset);
             if (!result) {
                 throw badRequest(speeches.INVALID_DATA);
             }
