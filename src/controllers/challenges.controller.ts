@@ -173,9 +173,7 @@ export default class ChallengeController extends BaseController {
                 result = resultModel.dataValues
                 // }
                 return user_response;
-                console.log("here.. 175")
             } else {
-                console.log("here.. 176")
                 user_response[questionAnswered.dataValues.challenge_question_id] = responseObjToAdd;
                 // team_id  1, challenge_id = 1, responses = {
                 //     q_1: {
