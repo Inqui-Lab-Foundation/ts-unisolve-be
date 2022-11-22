@@ -151,7 +151,7 @@ export default class TranslationsProvider {
             {
                 let columns:any = constents.TRANSLATION_CONFIG.table_column[translateTable[i] as keyof Object]['columns' as keyof Object]
                 let indexNo:any = constents.TRANSLATION_CONFIG.table_column[translateTable[i] as keyof Object]['primary_key' as keyof Object]
-                let translateKeys:any = await db.query(`SELECT ${columns} , ${indexNo} as index_no FROM ${translateTable[i]} limit 5`);
+                let translateKeys:any = await db.query(`SELECT ${columns} , ${indexNo} as index_no FROM ${translateTable[i]}`);
                 let tableName = translateTable[i];
                 translateKeys = translateKeys[0];
                 // console.log("🚀 ~ file: translationProvider.ts ~ line 152 ~ TranslationsProvider ~ translateKeys", translateKeys,tableName,indexNo);
