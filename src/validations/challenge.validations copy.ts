@@ -58,5 +58,5 @@ export const challengeSubmitResponsesSchema = Joi.object().keys({
         'string.empty': speeches.COMMON_STATUS_REQUIRED
     }),
     sdg: Joi.string(),
-    idea_name: Joi.string(),
+    others: Joi.string(),
 });
