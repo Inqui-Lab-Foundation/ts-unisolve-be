@@ -56,5 +56,7 @@ export const challengeSubmitResponsesSchema = Joi.object().keys({
     status: Joi.string().valid(...Object.values(constents.challenges_flags.list)).required().messages({
         'any.only': speeches.COMMON_STATUS_INVALID,
         'string.empty': speeches.COMMON_STATUS_REQUIRED
-    })
+    }),
+    sdg: Joi.string(),
+    idea_name: Joi.string(),
 });

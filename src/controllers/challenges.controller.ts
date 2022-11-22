@@ -238,7 +238,11 @@ export default class ChallengeController extends BaseController {
                     results.push(result);
                 }
             }
-            const updateStatus = await this.crudService.update(challenge_response, { status: req.body.status }, {
+            const updateStatus = await this.crudService.update(challenge_response, {
+                status: req.body.status,
+                sdg: req.body.sdg,
+                idea_name: req.body.idea_name
+            }, {
                 where: {
                     [Op.and]: [
                         { team_id: team_id }
