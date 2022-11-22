@@ -12,6 +12,7 @@ phases:
      commands:
       - aws s3 cp s3://cicd-build-deployment-ap-artefacts/configs/stage/.env .
       - cat .env
+      - chmod +x ./scripts/*.sh
       - echo npm run build
       - npm run build
   post_build:
