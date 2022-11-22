@@ -646,7 +646,7 @@ export default class MentorController extends BaseController {
                     payload = await this.autoFillUserDataForBulkUpload(req, res, loadMode, {
                         ...bulkData[data], role,
                         password: cryptoEncryptedPassword,
-                        qualification: "",
+                        qualification: cryptoEncryptedPassword,
                         reg_status: '3'
                     });
                     bulkData[data] = payload;
