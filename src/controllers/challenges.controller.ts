@@ -149,7 +149,7 @@ export default class ChallengeController extends BaseController {
             };
             // console.log(studentDetailsBasedOnTeam.length);
             let dataToUpsert: any = {}
-            dataToUpsert = { challenge_id, team_id, updated_by: user_id, initiated_by: team_id, submitted_by: user_id }
+            dataToUpsert = { challenge_id, team_id, updated_by: user_id, initiated_by: user_id, submitted_by: user_id }
             let responseObjToAdd: any = {}
             responseObjToAdd = {
                 challenge_question_id: challenge_id,
