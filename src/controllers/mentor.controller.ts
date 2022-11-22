@@ -1,5 +1,7 @@
 import bcrypt from 'bcrypt';
 import axios from 'axios';
+import fs from 'fs';
+import * as csv from "fast-csv";
 import { Op, QueryTypes } from 'sequelize';
 import { Request, Response, NextFunction } from 'express';
 import { customAlphabet } from 'nanoid';
@@ -49,8 +51,23 @@ export default class MentorController extends BaseController {
         this.router.put(`${this.path}/resetPassword`, this.resetPassword.bind(this));
         this.router.put(`${this.path}/manualResetPassword`, this.manualResetPassword.bind(this));
         this.router.get(`${this.path}/regStatus`, this.getMentorRegStatus.bind(this));
+        this.router.post(`${this.path}/bulkUpload`, this.bulkUpload.bind(this))
 
         super.initializeRoutes();
+    }
+    protected async autoFillUserDataForBulkUpload(req: Request, res: Response, modelLoaded: any, reqData: any = null) {
+        let payload = reqData;
+        if (modelLoaded.rawAttributes.user_id !== undefined) {
+            const userData = await this.crudService.create(user, { username: reqData.username, ...reqData });
+            payload['user_id'] = userData.dataValues.user_id;
+        }
+        if (modelLoaded.rawAttributes.created_by !== undefined) {
+            payload['created_by'] = res.locals.user_id;
+        }
+        if (modelLoaded.rawAttributes.updated_by !== undefined) {
+            payload['updated_by'] = res.locals.user_id;
+        }
+        return payload;
     }
     protected async getMentorRegStatus(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
@@ -125,7 +142,7 @@ export default class MentorController extends BaseController {
             next(err)
         }
     }
-    
+
     //TODO: Override the getDate function for mentor and join org details and user details
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
@@ -585,4 +602,70 @@ export default class MentorController extends BaseController {
         //     return res.status(202).send(dispatcher(res, result, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
         // }
     };
+    protected async bulkUpload(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        //@ts-ignore
+        let file = req.files.file;
+        let Errors: any = [];
+        let bulkData: any = [];
+        let counter: number = 0;
+        let existedEntities: number = 0;
+        let dataLength: number;
+        let payload: any;
+        let loadMode: any = await this.loadModel(this.model);
+        let role = 'MENTOR'
+        if (file === undefined) return res.status(400).send(dispatcher(res, null, 'error', speeches.FILE_REQUIRED, 400));
+        if (file.type !== 'text/csv') return res.status(400).send(dispatcher(res, null, 'error', speeches.FILE_REQUIRED, 400));
+        //parsing the data
+        const stream = fs.createReadStream(file.path).pipe(csv.parse({ headers: true }));
+        //error event
+        stream.on('error', (error) => res.status(400).send(dispatcher(res, error, 'error', speeches.CSV_SEND_ERROR, 400)));
+        //data event;
+        stream.on('data', async (data: any) => {
+            dataLength = Object.entries(data).length;
+            for (let i = 0; i < dataLength; i++) {
+                // if (Object.entries(data)[i][0] === 'email')
+                // Object.entries(data)[i][0].replace('email', 'username')
+                // console.log(Object.entries(data)[i][0])
+                if (Object.entries(data)[i][1] === '') {
+                    Errors.push(badRequest('missing fields', data));
+                    return;
+                }
+            }
+            bulkData.push(data);
+        })
+        //parsing completed
+        stream.on('end', async () => {
+            if (Errors.length > 0) next(badRequest(Errors.message));
+            for (let data = 0; data < bulkData.length; data++) {
+                const match = await this.crudService.findOne(user, { where: { username: bulkData[data]['username'] } });
+                if (match) {
+                    existedEntities++;
+                } else {
+                    counter++;
+                    const cryptoEncryptedPassword = await this.authService.generateCryptEncryption(bulkData[data]['mobile']);
+                    payload = await this.autoFillUserDataForBulkUpload(req, res, loadMode, {
+                        ...bulkData[data], role,
+                        password: cryptoEncryptedPassword,
+                        qualification: cryptoEncryptedPassword,
+                        reg_status: '3'
+                    });
+                    bulkData[data] = payload;
+                };
+            }
+            // console.log(bulkData)
+            if (counter > 0) {
+                await this.crudService.bulkCreate(loadMode, bulkData)
+                    .then((result) => {
+                        // let mentorData = {...bulkData, user_id: result.user_id}
+                        // await this.crudService.bulkCreate(user, bulkData)
+                        return res.send(dispatcher(res, { data: result, createdEntities: counter, existedEntities }, 'success', speeches.CREATED_FILE, 200));
+                    }).catch((error: any) => {
+                        return res.status(500).send(dispatcher(res, error, 'error', speeches.CSV_SEND_INTERNAL_ERROR, 500));
+                    })
+            } else if (existedEntities > 0) {
+                return res.status(400).send(dispatcher(res, { createdEntities: counter, existedEntities }, 'error', speeches.CSV_DATA_EXIST, 400));
+            }
+        });
+    }
 };
+
