@@ -275,8 +275,7 @@ export default class ReportController extends BaseController {
     }
     protected async userTopicProgressGroupByCourseTopicId(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
-            const mentorsResult = await db.query("SELECT course_topic_id, count(*) FROM user_topic_progress group by course_topic_id",
-                { type: QueryTypes.SELECT });
+            const mentorsResult = await db.query("SELECT course_topic_id, count(user_id) as count FROM user_topic_progress group by course_topic_id", { type: QueryTypes.SELECT });
             if (!mentorsResult) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
