@@ -360,7 +360,8 @@ export default class ChallengeController extends BaseController {
                             "response",
                             "initiated_by",
                             "response",
-                            "status"
+                            "status",
+                            "sdg"
                             // [
                             //     // Note the wrapping parentheses in the call below!
                             //     db.literal(`(
