@@ -241,7 +241,7 @@ export default class ChallengeController extends BaseController {
             const updateStatus = await this.crudService.update(challenge_response, {
                 status: req.body.status,
                 sdg: req.body.sdg,
-                idea_name: req.body.idea_name
+                others: req.body.others
             }, {
                 where: {
                     [Op.and]: [
@@ -359,7 +359,7 @@ export default class ChallengeController extends BaseController {
                         },
                         attributes: [
                             "challenge_id",
-                            "idea_name",
+                            "others",
                             "team_id",
                             "response",
                             "initiated_by",
