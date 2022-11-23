@@ -641,11 +641,9 @@ export default class MentorController extends BaseController {
         })
         //parsing completed
         stream.on('end', async () => {
-            console.log(bulkData)
             if (Errors.length > 0) next(badRequest(Errors.message));
             for (let data = 0; data < bulkData.length; data++) {
                 const match = await this.crudService.findOne(user, { where: { username: bulkData[data]['username'] } });
-                console.log(match)
                 if (match) {
                     existedEntities++;
                 } else {
