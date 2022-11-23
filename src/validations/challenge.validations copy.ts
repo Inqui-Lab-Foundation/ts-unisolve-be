@@ -51,6 +51,10 @@ export const challengeSubmitResponsesSchema = Joi.object().keys({
     responses: Joi.array().required().messages({
         'array.empty': speeches.SELCTED_OPTION_REQUIRED
     }),
+    status: Joi.string().valid(...Object.values(constents.challenges_flags.list)).required().messages({
+        'any.only': speeches.COMMON_STATUS_INVALID,
+        'string.empty': speeches.COMMON_STATUS_REQUIRED
+    })
     // question:Joi.string().required().messages({
     //     'string.empty': speeches.QUESTION_REQUIRED
     // }),

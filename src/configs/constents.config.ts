@@ -34,7 +34,8 @@ export const constents = {
       'ACTIVE': 'ACTIVE',
       'INACTIVE': 'INACTIVE',
       'DELETED': 'DELETED',
-      'LOCKED': 'LOCKED'
+      'LOCKED': 'LOCKED',
+      'ALL': 'ALL'
     },
     default: 'ACTIVE'
   },
@@ -174,6 +175,16 @@ export const constents = {
   translations_flags:{
     default_locale: "en"
   },
-  default_image_path: "/images/default.jpg"
-
+  default_image_path: "/images/default.jpg",
+  reports_all_ment_reports_rs_flags: {
+    list: {
+      "ALL": "ALL",
+      "COMPLETED": "COMPLETED",
+      "INCOMPLETE": "INCOMPLETE",
+      "INPROGRESS": "INPROGRESS",
+    },
+    default: "ALL"
+  },
+  TEAMS_MAX_STUDENTS_ALLOWED: 4,
+  ALPHA_NUMERIC_PATTERN : /^[a-zA-Z0-9 ]*$/,
 };

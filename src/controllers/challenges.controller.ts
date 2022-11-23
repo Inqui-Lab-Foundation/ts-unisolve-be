@@ -28,7 +28,7 @@ export default class ChallengeController extends BaseController {
     }
     protected initializeRoutes(): void {
         //example route to add 
-        this.router.post(this.path + "/:id/responses/", validationMiddleware(challengeSubmitResponsesSchema), this.submitResponses.bind(this));
+        this.router.post(this.path + "/:id/submission/", validationMiddleware(challengeSubmitResponsesSchema), this.submitResponses.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
         super.initializeRoutes();
     }
@@ -57,9 +57,19 @@ export default class ChallengeController extends BaseController {
                 next(error)
             });
             const where: any = {};
-            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPart: any = {}
+            let boolStatusWhereClauseRequired = false;
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    boolStatusWhereClauseRequired = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    boolStatusWhereClauseRequired = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
+                boolStatusWhereClauseRequired = true;
             }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
@@ -227,6 +237,13 @@ export default class ChallengeController extends BaseController {
                     results.push(result);
                 }
             }
+            const updateStatus = await this.crudService.update(challenge_response, { status: req.body.status }, {
+                where: {
+                    [Op.and]: [
+                        { team_id: team_id }
+                    ]
+                }
+            });
             res.status(200).send(dispatcher(res,result))
         } catch (err) {
             next(err)
