@@ -2,8 +2,10 @@ import { illegal } from "boom";
 import { constents } from "../../configs/constents.config";
 import { supported_language } from "../../models/supported_language.model";
 import { translation } from "../../models/translation.model";
+import { translation2 } from "../../models/translation2.model";
 import { speeches_en } from "./locales/en";
 import { speeches_tn } from "./locales/tn";
+import db from "../dbconnection.util";
 
 export default class TranslationsProvider {
 
@@ -135,6 +137,77 @@ export default class TranslationsProvider {
                 return speeches_tn;
             default:
                 return speeches_en;
+        }
+    }
+
+    static async translateRefresh(translateTable:any)
+    {
+        let bulkInsert:any = [];
+        if(translateTable != "*")
+        {
+            // let translateTable = "quiz_questions";
+            
+            for(let i=0;i<translateTable.length;i++)
+            {
+                let columns:any = constents.TRANSLATION_CONFIG.table_column[translateTable[i] as keyof Object]['columns' as keyof Object]
+                let indexNo:any = constents.TRANSLATION_CONFIG.table_column[translateTable[i] as keyof Object]['primary_key' as keyof Object]
+                let translateKeys:any = await db.query(`SELECT ${columns} , ${indexNo} as index_no FROM ${translateTable[i]}`);
+                let tableName = translateTable[i];
+                translateKeys = translateKeys[0];
+                // console.log("🚀 ~ file: translationProvider.ts ~ line 152 ~ TranslationsProvider ~ translateKeys", translateKeys,tableName,indexNo);
+                
+                for(let z:any=0;z<translateKeys.length;z++)
+                {
+                    // console.log("🚀 ~ file: translationProvider.ts ~ line 158 ~ TranslationsProvider ~ translateKeys", translateKeys[z]);
+                    for(let eachColumn of Object.keys(translateKeys[z]))
+                    {
+                        // console.log("🚀 ~ file: translationProvider.ts ~ line 162 ~ TranslationsProvider ~ eachColumn", eachColumn)
+                        if(eachColumn !== 'index_no')
+                        {
+                            let insertTranslate:any = {
+                                                    "table_name" : tableName,
+                                                    "coloumn_name": eachColumn,
+                                                    "index_no" : translateKeys[z]['index_no'],
+                                                    // "key" : translateKeys[z][eachColumn],
+                                                  }
+                            let translateData:any = await translation2.findOne({
+                                where:insertTranslate,
+                                raw: true
+                            })
+
+                            let translateKey = translateKeys[z][eachColumn];
+                            if(translateData)
+                            {
+                                insertTranslate['translation_id'] = translateData['translation_id']
+                                insertTranslate['value'] = '';
+                                if(translateKey == translateData['key'])
+                                {
+                                    continue;
+                                }
+                            }
+
+                            //translate table key
+                            insertTranslate['key'] = translateKey;
+                            bulkInsert.push(insertTranslate);
+                            
+                            // console.log("🚀 ~ file: translationProvider.ts ~ line 167 ~ TranslationsProvider ~ Object.keys ~ insertTranslate", insertTranslate)
+                        }
+                    }
+                    
+                }
+
+            }
+
+            let result;
+            if(bulkInsert.length)
+            {
+                
+                result = await translation2.bulkCreate(bulkInsert,{ updateOnDuplicate: ["table_name","coloumn_name","index_no","key"] }
+                );
+                // console.log("🚀 ~ file: translationProvider.ts ~ line 186 ~ TranslationsProvider ~ result", result);
+            }
+
+            return [result,bulkInsert];
         }
     }
 
