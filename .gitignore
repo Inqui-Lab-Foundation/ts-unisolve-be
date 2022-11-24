@@ -7,6 +7,7 @@ yarn.lock
 yarn-error.log
 logs
 .env.old
+.env.prod.old
 .env.prod
 .env.dev
 .env.qa

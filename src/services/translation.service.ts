@@ -79,7 +79,19 @@ export default class TranslationService {
     }
 
     getTranslationKey(selected_option:any){
-        return TranslationsProvider.getTranslationKeyForValue(this.getCurrentLocale(),selected_option)
+        try{
+            const selected_optionArr = selected_option.split("{{}}"); ///multiple answers submitted can be represented as singlestrign separated by {{}} 
+            // console.log(selected_optionArr)
+            let resultArr = selected_optionArr.map((selectedOptionOne:any) => {
+                return  TranslationsProvider.getTranslationKeyForValue(this.getCurrentLocale(),selectedOptionOne)
+            });
+            const result = resultArr.join("{{}}")
+            // console.log("result",result)
+            return result;
+        }catch(err){
+            console.log(err)
+            return selected_option
+        }
     }
 
     async translationRefresh(translateTable:any)
