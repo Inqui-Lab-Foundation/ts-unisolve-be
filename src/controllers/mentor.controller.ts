@@ -607,6 +607,7 @@ export default class MentorController extends BaseController {
         let file = req.files.file;
         let Errors: any = [];
         let bulkData: any = [];
+        let requestData: any = [];
         let counter: number = 0;
         let existedEntities: number = 0;
         let dataLength: number;
@@ -630,8 +631,13 @@ export default class MentorController extends BaseController {
                     Errors.push(badRequest('missing fields', data));
                     return;
                 }
+                requestData = data
+                //@ts-ignore
+                if (Object.entries(data)[i][0] === 'email') {
+                    requestData['username'] = Object.entries(data)[i][1];
+                }
             }
-            bulkData.push(data);
+            bulkData.push(requestData);
         })
         //parsing completed
         stream.on('end', async () => {

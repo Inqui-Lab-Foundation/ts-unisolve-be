@@ -57,6 +57,6 @@ export const challengeSubmitResponsesSchema = Joi.object().keys({
         'any.only': speeches.COMMON_STATUS_INVALID,
         'string.empty': speeches.COMMON_STATUS_REQUIRED
     }),
-    sdg: Joi.string(),
-    others: Joi.string(),
+    sdg: Joi.any(),
+    others: Joi.any(),
 });
