@@ -46,6 +46,7 @@ export default class StudentController extends BaseController {
         this.router.put(`${this.path}/changePassword`, validationMiddleware(studentChangePasswordSchema), this.changePassword.bind(this));
         // this.router.put(`${this.path}/updatePassword`, validationMiddleware(studentChangePasswordSchema), this.updatePassword.bind(this));
         this.router.put(`${this.path}/resetPassword`, validationMiddleware(studentResetPasswordSchema), this.resetPassword.bind(this));
+        this.router.get(`${this.path}/:student_user_id/studentCertificate`, this.studentCertificate.bind(this));
         this.router.post(`${this.path}/:student_user_id/badges`, this.addBadgeToStudent.bind(this));
         this.router.get(`${this.path}/:student_user_id/badges`, this.getStudentBadges.bind(this));
         this.router.get(`${this.path}/passwordUpdate`, this.studentPasswordUpdate.bind(this));
@@ -588,6 +589,33 @@ export default class StudentController extends BaseController {
             };
             const data = { no_of_students_updated: count }
             return res.status(200).send(dispatcher(res, data, 'updated'));
+        } catch (error) {
+            next(error);
+        }
+    }
+    private async studentCertificate(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { model, student_user_id } = req.params;
+            const user_id = res.locals.user_id
+            if (model) {
+                this.model = model;
+            };
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const modelLoaded = await this.loadModel(model);
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
+            payload["certificate"] = new Date().toLocaleString();
+            console.log(payload);
+            const updateCertificate = await this.crudService.updateAndFind(student, payload, {
+                where: { student_id: student_user_id }
+            });
+            if (!updateCertificate) {
+                throw internal()
+            }
+            if (updateCertificate instanceof Error) {
+                throw updateCertificate;
+            }
+            return res.status(200).send(dispatcher(res, updateCertificate, 'Certificate Updated'));
         } catch (error) {
             next(error);
         }

@@ -37,6 +37,7 @@ export default class ReportController extends BaseController {
         this.router.get(this.path + "/courseInComplete", this.courseInComplete.bind(this));
         this.router.get(this.path + "/notRegistered", this.notRegistered.bind(this));
         this.router.get(this.path + "/notRegister", this.notRegistered.bind(this));
+        this.router.get(this.path + "/userTopicProgress", this.userTopicProgressGroupByCourseTopicId.bind(this));
         this.router.get(this.path + "/mentorTeamsStudents", this.teamRegistered.bind(this));
         // super.initializeRoutes();
     }
@@ -261,6 +262,20 @@ export default class ReportController extends BaseController {
                 addWhereClauseStatusPart = true;
             }
             const mentorsResult = await db.query("SELECT * FROM organizations WHERE NOT EXISTS(SELECT mentors.organization_code  from mentors WHERE organizations.organization_code = mentors.organization_code) ", { type: QueryTypes.SELECT });
+            if (!mentorsResult) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (mentorsResult instanceof Error) {
+                throw mentorsResult
+            }
+            res.status(200).send(dispatcher(res, mentorsResult, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async userTopicProgressGroupByCourseTopicId(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const mentorsResult = await db.query("SELECT course_topic_id, count(user_id) as count FROM user_topic_progress group by course_topic_id", { type: QueryTypes.SELECT });
             if (!mentorsResult) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
