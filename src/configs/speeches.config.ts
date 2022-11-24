@@ -86,6 +86,7 @@ export const speeches = {
     NOTIFICATION_DELETED_SUCCESSFULLY: "Notification deleted successfully",
 
     COMMON_STATUS_INVALID: `Status is invalid, it should be one from ${Object.values(constents.common_status_flags.list).join(", ")}.`,
+    CERTIFICATE_INVALID: `certificate type is invalid, it should be one from ${Object.values(constents.certificate_flags.list).join(", ")}.`,
     COMMON_STATUS_REQUIRED: `Status is required, it should be one from ${Object.values(constents.common_status_flags.list).join(", ")}.`,
 
     CHALLENGE_STATUS_INVALID: `Status is invalid, it should be one from ${Object.values(constents.challenges_flags.list).join(", ")}.`,
