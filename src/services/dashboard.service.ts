@@ -285,5 +285,14 @@ export default class DashboardService extends BaseService {
         //  return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
         //  `and t.topic_type = "QUIZ"`
     }
-
+    getDbLieralForPostSurveyCreatedAt(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
+        return `
+            SELECT created_at FROM unisolve_db.quiz_survey_responses where quiz_survey_id = 4 and user_Id = \`student\`.\`user_id\`
+            `
+    }
+    getDbLieralForCourseCompletedCreatedAt(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
+        return `
+            select created_at from user_topic_progress as utp where 1=1 and  utp.status = "COMPLETED" and course_topic_id = 34 and utp.user_id = \`student\`.\`user_id\` 
+        `
+    }
 }
