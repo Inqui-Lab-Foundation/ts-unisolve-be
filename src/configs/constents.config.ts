@@ -186,7 +186,15 @@ export const constents = {
     default: "ALL"
   },
   TEAMS_MAX_STUDENTS_ALLOWED: 5,
-  ALPHA_NUMERIC_PATTERN : /^[a-zA-Z0-9 ]*$/,
+  ALPHA_NUMERIC_PATTERN: /^[a-zA-Z0-9 ]*$/,
+  certificate_flags: {
+    list: {
+      '1': '1',
+      '2': '2',
+      '3': '3',
+    },
+    default: '1'
+  },
   TRANSLATION_CONFIG:{
     table_column : {
       "quiz_questions" : {
