@@ -286,20 +286,6 @@ export default class DashboardController extends BaseController {
                             )`),
                         "quiz_completed_count"
                     ],
-                    [
-                        db.literal(`(
-                            ${serviceDashboard.getDbLieralForPostSurveyCreatedAt(addWhereClauseStatusPart,
-                            whereClauseStatusPartLiteral)}
-                            )`),
-                        "post_survey_completed_date"
-                    ],
-                    [
-                        db.literal(`(
-                            ${serviceDashboard.getDbLieralForCourseCompletedCreatedAt(addWhereClauseStatusPart,
-                            whereClauseStatusPartLiteral)}
-                            )`),
-                        "course_completed_date"
-                    ],
                     "badges"
                 ]
             })
