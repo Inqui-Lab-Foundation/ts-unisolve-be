@@ -268,12 +268,25 @@ export default class ChallengeController extends BaseController {
             if (!user_id) {
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
             }
-            const challengeRes = await this.crudService.findOne(challenge_response, { where: { challenge_id, team_id } });
+            const challengeRes = await this.crudService.findOne(challenge_response, {
+                attributes: [
+                    [
+                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_by'
+                    ],
+                    [
+                        db.literal(`(SELECT team_name FROM teams As s WHERE s.team_id = \`challenge_response\`.\`submitted_by\` )`), 'submitted_by'
+                    ],
+                    "created_at",
+                    "updated_at",
+                    "sdg"
+                ],
+                where: { challenge_id, team_id }
+            });
             if (challengeRes instanceof Error) {
                 throw internal(challengeRes.message)
             }
             if (challengeRes) {
-                throw notAcceptable(speeches.DATA_EXIST)
+                return res.status(406).send(dispatcher(res, challengeRes, 'error', speeches.DATA_EXIST))
             }
             let dataUpset = {
                 sdg: req.body.sdg,
@@ -335,6 +348,25 @@ export default class ChallengeController extends BaseController {
                 where[`${this.model}_id`] = req.params.id;
                 console.log(where)
                 data = await this.crudService.findOne(challenge_response, {
+                    attributes: [
+                        [
+                            db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                        ],
+                        [
+                            db.literal(`(SELECT team_name FROM teams As s WHERE s.team_id = \`challenge_response\`.\`submitted_by\` )`), 'submitted_by'
+                        ],
+                        "created_by",
+                        "updated_by",
+                        "created_at",
+                        "updated_at",
+                        "initiated_by",
+                        "sdg",
+                        "responses",
+                        "team_id",
+                        "challenge_id",
+                        "status",
+                        "others"
+                    ],
                     where: {
                         [Op.and]: [
                             whereClauseStatusPart,
@@ -342,13 +374,8 @@ export default class ChallengeController extends BaseController {
                             condition
                         ]
                     },
-                    // include: {
-                    //     required: false,
-                    //     model: challenge_question,
-                    // }
                 });
             } else {
-                // console.log("came here +++> ")
                 try {
                     const responseOfFindAndCountAll = await this.crudService.findAndCountAll(challenge_response, {
                         where: {
@@ -358,35 +385,27 @@ export default class ChallengeController extends BaseController {
                             ]
                         },
                         attributes: [
+                            [
+                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                            ],
+                            [
+                                db.literal(`(SELECT team_name FROM teams As s WHERE s.team_id = \`challenge_response\`.\`submitted_by\` )`), 'submitted_by'
+                            ],
+                            [
+                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`created_by\` )`), 'created_by'
+                            ],
+                            [
+                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`updated_by\` )`), 'updated_by'
+                            ],
+                            "initiated_by",
                             "challenge_id",
                             "others",
                             "team_id",
                             "response",
-                            "initiated_by",
                             "response",
                             "status",
                             "sdg"
-                            // [
-                            //     // Note the wrapping parentheses in the call below!
-                            //     db.literal(`(
-                            //         SELECT CASE WHEN EXISTS 
-                            //             (SELECT status 
-                            //             FROM quiz_survey_responses as p 
-                            //             WHERE p.user_id = ${user_id} 
-                            //             AND p.quiz_survey_id = \`quiz_survey\`.\`quiz_survey_id\`) 
-                            //         THEN  
-                            //             "COMPLETED"
-                            //         ELSE 
-                            //             '${constents.task_status_flags.default}'
-                            //         END as progress
-                            //     )`),
-                            //     'progress'
-                            // ]
                         ],
-                        // include: {
-                        //     required: false,
-                        //     model: challenge_question,
-                        // },
                         limit, offset
                     })
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
@@ -396,9 +415,6 @@ export default class ChallengeController extends BaseController {
                 }
 
             }
-            // if (!data) {
-            //     return res.status(404).send(dispatcher(res,data, 'error'));
-            // }
             if (!data || data instanceof Error) {
                 if (data != null) {
                     throw notFound(data.message)
@@ -406,12 +422,6 @@ export default class ChallengeController extends BaseController {
                     throw notFound()
                 }
                 res.status(200).send(dispatcher(res, null, "error", speeches.DATA_NOT_FOUND));
-                // if(data!=null){
-                //     throw 
-                (data.message)
-                // }else{
-                //     throw notFound()
-                // }
             }
             data.dataValues.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
             return res.status(200).send(dispatcher(res, data, 'success'));
@@ -420,7 +430,6 @@ export default class ChallengeController extends BaseController {
         }
     }
     private async clearResponse(req: Request, res: Response, next: NextFunction) {
-        // user_id or email_id will be getting from the params then find the
         try {
             const { team_id } = req.query
             if (!team_id) {
@@ -442,102 +451,4 @@ export default class ChallengeController extends BaseController {
             next(error)
         }
     };
-
-    // protected async getNextQuestion(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-    //     const { challenge_id, team_id } = req.params
-    //     const paramStatus: any = req.query.status;
-    //     //checking for challenge_id and team_id
-    //     if (!challenge_id) {
-    //         throw badRequest(speeches.CHALLENGE_ID_REQUIRED);
-    //     }
-    //     if (!team_id) {
-    //         throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
-    //     }
-    //     //check if the given challenge is a valid topic
-    //     // const curr_topic = await this.crudService.findOne(course_topic, { where: { "topic_type_id": quiz_id, "topic_type": "QUIZ" } })
-    //     // if (!curr_topic || curr_topic instanceof Error) {
-    //     //     throw badRequest("INVALID TOPIC");
-    //     // }
-    //     //
-    //     const challengeRes = await this.crudService.findOne(challenge_response, { where: { challenge_id, team_id } });
-    //     if (challengeRes instanceof Error) throw internal(challengeRes.message);
-    //     let whereClauseStatusPart: any = {}
-    //     let boolStatusWhereClauseRequired = false
-    //     if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
-    //         whereClauseStatusPart = { "status": paramStatus }
-    //         boolStatusWhereClauseRequired = true;
-    //     }
-    //     let question_no = 1
-    //     let nextQuestion: any = null;
-    //     if (challengeRes) {
-    //         //TODO: implement checking response and based on that change the 
-    //         let user_response: any = {}
-    //         user_response = JSON.parse(challengeRes.dataValues.response);
-    //         let questionNosAnsweredArray = Object.keys(user_response);
-    //         questionNosAnsweredArray = questionNosAnsweredArray.sort((a, b) => (a > b ? -1 : 1));
-    //         const noOfQuestionsAnswered = Object.keys(user_response).length
-    //         const lastQuestionAnswered = user_response[questionNosAnsweredArray[0]] //we have assumed that this length will always have at least 1 item ; this could potentially be a source of bug, but is not since this should always be true based on above checks ..
-    //         if (lastQuestionAnswered.selected_option == lastQuestionAnswered.correct_answer) {
-    //             question_no = lastQuestionAnswered.question_no + 1;
-    //         } else {
-    //             question_no = lastQuestionAnswered.question_no;
-    //             // if (lastQuestionAnswered.level == "HARD") {
-    //             //     level = "MEDIUM"
-    //             // } else if (lastQuestionAnswered.level == "MEDIUM") {
-    //             //     level = "EASY"
-    //             // } else if (lastQuestionAnswered.level == "EASY") {
-    //             //     question_no = lastQuestionAnswered.question_no + 1;
-    //             //     level = "HARD"
-    //             // }
-    //         }
-    //     }
-    //     const nextQuestionsToChooseFrom = await this.crudService.findOne(challenge_question, {
-    //         where: {
-    //             [Op.and]: [
-    //                 whereClauseStatusPart,
-    //                 { quiz_id: challenge_id },
-    //                 // { level: level },
-    //                 { question_no: question_no },
-    //             ]
-
-    //         }
-    //     })
-    //     if (nextQuestionsToChooseFrom instanceof Error) {
-    //         throw internal(nextQuestionsToChooseFrom.message)
-    //     }
-    //     if (nextQuestionsToChooseFrom) {
-    //         let resultQuestion: any = {}
-    //         let optionsArr = []
-    //         if (nextQuestionsToChooseFrom.dataValues.option_a) {
-    //             optionsArr.push(nextQuestionsToChooseFrom.dataValues.option_a)
-    //         }
-    //         if (nextQuestionsToChooseFrom.dataValues.option_b) {
-    //             optionsArr.push(nextQuestionsToChooseFrom.dataValues.option_b)
-    //         }
-    //         if (nextQuestionsToChooseFrom.dataValues.option_c) {
-    //             optionsArr.push(nextQuestionsToChooseFrom.dataValues.option_c)
-    //         }
-    //         if (nextQuestionsToChooseFrom.dataValues.option_d) {
-    //             optionsArr.push(nextQuestionsToChooseFrom.dataValues.option_d)
-    //         }
-    //         // resultQuestion["quiz_id"] = nextQuestionsToChooseFrom.dataValues.quiz_id;
-    //         // resultQuestion["quiz_question_id"] = nextQuestionsToChooseFrom.dataValues.quiz_question_id;
-    //         // resultQuestion["question_no"] = nextQuestionsToChooseFrom.dataValues.question_no;
-    //         // resultQuestion["question"] = nextQuestionsToChooseFrom.dataValues.question;
-    //         // resultQuestion["question_image"] = nextQuestionsToChooseFrom.dataValues.question_image;
-    //         // resultQuestion["question_icon"] = nextQuestionsToChooseFrom.dataValues.question_icon;
-    //         // resultQuestion["options"] = optionsArr;
-    //         // resultQuestion["level"] = nextQuestionsToChooseFrom.dataValues.level;
-    //         // resultQuestion["type"] = nextQuestionsToChooseFrom.dataValues.type;
-    //         res.status(200).send(dispatcher(res,resultQuestion))
-    //     } else {
-    //         //update worksheet topic progress for this user to completed..!!
-    //         // if (!boolStatusWhereClauseRequired ||
-    //         //     (boolStatusWhereClauseRequired && paramStatus == "ACTIVE")) {
-    //         //     const updateProgress = await this.crudService.create(user_topic_progress, { "user_id": user_id, "course_topic_id": curr_topic.course_topic_id, "status": "COMPLETED" })
-    //         // }
-    //         //send response that quiz is completed..!!
-    //         res.status(200).send(dispatcher(res,"Quiz has been completed no more questions to display"))
-    //     }
-    // }
 }
