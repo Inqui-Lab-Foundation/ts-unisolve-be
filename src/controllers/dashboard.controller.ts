@@ -414,6 +414,7 @@ export default class DashboardController extends BaseController {
                             )`),
                         "idea_submission"
                     ],
+                    "certificate",
                     "badges",
                     "created_at",
                     "full_name",
