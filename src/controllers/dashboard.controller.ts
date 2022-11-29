@@ -481,7 +481,8 @@ export default class DashboardController extends BaseController {
             let result: any = {
                 end_date: "20th November 2022 at 12pm"
             }
-            let teamMembers: any = await studentService.getTeamMembersForUserId(student_user_id)
+            let teamMembers: any = null
+            teamMembers = await studentService.getTeamMembersForUserId(student_user_id)
             if (!teamMembers) {
                 teamMembers = []
             }
@@ -491,7 +492,7 @@ export default class DashboardController extends BaseController {
             result = {
                 ...result,
                 "challenge_submission_status": challenge_submission_status,
-                "team_members": teamMembers
+                // "team_members": teamMembers
             }
             // console.log("teamMembers",teamMembers)
             if (teamMembers.length <= 0) {
@@ -517,7 +518,7 @@ export default class DashboardController extends BaseController {
             result = {
                 ...result,
                 "challenge_submission_status": challenge_submission_status,
-                "team_members": teamMembers
+                // "team_members": teamMembers
             }
             res.status(200).send(dispatcher(res, result, "success"))
             return;

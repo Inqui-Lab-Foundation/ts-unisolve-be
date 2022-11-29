@@ -218,5 +218,11 @@ export const constents = {
         'accimg_ans_wrong',
       ]}
     }
+  },
+  SEQUELIZE_FLAGS:{
+    DEFAULT_EXCLUDE_SCOPE:['created_at,created_by,updated_at,updated_by,status'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS:['created_at,created_by,updated_at,updated_by'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS:['updated_at,updated_by'],
+    WITH_DEBUGATTRS:[]
   }
 };
