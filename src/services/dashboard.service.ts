@@ -74,9 +74,14 @@ export default class DashboardService extends BaseService {
             if (argdistric) {
                 whereClause = {
                     district: argdistric,
-                    status: "ACTIVE"
                 }
             }
+            
+            whereClause = {
+                ...whereClause,
+                status: "ACTIVE"
+            }
+            
             const overAllSchool = await this.crudService.findAll(organization, {
                 where: whereClause
             });
