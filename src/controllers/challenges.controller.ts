@@ -31,6 +31,7 @@ export default class ChallengeController extends BaseController {
         //example route to add 
         this.router.post(this.path + "/:id/submission/", validationMiddleware(challengeSubmitResponsesSchema), this.submitResponses.bind(this));
         this.router.post(this.path + "/:id/initiate/", validationMiddleware(initiateIdeaSchema), this.initiateIdea.bind(this));
+        this.router.post(this.path + "/fileUpload", this.handleAttachment.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         super.initializeRoutes();
@@ -306,6 +307,19 @@ export default class ChallengeController extends BaseController {
                 throw result;
             }
             res.status(200).send(dispatcher(res, result))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async handleAttachment(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { challenge_id, team_id } = req.query;
+            const user_id = res.locals.user_id;
+            //@ts-ignore
+            const { file } = req.files;
+            const filenamePrefix = `challenge_id_${challenge_id}_team_id_${team_id}`;
+            const attachment = await this.copyAllFiles(req, filenamePrefix, "challenges", "responses_attachments");
+            res.status(200).send(dispatcher(res, attachment))
         } catch (err) {
             next(err)
         }
