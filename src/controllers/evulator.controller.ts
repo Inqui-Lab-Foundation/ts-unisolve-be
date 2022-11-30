@@ -144,9 +144,7 @@ export default class EvaluaterController extends BaseController {
                     // const cryptoEncryptedPassword = await this.authService.generateCryptEncryption(bulkData[data]['mobile']);
                     payload = await this.autoFillUserDataForBulkUpload(req, res, loadMode, {
                         ...bulkData[data], role,
-                        // password: cryptoEncryptedPassword,
-                        // qualification: cryptoEncryptedPassword,
-                        // reg_status: '3'
+                        password: this.password
                     });
                     bulkData[data] = payload;
                 };
