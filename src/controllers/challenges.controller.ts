@@ -16,6 +16,10 @@ import { challengeSchema, challengeSubmitResponsesSchema, challengeUpdateSchema,
 import { orderBy } from "lodash";
 import { student } from "../models/student.model";
 import { forbidden } from "joi";
+import path from "path";
+import fs from 'fs';
+import { S3 } from "aws-sdk";
+import { ManagedUpload } from "aws-sdk/clients/s3";
 
 export default class ChallengeController extends BaseController {
 
@@ -313,13 +317,38 @@ export default class ChallengeController extends BaseController {
     }
     protected async handleAttachment(req: Request, res: Response, next: NextFunction) {
         try {
-            const { challenge_id, team_id } = req.query;
-            const user_id = res.locals.user_id;
-            //@ts-ignore
-            const { file } = req.files;
-            const filenamePrefix = `challenge_id_${challenge_id}_team_id_${team_id}`;
-            const attachment = await this.copyAllFiles(req, filenamePrefix, "challenges", "responses_attachments");
-            res.status(200).send(dispatcher(res, attachment))
+            const rawfiles: any = req.files;
+            const files: any = Object.values(rawfiles);
+            const errs: any = [];
+            let attachments: any = [];
+            let result: any = {};
+            let s3 = new S3({
+                apiVersion: '2006-03-01',
+                region: process.env.AWS_REGION,
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+            });
+            if (!req.files) {
+                return result;
+            }
+            for (const file_name of Object.keys(files)) {
+                const file = files[file_name];
+                const readFile: any = await fs.readFileSync(file.path, { encoding: 'utf-8', flag: 'r' });
+                if (readFile instanceof Error) {
+                    errs.push(`Error uploading file: ${file.originalFilename} err: ${readFile}`)
+                }
+                let params = {
+                    Bucket: 'unisole-assets',
+                    Key: `ideas/${file.originalFilename}`,
+                    Body: readFile
+                };
+                await s3.upload(params).promise()
+                    .then((data: any) => { attachments.push(data.Location) })
+                    .catch((err: any) => { errs.push(`Error uploading file: ${file.originalFilename}, err: ${err.message}`) })
+                result['attachments'] = attachments;
+                result['errors'] = errs;
+            }
+            res.status(200).send(dispatcher(res, result));
         } catch (err) {
             next(err)
         }
