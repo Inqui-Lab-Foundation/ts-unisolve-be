@@ -35,9 +35,9 @@ export default class MentorCourseController extends BaseController {
         return res.status(200).json(dispatcher(res,"this was a success ....!!!"));
     }
 
-
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
+            
             let data: any;
             const { model, id } = req.params;
             const paramStatus:any = req.query.status
@@ -61,17 +61,19 @@ export default class MentorCourseController extends BaseController {
                     addWhereClauseStatusPart = false;
                 } else {
                     whereClauseStatusPart = { "status": paramStatus };
+                    whereClauseStatusPartLiteral = `status = "${paramStatus}"`
                     addWhereClauseStatusPart = true;
                 }
             } else {
                 whereClauseStatusPart = { "status": "ACTIVE" };
+                whereClauseStatusPartLiteral = `status = "ACTIVE"`
                 addWhereClauseStatusPart = true;
             }
-
             if (id) {
                 // where[`${this.model}_id`] = req.params.id;
                 data = await this.getDetailsData(req, res, modelClass)
             } else {
+                
                 // where[`${this.model}_id`] = req.params.id;
                 // data = await this.crudService.findAll(modelClass);
                 data = await modelClass.findAll({
@@ -105,7 +107,7 @@ export default class MentorCourseController extends BaseController {
                     return rec;
                 });
             }
-
+            
             if (!data) {
                 return res.status(404).send(dispatcher(res,data, 'error'));
             }
