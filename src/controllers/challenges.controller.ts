@@ -40,101 +40,114 @@ export default class ChallengeController extends BaseController {
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         super.initializeRoutes();
     }
-
-    protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        try {
-            let user_id = res.locals.user_id;
-            let { team_id } = req.query;
-            if (!user_id) {
-                throw unauthorized(speeches.UNAUTHORIZED_ACCESS)
-            }
-            let data: any;
-            const { model, id } = req.params;
-            const paramStatus: any = req.query.status;
-            if (model) {
-                this.model = model;
-            };
-            // pagination
-            const { page, size, title } = req.query;
-            let condition: any = {};
-            if (title) {
-                condition.title = { [Op.like]: `%${title}%` }
-            }
-            const { limit, offset } = this.getPagination(page, size);
-            const modelClass = await this.loadModel(model).catch(error => {
-                next(error)
-            });
-            const where: any = {};
-            let whereClauseStatusPart: any = {}
-            let boolStatusWhereClauseRequired = false;
-            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                if (paramStatus === 'ALL') {
-                    whereClauseStatusPart = {};
-                    boolStatusWhereClauseRequired = false;
-                } else {
-                    whereClauseStatusPart = { "status": paramStatus };
-                    boolStatusWhereClauseRequired = true;
-                }
-            } else {
-                whereClauseStatusPart = { "status": "ACTIVE" };
-                boolStatusWhereClauseRequired = true;
-            }
-            if (id) {
-                where[`${this.model}_id`] = req.params.id;
-                // console.log(where)
-                data = await this.crudService.findOne(modelClass, {
-                    where: {
-                        [Op.and]: [
-                            whereClauseStatusPart,
-                            where,
-                            condition
-                        ]
-                    },
-                    include: {
+    protected getData(req: Request, res: Response, next: NextFunction) {
+        
+        return super.getData(req,res,next,
+                    [],
+                    {exclude:constents.SEQUELIZE_FLAGS.DEFAULT_EXCLUDE_SCOPE},
+                    {
                         required: false,
                         model: challenge_question,
-                    }
-                });
-            } else {
-                try {
-                    const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
-                        where: {
-                            [Op.and]: [
-                                whereClauseStatusPart,
-                                condition
-                            ]
-                        },
-                        include: {
-                            required: false,
-                            model: challenge_question
-                        },
-                        limit, offset,
-                        order: [
-                            [challenge_question, 'question_no', 'ASC']
-                        ]
-                    })
-                    const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
-                    data = result;
-                } catch (error: any) {
-                    return res.status(500).send(dispatcher(res, data, 'error'))
-                }
-
-            }
-            if (!data || data instanceof Error) {
-                if (data != null) {
-                    throw notFound(data.message)
-                } else {
-                    throw notFound()
-                }
-                res.status(200).send(dispatcher(res, null, "error", speeches.DATA_NOT_FOUND));
-                (data.message)
-            }
-
-            return res.status(200).send(dispatcher(res, data, 'success'));
-        } catch (error) {
-            next(error);
-        }
+                        attributes:{exclude:constents.SEQUELIZE_FLAGS.DEFAULT_EXCLUDE_SCOPE},
+                        
+                    },
+                    [[challenge_question, 'question_no', 'ASC']]
+                )
     }
+    // protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    //     try {
+    //         let user_id = res.locals.user_id;
+    //         let { team_id } = req.query;
+    //         if (!user_id) {
+    //             throw unauthorized(speeches.UNAUTHORIZED_ACCESS)
+    //         }
+    //         let data: any;
+    //         const { model, id } = req.params;
+    //         const paramStatus: any = req.query.status;
+    //         if (model) {
+    //             this.model = model;
+    //         };
+    //         // pagination
+    //         const { page, size, title } = req.query;
+    //         let condition: any = {};
+    //         if (title) {
+    //             condition.title = { [Op.like]: `%${title}%` }
+    //         }
+    //         const { limit, offset } = this.getPagination(page, size);
+    //         const modelClass = await this.loadModel(model).catch(error => {
+    //             next(error)
+    //         });
+    //         const where: any = {};
+    //         let whereClauseStatusPart: any = {}
+    //         let boolStatusWhereClauseRequired = false;
+    //         if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+    //             if (paramStatus === 'ALL') {
+    //                 whereClauseStatusPart = {};
+    //                 boolStatusWhereClauseRequired = false;
+    //             } else {
+    //                 whereClauseStatusPart = { "status": paramStatus };
+    //                 boolStatusWhereClauseRequired = true;
+    //             }
+    //         } else {
+    //             whereClauseStatusPart = { "status": "ACTIVE" };
+    //             boolStatusWhereClauseRequired = true;
+    //         }
+    //         if (id) {
+    //             where[`${this.model}_id`] = req.params.id;
+    //             // console.log(where)
+    //             data = await this.crudService.findOne(modelClass, {
+    //                 where: {
+    //                     [Op.and]: [
+    //                         whereClauseStatusPart,
+    //                         where,
+    //                         condition
+    //                     ]
+    //                 },
+    //                 include: {
+    //                     required: false,
+    //                     model: challenge_question,
+    //                 }
+    //             });
+    //         } else {
+    //             try {
+    //                 const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+    //                     where: {
+    //                         [Op.and]: [
+    //                             whereClauseStatusPart,
+    //                             condition
+    //                         ]
+    //                     },
+    //                     include: {
+    //                         required: false,
+    //                         model: challenge_question
+    //                     },
+    //                     limit, offset,
+    //                     order: [
+    //                         [challenge_question, 'question_no', 'ASC']
+    //                     ]
+    //                 })
+    //                 const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
+    //                 data = result;
+    //             } catch (error: any) {
+    //                 return res.status(500).send(dispatcher(res, data, 'error'))
+    //             }
+
+    //         }
+    //         if (!data || data instanceof Error) {
+    //             if (data != null) {
+    //                 throw notFound(data.message)
+    //             } else {
+    //                 throw notFound()
+    //             }
+    //             res.status(200).send(dispatcher(res, null, "error", speeches.DATA_NOT_FOUND));
+    //             (data.message)
+    //         }
+
+    //         return res.status(200).send(dispatcher(res, data, 'success'));
+    //     } catch (error) {
+    //         next(error);
+    //     }
+    // }
     protected async insertSingleResponse(team_id: any, user_id: any, challenge_id: any, challenge_question_id: any, selected_option: any) {
         try {
             const questionAnswered = await this.crudService.findOne(challenge_question, { where: { challenge_question_id } });
