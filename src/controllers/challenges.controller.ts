@@ -333,13 +333,14 @@ export default class ChallengeController extends BaseController {
             }
             for (const file_name of Object.keys(files)) {
                 const file = files[file_name];
-                const readFile: any = await fs.readFileSync(file.path, { encoding: 'utf-8', flag: 'r' });
+                const readFile: any = await fs.readFileSync(file.path);
                 if (readFile instanceof Error) {
                     errs.push(`Error uploading file: ${file.originalFilename} err: ${readFile}`)
                 }
+                file.originalFilename = `ideas/${file.originalFilename.replace(/[\n\r\s\t()]+/g, '')}`;
                 let params = {
                     Bucket: 'unisole-assets',
-                    Key: `ideas/${file.originalFilename}`,
+                    Key: file.originalFilename,
                     Body: readFile
                 };
                 await s3.upload(params).promise()
