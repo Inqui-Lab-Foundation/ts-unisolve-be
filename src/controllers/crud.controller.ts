@@ -14,6 +14,7 @@ import { constents } from '../configs/constents.config';
 export default class CRUDController implements IController {
     model: string = "";
     public path = "";
+    public statusFlagsToUse:any = []
     public router = Router();
     crudService: CRUDService = new CRUDService();
 
@@ -22,6 +23,7 @@ export default class CRUDController implements IController {
     }
 
     protected init(): void {
+        this.initializeStatusFlags()
         this.initializePath();
         this.initializeRoutes();
     }
@@ -29,6 +31,11 @@ export default class CRUDController implements IController {
     protected initializePath() {
         this.path = '/crud';
     }
+
+    protected initializeStatusFlags() {
+        this.statusFlagsToUse = constents.common_status_flags;
+    }
+
 
     protected initializeRoutes(aditionalrouts: any = []): void {
         this.router.get(`${this.path}/:model`, this.getData.bind(this));
@@ -474,7 +481,7 @@ export default class CRUDController implements IController {
         let whereClauseStatusPartLiteral = "1=1";
         let addWhereClauseStatusPart = false
         
-        if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+        if (paramStatus && (paramStatus in this.statusFlagsToUse)) {
             if (paramStatus === 'ALL') {
                 whereClauseStatusPart = {};
                 addWhereClauseStatusPart = false;
