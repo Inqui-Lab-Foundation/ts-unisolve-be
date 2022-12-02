@@ -96,22 +96,7 @@ export default class CRUDController implements IController {
                 next(error)
             });
             const where: any = {};
-            let whereClauseStatusPart: any = {};
-            let whereClauseStatusPartLiteral = "1=1";
-            let addWhereClauseStatusPart = false
-            
-            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                if (paramStatus === 'ALL') {
-                    whereClauseStatusPart = {};
-                    addWhereClauseStatusPart = false;
-                } else {
-                    whereClauseStatusPart = { "status": paramStatus };
-                    addWhereClauseStatusPart = true;
-                }
-            } else {
-                whereClauseStatusPart = { "status": "ACTIVE" };
-                addWhereClauseStatusPart = true;
-            }
+            let objwhereClauseStatusPart = this.getWhereClauseStatsPart(req);
 
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
@@ -119,7 +104,7 @@ export default class CRUDController implements IController {
                     attributes:findQueryAttrs,
                     where: {
                         [Op.and]: [
-                            whereClauseStatusPart,
+                            objwhereClauseStatusPart.whereClauseStatusPart,
                             where,
                             ...findQueryWhereClauseArr
                         ]
@@ -132,7 +117,7 @@ export default class CRUDController implements IController {
                         attributes:findQueryAttrs,
                         where: {
                             [Op.and]: [
-                                whereClauseStatusPart,
+                                objwhereClauseStatusPart.whereClauseStatusPart,
                                 ...findQueryWhereClauseArr
                             ]
                         },
@@ -480,5 +465,32 @@ export default class CRUDController implements IController {
         });
     }
 
-    
+    protected getWhereClauseStatsPart(req:Request):any{
+        const paramStatus:any = req.query.status
+        let whereClauseStatusPart:any = {};
+        let whereClauseStatusPartLiteral = "1=1";
+        let addWhereClauseStatusPart = false
+        
+        if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+            if (paramStatus === 'ALL') {
+                whereClauseStatusPart = {};
+                addWhereClauseStatusPart = false;
+            } else {
+                whereClauseStatusPart = { "status": paramStatus };
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+        } else {
+            whereClauseStatusPart = { "status": "ACTIVE" };
+            whereClauseStatusPartLiteral = `status = "ACTIVE"`
+            addWhereClauseStatusPart = true;
+        }
+
+        return {
+            paramStatus:paramStatus,
+            whereClauseStatusPart:whereClauseStatusPart,
+            whereClauseStatusPartLiteral:whereClauseStatusPartLiteral,
+            addWhereClauseStatusPart:addWhereClauseStatusPart
+        }
+    }
 }
