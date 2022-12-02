@@ -79,7 +79,9 @@ export default class CRUDController implements IController {
     protected async getData(req: Request, res: Response, next: NextFunction,
         findQueryWhereClauseArr:any=[],
         findQueryAttrs:any={exclude:[]},
-        findQueryinclude:any=null): Promise<Response | void> {
+        findQueryinclude:any=null,
+        findQueryOrderArr:any=[]
+        ): Promise<Response | void> {
         try {
 
             let data: any;
@@ -122,7 +124,8 @@ export default class CRUDController implements IController {
                             ]
                         },
                         include:findQueryinclude,
-                        limit, offset
+                        limit, offset,
+                        order:findQueryOrderArr
                     })
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
