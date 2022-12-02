@@ -44,11 +44,11 @@ export default class ChallengeController extends BaseController {
         
         return super.getData(req,res,next,
                     [],
-                    {exclude:constents.SEQUELIZE_FLAGS.DEFAULT_EXCLUDE_SCOPE},
+                    {exclude:constents.SEQUELIZE_FLAGS.DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS},
                     {
                         required: false,
                         model: challenge_question,
-                        attributes:{exclude:constents.SEQUELIZE_FLAGS.DEFAULT_EXCLUDE_SCOPE},
+                        attributes:{exclude:constents.SEQUELIZE_FLAGS.DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS},
                         
                     },
                     [[challenge_question, 'question_no', 'ASC']]
