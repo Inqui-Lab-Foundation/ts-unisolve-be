@@ -118,7 +118,8 @@ export default class CRUDController implements IController {
                             ...findQueryWhereClauseArr
                         ]
                     },
-                    include:findQueryinclude
+                    include:findQueryinclude,
+                    order:findQueryOrderArr
                 });
             } else {
                 try {

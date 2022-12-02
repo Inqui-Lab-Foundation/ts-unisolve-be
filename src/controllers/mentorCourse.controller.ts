@@ -42,7 +42,13 @@ export default class MentorCourseController extends BaseController {
         const { id } = req.params;
         const objWhereClauseStatusPart = this.getWhereClauseStatsPart(req);
         let includePart = null
+        let orderBypart:any = []
         if(id){
+            orderBypart = [
+                // [{model: course_module, as: 'course_modules'},{model: course_topic, as: 'course_topics'},'topic_type_order', 'ASC'],
+                // db.literal(`\`mentor_course_topics.topic_type_order\` ASC`),
+                [mentor_course_topic,'mentor_course_topic_id', 'ASC'],
+            ]
             //include only in the get one api not in get all api ...!!
             includePart = [{
                 model: mentor_course_topic,
@@ -127,11 +133,7 @@ export default class MentorCourseController extends BaseController {
                 ]
             },
             includePart,
-            [
-                // [{model: course_module, as: 'course_modules'},{model: course_topic, as: 'course_topics'},'topic_type_order', 'ASC'],
-                // db.literal(`\`mentor_course_topics.topic_type_order\` ASC`),
-                [mentor_course_topic,'mentor_course_topic_id', 'ASC'],
-            ]
+            orderBypart
             )
 
     }
