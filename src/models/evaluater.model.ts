@@ -11,12 +11,10 @@ export class evaluater extends Model<InferAttributes<evaluater>, InferCreationAt
     declare user_id: string;
     declare full_name: string;
     declare date_of_birth: Date;
-    declare organization_name: string;
     declare qualification: string;
     declare city: string;
+    declare mobile: string;
     declare district: string;
-    declare state: string;
-    declare country: string;
     declare status: Enumerator;
     declare created_by: number;
     declare created_at: Date;
@@ -52,10 +50,6 @@ evaluater.init(
             type: DataTypes.DATE,
             allowNull: true
         },
-        organization_name: {
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
         qualification: {
             type: DataTypes.STRING,
             allowNull: true
@@ -66,11 +60,9 @@ evaluater.init(
         district: {
             type: DataTypes.STRING
         },
-        state: {
-            type: DataTypes.STRING
-        },
-        country: {
-            type: DataTypes.STRING
+        mobile: {
+            type: DataTypes.STRING,
+            unique: true
         },
         status: {
             type: DataTypes.ENUM(...Object.values(constents.common_status_flags.list)),
@@ -119,5 +111,5 @@ evaluater.init(
     }
 );
 
-evaluater.belongsTo(user, { foreignKey: 'user_id' , constraints: false});
-user.hasOne(evaluater, { foreignKey: 'user_id', constraints: false, scope: { role: 'EVALUATER' }});
+evaluater.belongsTo(user, { foreignKey: 'user_id', constraints: false });
+user.hasOne(evaluater, { foreignKey: 'user_id', constraints: false, scope: { role: 'EVALUATER' } });
