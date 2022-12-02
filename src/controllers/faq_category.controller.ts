@@ -27,7 +27,7 @@ export default class FaqCategoryController extends BaseController {
 
     protected getData(req: Request, res: Response, next: NextFunction) {
         let objWhereClauseStatusPart = this.getWhereClauseStatsPart(req);
-        console.log(objWhereClauseStatusPart)
+        // console.log(objWhereClauseStatusPart)
         return super.getData(req,res,next,[],
             [
                 'category_name',
