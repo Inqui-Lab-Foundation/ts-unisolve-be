@@ -42,6 +42,7 @@ export default class FaqCategoryController extends BaseController {
                     ${objWhereClauseStatusPart.addWhereClauseStatusPart ? "s." + objWhereClauseStatusPart.whereClauseStatusPartLiteral : objWhereClauseStatusPart.whereClauseStatusPartLiteral}
                     AND s.faq_category_id = \`faq_category\`.\`faq_category_id\`)`), 'faq_count'
                 ]
+            ], { model: faq, required: false }
         )
     }
 
