@@ -252,7 +252,7 @@ export default class ChallengeResponsesController extends BaseController {
     }
     protected async initiateIdea(req: Request, res: Response, next: NextFunction) {
         try {
-            const challenge_id = req.query.id;
+            const challenge_id = req.params.id;
             const { team_id } = req.query;
             const user_id = res.locals.user_id;
             if (!challenge_id) {
