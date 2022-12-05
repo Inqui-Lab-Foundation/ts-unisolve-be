@@ -357,7 +357,6 @@ export default class ChallengeResponsesController extends BaseController {
             }
             let data: any;
             const { model, id } = req.params;
-            const paramStatus: any = req.query.status;
             if (model) {
                 this.model = model;
             };
@@ -365,30 +364,13 @@ export default class ChallengeResponsesController extends BaseController {
             const { page, size } = req.query;
             let condition: any = {};
             if (team_id) {
-                condition.team_id = { [Op.like]: `%${team_id}%` }
+                condition.team_id =  team_id 
             }
-            // if (role) {
-            //     condition.role = role;
-            // }
             const { limit, offset } = this.getPagination(page, size);
             const modelClass = await this.loadModel(model).catch(error => {
                 next(error)
             });
             const where: any = {};
-            let whereClauseStatusPart: any = {};
-            let addWhereClauseStatusPart = false
-            if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
-                if (paramStatus === 'ALL') {
-                    whereClauseStatusPart = {};
-                    addWhereClauseStatusPart = false;
-                } else {
-                    whereClauseStatusPart = { "status": paramStatus };
-                    addWhereClauseStatusPart = true;
-                }
-            } else {
-                whereClauseStatusPart = { "status": "DRAFT" };
-                addWhereClauseStatusPart = true;
-            }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 console.log(where)
@@ -414,7 +396,6 @@ export default class ChallengeResponsesController extends BaseController {
                     ],
                     where: {
                         [Op.and]: [
-                            whereClauseStatusPart,
                             where,
                             condition
                         ]
@@ -425,7 +406,6 @@ export default class ChallengeResponsesController extends BaseController {
                     const responseOfFindAndCountAll = await this.crudService.findAndCountAll(challenge_response, {
                         where: {
                             [Op.and]: [
-                                whereClauseStatusPart,
                                 condition
                             ]
                         },
