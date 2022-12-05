@@ -37,6 +37,7 @@ import BadgeController from "./controllers/badge.controller";
 import TutorialVideoController from "./controllers/tutorial_video.controller";
 import ReportController from "./controllers/report.controller";
 import CertificateDownloadController from "./controllers/ceritificate_download.controller";
+import ChallengeResponsesController from "./controllers/challenge_response.controller";
 
 // validating env variables
 validateEnv();
@@ -71,6 +72,7 @@ try {
         new SupportTicketRepliesController,
         new QuizQuestionsController,
         new ChallengeController,
+        new ChallengeResponsesController,
         new SupportTicketRepliesController,
         new UserController,
         new DashboardController,
