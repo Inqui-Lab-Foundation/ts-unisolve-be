@@ -150,6 +150,7 @@ export default class ChallengeResponsesController extends BaseController {
                 challenge_question_id: challenge_id,
                 selected_option: selected_option,
                 question: questionAnswered.dataValues.question,
+                question_type: questionAnswered.dataValues.type,
                 question_no: questionAnswered.dataValues.question_no
             }
 
