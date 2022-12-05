@@ -68,7 +68,7 @@ export default class ChallengeResponsesController extends BaseController {
             const where: any = {};
             let whereClauseStatusPart: any = {}
             let boolStatusWhereClauseRequired = false;
-            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+            if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
                 if (paramStatus === 'ALL') {
                     whereClauseStatusPart = {};
                     boolStatusWhereClauseRequired = false;
@@ -84,6 +84,19 @@ export default class ChallengeResponsesController extends BaseController {
                 where[`${this.model}_id`] = req.params.id;
                 // console.log(where)
                 data = await this.crudService.findOne(modelClass, {
+                    attributes: [
+                        "challenge_response_id",
+                        "challenge_id",
+                        "sdg",
+                        "team_id",
+                        [
+                            db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                        ],
+                        "response",
+                        "initiated_by",
+                        "submitted_by",
+                        "status"
+                    ],
                     where: {
                         [Op.and]: [
                             whereClauseStatusPart,
@@ -92,9 +105,23 @@ export default class ChallengeResponsesController extends BaseController {
                         ]
                     }
                 });
+                data.dataValues.response = JSON.parse(data.dataValues.response);
             } else {
                 try {
                     const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                        attributes: [
+                            "challenge_response_id",
+                            "challenge_id",
+                            "sdg",
+                            "team_id",
+                            [
+                                db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                            ],
+                            "response",
+                            "initiated_by",
+                            "submitted_by",
+                            "status"
+                        ],
                         where: {
                             [Op.and]: [
                                 whereClauseStatusPart,
@@ -108,7 +135,7 @@ export default class ChallengeResponsesController extends BaseController {
                 } catch (error: any) {
                     return res.status(500).send(dispatcher(res, data, 'error'))
                 }
-
+                data.dataValues.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
             }
             if (!data || data instanceof Error) {
                 if (data != null) {
@@ -328,7 +355,7 @@ export default class ChallengeResponsesController extends BaseController {
                 if (readFile instanceof Error) {
                     errs.push(`Error uploading file: ${file.originalFilename} err: ${readFile}`)
                 }
-                file.originalFilename = `ideas/${file.originalFilename.replace(/[\n\r\s\t()]+/g, '')}`;
+                file.originalFilename = `ideas/${file.originalFilename}`;
                 let params = {
                     Bucket: 'unisole-assets',
                     Key: file.originalFilename,
