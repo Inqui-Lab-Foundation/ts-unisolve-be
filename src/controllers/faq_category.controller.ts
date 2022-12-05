@@ -28,7 +28,7 @@ export default class FaqCategoryController extends BaseController {
     protected getData(req: Request, res: Response, next: NextFunction) {
         let objWhereClauseStatusPart = this.getWhereClauseStatsPart(req);
         // console.log(objWhereClauseStatusPart)
-        return super.getData(req,res,next,[],
+        return super.getData(req, res, next, [],
             [
                 'category_name',
                 'faq_category_id',
@@ -42,10 +42,7 @@ export default class FaqCategoryController extends BaseController {
                     ${objWhereClauseStatusPart.addWhereClauseStatusPart ? "s." + objWhereClauseStatusPart.whereClauseStatusPartLiteral : objWhereClauseStatusPart.whereClauseStatusPartLiteral}
                     AND s.faq_category_id = \`faq_category\`.\`faq_category_id\`)`), 'faq_count'
                 ]
-            ]
-            // ,
-            // include: { model: faq, required: false }
-            )
+        )
     }
 
     //old deprecated commented out code .. remove it after stablity of above replaced function is accepted..!!
