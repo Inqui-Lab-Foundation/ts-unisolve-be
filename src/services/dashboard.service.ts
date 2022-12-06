@@ -302,7 +302,7 @@ export default class DashboardService extends BaseService {
     }
     getDbLieralIdeaSubmission(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
         return `
-        select count(*) from challenge_responses as idea where idea.team_id = \`student\`.\`team_id\` 
+        select count(*) from challenge_responses as idea where idea.team_id = \`student\`.\`team_id\` and status = "SUBMITTED"
         `
     }
     getDbLieralForVideoToipcsCompletedCount(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
