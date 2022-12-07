@@ -335,6 +335,7 @@ export default class ChallengeResponsesController extends BaseController {
     }
     protected async handleAttachment(req: Request, res: Response, next: NextFunction) {
         try {
+            const { team_id } = req.query;
             const rawfiles: any = req.files;
             const files: any = Object.values(rawfiles);
             const errs: any = [];
@@ -355,7 +356,7 @@ export default class ChallengeResponsesController extends BaseController {
                 if (readFile instanceof Error) {
                     errs.push(`Error uploading file: ${file.originalFilename} err: ${readFile}`)
                 }
-                file.originalFilename = `ideas/${file.originalFilename}`;
+                file.originalFilename = `ideas/${team_id}/${file.originalFilename}`;
                 let params = {
                     Bucket: 'unisole-assets',
                     Key: file.originalFilename,
