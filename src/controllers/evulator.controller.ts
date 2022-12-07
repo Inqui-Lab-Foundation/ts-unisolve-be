@@ -6,21 +6,21 @@ import dispatcher from '../utils/dispatch.util';
 import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
-import { evaluaterSchema, evaluaterUpdateSchema } from '../validations/evaluater.validationa';
-import { evaluater } from '../models/evaluater.model';
+import { evaluatorSchema, evaluatorUpdateSchema } from '../validations/evaluator.validationa';
+import { evaluator } from '../models/evaluator.model';
 import { user } from '../models/user.model';
 import { badRequest } from 'boom';
 
-export default class EvaluaterController extends BaseController {
-    model = "evaluater";
+export default class EvaluatorController extends BaseController {
+    model = "evaluator";
     authService: authService = new authService;
     private password = process.env.GLOBAL_PASSWORD;
 
     protected initializePath(): void {
-        this.path = '/evaluaters';
+        this.path = '/evaluators';
     }
     protected initializeValidations(): void {
-        this.validations = new ValidationsHolder(evaluaterSchema, evaluaterUpdateSchema);
+        this.validations = new ValidationsHolder(evaluatorSchema, evaluatorUpdateSchema);
     }
     protected initializeRoutes(): void {
         //example route to add
@@ -36,17 +36,17 @@ export default class EvaluaterController extends BaseController {
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         if (!req.body.username || req.body.username === "") req.body.username = req.body.full_name.replace(/\s/g, '');
         if (!req.body.password || req.body.password === "") req.body.password = this.password;
-        if (!req.body.role || req.body.role !== 'EVALUATER') {
-            return res.status(406).send(dispatcher(res,null, 'error', speeches.USER_ROLE_REQUIRED, 406));
+        if (!req.body.role || req.body.role !== 'EVALUATOR') {
+            return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
         };
-        const payload = this.autoFillTrackingColumns(req, res, evaluater);
+        const payload = this.autoFillTrackingColumns(req, res, evaluator);
         const result = await this.authService.register(payload);
-        if (result.user_res) return res.status(406).send(dispatcher(res,result.user_res.dataValues, 'error', speeches.EVALUATER_EXISTS, 406));
-        return res.status(201).send(dispatcher(res,result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
+        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.EVALUATOR_EXISTS, 406)); 
+        return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
 
     private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-        req.body['role'] = 'EVALUATER'
+        req.body['role'] = 'EVALUATOR'
         const result = await this.authService.login(req.body);
         if (!result) {
             return res.status(404).send(dispatcher(res,result, 'error', speeches.USER_NOT_FOUND));
@@ -106,7 +106,7 @@ export default class EvaluaterController extends BaseController {
         let dataLength: number;
         let payload: any;
         let loadMode: any = await this.loadModel(this.model);
-        let role = 'EVALUATER'
+        let role = 'EVALUATOR'
         if (file === undefined) return res.status(400).send(dispatcher(res, null, 'error', speeches.FILE_REQUIRED, 400));
         if (file.type !== 'text/csv') return res.status(400).send(dispatcher(res, null, 'error', speeches.FILE_REQUIRED, 400));
         //parsing the data

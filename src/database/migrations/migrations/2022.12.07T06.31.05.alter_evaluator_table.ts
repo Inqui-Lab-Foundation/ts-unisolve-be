@@ -1,13 +1,13 @@
 import { Migration } from '../umzug';
 import { DataTypes } from 'sequelize';
 import { constents } from '../../../configs/constents.config';
-import { challenge_evaluater_map } from '../../../models/challenege_evaluater_map.model';
+import { evaluator } from '../../../models/evaluator.model';
 
 // you can put some table-specific imports/code here
-export const tableName = challenge_evaluater_map.modelTableName;
-const structrue: any = challenge_evaluater_map.structure
+export const tableName = evaluator.modelTableName;
 export const up: Migration = async ({ context: sequelize }) => {
-	await sequelize.getQueryInterface().createTable(tableName, structrue);
+	await sequelize.getQueryInterface().dropTable('evaluaters');
+	await sequelize.getQueryInterface().createTable(tableName, evaluator.structure);
 };
 
 export const down: Migration = async ({ context: sequelize }) => {

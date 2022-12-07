@@ -7,7 +7,7 @@ import CRUDService from "./crud.service";
 import { baseConfig } from '../configs/base.config';
 import { speeches } from '../configs/speeches.config';
 import { admin } from "../models/admin.model";
-import { evaluater } from "../models/evaluater.model";
+import { evaluator } from "../models/evaluator.model";
 import { mentor } from "../models/mentor.model";
 import { organization } from '../models/organization.model';
 import { student } from "../models/student.model";
@@ -142,8 +142,8 @@ export default class authService {
                         break;
                     } else return false;
                 }
-                case 'EVALUATER': {
-                    profile = await this.crudService.create(evaluater, whereClass);
+                case 'EVALUATOR': {
+                    profile = await this.crudService.create(evaluator, whereClass);
                     break;
                 }
                 case 'ADMIN':
@@ -682,7 +682,7 @@ export default class authService {
                 }
                 role = userResult.dataValues.role;
             }
-            const allModels: any = { "STUDENT": student, "MENTOR": mentor, "ADMIN": admin, "EVALUATER": evaluater }
+            const allModels: any = { "STUDENT": student, "MENTOR": mentor, "ADMIN": admin, "EVALUATOR": evaluator }
             const UserDetailsModel = allModels[role];
 
             const userDetailsDeleteresult = await this.crudService.delete(UserDetailsModel, { where: { user_id: user_id } })
@@ -714,7 +714,7 @@ export default class authService {
     async bulkDeleteUserWithDetails(argUserDetailsModel: any, arrayOfUserIds: any) {
         try {
 
-            // const allModels:any = {"STUDENT":student, "MENTOR":mentor, "ADMIN":admin,"EVALUATER":evaluater}
+            // const allModels:any = {"STUDENT":student, "MENTOR":mentor, "ADMIN":admin,"EVALUATOR":evaluator}
             const UserDetailsModel = argUserDetailsModel
             const resultUserDetailsDelete = await this.crudService.delete(UserDetailsModel, {
                 where: { user_id: arrayOfUserIds },

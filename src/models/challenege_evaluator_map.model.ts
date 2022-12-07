@@ -2,12 +2,12 @@ import { CreationOptional, DataTypes, ForeignKey, InferAttributes, InferCreation
 import db from '../utils/dbconnection.util';
 import { constents } from '../configs/constents.config';
 import { challenge_response } from './challenge_response.model';
-import { evaluater } from './evaluater.model';
+import { evaluator } from './evaluator.model';
 
 
-export class challenge_evaluater_map extends Model<InferAttributes<challenge_evaluater_map>, InferCreationAttributes<challenge_evaluater_map>> {
-    declare challenge_evaluater_id: CreationOptional<number>;
-    declare evaluater_id: ForeignKey<number>;
+export class challenge_evaluator_map extends Model<InferAttributes<challenge_evaluator_map>, InferCreationAttributes<challenge_evaluator_map>> {
+    declare challenge_evaluator_id: CreationOptional<number>;
+    declare evaluator_id: ForeignKey<number>;
     declare challenge_response_id: string;
     declare status: Enumerator;
     declare created_by: number;
@@ -15,14 +15,14 @@ export class challenge_evaluater_map extends Model<InferAttributes<challenge_eva
     declare updated_by: number;
     declare updated_at: Date;
 
-    static modelTableName = "challenge_evaluater_map";
+    static modelTableName = "challenge_evaluator_map";
     static structure: any = {
-        challenge_evaluater_id: {
+        challenge_evaluator_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
         },
-        evaluater_id: {
+        evaluator_id: {
             type: DataTypes.INTEGER,
             allowNull: false
         },
@@ -57,18 +57,18 @@ export class challenge_evaluater_map extends Model<InferAttributes<challenge_eva
         }
     };
 }
-challenge_evaluater_map.init(
-    challenge_evaluater_map.structure,
+challenge_evaluator_map.init(
+    challenge_evaluator_map.structure,
     {
         sequelize: db,
-        tableName: challenge_evaluater_map.modelTableName,
+        tableName: challenge_evaluator_map.modelTableName,
         timestamps: true,
         updatedAt: 'updated_at',
         createdAt: 'created_at',
     }
 );
 
-challenge_response.belongsTo(challenge_evaluater_map, { foreignKey: 'challenge_response_id' });
-challenge_evaluater_map.hasMany(challenge_response, { foreignKey: 'challenge_response_id' });
-challenge_evaluater_map.belongsTo(evaluater, { foreignKey: 'evaluater_id' });
-challenge_evaluater_map.hasMany(evaluater, { foreignKey: 'evaluater_id' });
+challenge_response.belongsTo(challenge_evaluator_map, { foreignKey: 'challenge_response_id' });
+challenge_evaluator_map.hasMany(challenge_response, { foreignKey: 'challenge_response_id' });
+challenge_evaluator_map.belongsTo(evaluator, { foreignKey: 'evaluator_id' });
+challenge_evaluator_map.hasMany(evaluator, { foreignKey: 'evaluator_id' });
