@@ -86,7 +86,7 @@ export const constents = {
   user_role_flags: {
     list: {
       'ADMIN': 'ADMIN',
-      'EVALUATER': 'EVALUATER',
+      'EVALUATOR': 'EVALUATOR',
       'MENTOR': 'MENTOR',
       'STUDENT': 'STUDENT'
     },

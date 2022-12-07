@@ -21,7 +21,7 @@ import ReflectiveQuizController from "./controllers/reflective_quiz.controller";
 import MentorController from "./controllers/mentor.controller";
 import StudentController from "./controllers/student.controller";
 import AdminController from "./controllers/admin.controller";
-import EvaluaterController from "./controllers/evulator.controller";
+import EvaluatorController from "./controllers/evulator.controller";
 import QuizSurveyController from "./controllers/quiz_survey.controller";
 import MentorCourseController from "./controllers/mentorCourse.controller";
 import MentorAttachmentController from "./controllers/mentorAttachment.controller";
@@ -63,7 +63,7 @@ try {
         new MentorController,
         new AdminController,
         new StudentController,
-        new EvaluaterController,
+        new EvaluatorController,
         new QuizSurveyController,
         new MentorCourseController,
         new MentorAttachmentController,
