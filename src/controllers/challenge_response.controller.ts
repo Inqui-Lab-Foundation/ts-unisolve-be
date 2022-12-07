@@ -177,6 +177,7 @@ export default class ChallengeResponsesController extends BaseController {
                 challenge_question_id: challenge_id,
                 selected_option: selected_option,
                 question: questionAnswered.dataValues.question,
+                word_limit: questionAnswered.dataValues.word_limit,
                 question_type: questionAnswered.dataValues.type,
                 question_no: questionAnswered.dataValues.question_no
             }
@@ -251,10 +252,11 @@ export default class ChallengeResponsesController extends BaseController {
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
             }
             const results: any = []
-            let result: any = {}
+            let result: any = {};
             for (const element of responses) {
-                console.log(element, team_id, user_id, challenge_id)
-                result = await this.insertSingleResponse(team_id, user_id, challenge_id, element.challenge_question_id, element.selected_option)
+                let selected_option = Array.isArray(element.selected_option) ? element.selected_option.join("{{}}") : element.selected_option;
+                selected_option = res.locals.translationService.getTranslationKey(selected_option).split("{{}}");
+                result = await this.insertSingleResponse(team_id, user_id, challenge_id, element.challenge_question_id, selected_option)
                 if (!result || result instanceof Error) {
                     throw badRequest();
                 } else {
