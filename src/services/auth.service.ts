@@ -410,9 +410,9 @@ export default class authService {
             }
             //TODO trigger otp and update user with otp
             const otp = await this.generateOtp();
-            const smsResponse: any = await this.triggerOtpMsg(requestBody.mobile);
-            if (smsResponse instanceof Error) {
-                throw smsResponse;
+            const passwordNeedToBeUpdated: any = await this.triggerOtpMsg(requestBody.mobile);
+            if (passwordNeedToBeUpdated instanceof Error) {
+                throw passwordNeedToBeUpdated;
             }
 
             const response = await this.crudService.update(user, {
@@ -446,9 +446,9 @@ export default class authService {
                 return result;
             }
             const otp = await this.generateOtp();
-            const smsResponse = this.triggerOtpMsg(requestBody.mobile);
-            if (smsResponse instanceof Error) {
-                throw smsResponse;
+            const passwordNeedToBeUpdated = this.triggerOtpMsg(requestBody.mobile);
+            if (passwordNeedToBeUpdated instanceof Error) {
+                throw passwordNeedToBeUpdated;
             }
             const user_res: any = await this.crudService.updateAndFind(user, {
                 password: await bcrypt.hashSync(otp, process.env.SALT || baseConfig.SALT)
@@ -468,6 +468,8 @@ export default class authService {
     }
     async mentorResetPassword(requestBody: any) {
         let result: any = {};
+        let otp = requestBody.otp == undefined ? true : false;
+        let passwordNeedToBeUpdated: any;
         try {
             const mentor_res: any = await this.crudService.findOne(mentor, {
                 where: {
@@ -485,18 +487,20 @@ export default class authService {
             const user_data = await this.crudService.findOnePassword(user, {
                 where: { user_id: mentor_res.dataValues.user_id }
             });
-
-            // const otp = await this.generateOtp();
-            let smsResponse = await this.triggerOtpMsg(requestBody.mobile);
-            if (smsResponse instanceof Error) {
-                throw smsResponse;
+            if (!otp) {
+                passwordNeedToBeUpdated = requestBody.mobile;
+            } else {
+                passwordNeedToBeUpdated = await this.triggerOtpMsg(requestBody.mobile);
+                if (passwordNeedToBeUpdated instanceof Error) {
+                    throw passwordNeedToBeUpdated;
+                }
             }
             const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
-                { otp: smsResponse },
+                { otp: passwordNeedToBeUpdated },
                 { where: { user_id: mentor_res.dataValues.user_id } }
             );
-            smsResponse = String(smsResponse);
-            let hashString = await this.generateCryptEncryption(smsResponse)
+            passwordNeedToBeUpdated = String(passwordNeedToBeUpdated);
+            let hashString = await this.generateCryptEncryption(passwordNeedToBeUpdated)
             const user_res: any = await this.crudService.updateAndFind(user, {
                 password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT)
             }, { where: { user_id: user_data.dataValues.user_id } })
