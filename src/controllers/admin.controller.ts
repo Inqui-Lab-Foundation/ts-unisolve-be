@@ -34,8 +34,8 @@ export default class AdminController extends BaseController {
             return res.status(406).send(dispatcher(res,null, 'error', speeches.USER_ROLE_REQUIRED, 406));
         }
         const result = await this.authService.register(req.body);
-        if (result.user_res) return res.status(406).send(dispatcher(res,result.user_res.dataValues, 'error', speeches.EVALUATER_EXISTS, 406));
-        return res.status(201).send(dispatcher(res,result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
+        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.EVALUATOR_EXISTS, 406));
+        return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
 
     private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
