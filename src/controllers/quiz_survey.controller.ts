@@ -111,13 +111,20 @@ export default class QuizSurveyController extends BaseController {
             const { limit, offset } = this.getPagination(page, size);
 
             const paramStatus:any = req.query.status;
-            let whereClauseStatusPart:any = {};
+            let whereClauseStatusPart: any = {};
             let whereClauseStatusPartLiteral = "1=1";
             let addWhereClauseStatusPart = false
-            if(paramStatus && (paramStatus in constents.common_status_flags.list)){
-                whereClauseStatusPart = {"status":paramStatus}
-                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
-                addWhereClauseStatusPart =true;
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    addWhereClauseStatusPart = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    addWhereClauseStatusPart = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
+                addWhereClauseStatusPart = true;
             }
             // console.log("came here",roleBasedModelToBeUsed)
             const mentorsResult = await roleBasedModelToBeUsed.findAll({
@@ -197,8 +204,19 @@ export default class QuizSurveyController extends BaseController {
             });
             const where: any = {};
             let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
             if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
-                whereClauseStatusPart = { "status": paramStatus }
+                if (paramStatus === 'ALL') {
+                    whereClauseStatusPart = {};
+                    addWhereClauseStatusPart = false;
+                } else {
+                    whereClauseStatusPart = { "status": paramStatus };
+                    addWhereClauseStatusPart = true;
+                }
+            } else {
+                whereClauseStatusPart = { "status": "ACTIVE" };
+                addWhereClauseStatusPart = true;
             }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
@@ -209,11 +227,6 @@ export default class QuizSurveyController extends BaseController {
                         "role",
                         "name",
                         "description",
-                        "status",
-                        "created_at",
-                        "created_by",
-                        "updated_at",
-                        "updated_by",
                         [
                             // Note the wrapping parentheses in the call below!
                             db.literal(`(
@@ -259,11 +272,6 @@ export default class QuizSurveyController extends BaseController {
                             "role",
                             "name",
                             "description",
-                            "status",
-                            "created_at",
-                            "created_by",
-                            "updated_at",
-                            "updated_by",
                             [
                                 // Note the wrapping parentheses in the call below!
                                 db.literal(`(
@@ -289,7 +297,8 @@ export default class QuizSurveyController extends BaseController {
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
                 } catch (error: any) {
-                    return res.status(500).send(dispatcher(res,data, 'error'))
+                    console.log(error)
+                    next(error)
                 }
 
             }
@@ -311,8 +320,30 @@ export default class QuizSurveyController extends BaseController {
                 // }
             }
 
+            //remove unneccesary data 
+            //if  survey is completed then dont send back the questions ...!!!
+            
+            if(data && data.dataValues && data.dataValues.length>0){
+                data.dataValues = data.dataValues.map(((quizSurvey:any)=>{
+                    if(quizSurvey && quizSurvey.dataValues && quizSurvey.dataValues.progress){
+                        if(quizSurvey.dataValues.progress=="COMPLETED"){
+                            delete quizSurvey.dataValues.quiz_survey_questions
+                        }
+                    }
+                    console.log(quizSurvey.dataValues)
+                    return quizSurvey;
+                }))
+            }else if(data && data.dataValues){
+                if(data && data.dataValues && data.dataValues.progress){
+                    if(data.dataValues.progress=="COMPLETED"){
+                        delete data.dataValues.quiz_survey_questions
+                    }
+                }
+            }
+
             return res.status(200).send(dispatcher(res,data, 'success'));
         } catch (error) {
+            console.log(error)
             next(error);
         }
     }

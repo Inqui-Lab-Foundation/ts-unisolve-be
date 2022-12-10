@@ -7,7 +7,7 @@ import CRUDService from "./crud.service";
 import { baseConfig } from '../configs/base.config';
 import { speeches } from '../configs/speeches.config';
 import { admin } from "../models/admin.model";
-import { evaluater } from "../models/evaluater.model";
+import { evaluator } from "../models/evaluator.model";
 import { mentor } from "../models/mentor.model";
 import { organization } from '../models/organization.model';
 import { student } from "../models/student.model";
@@ -26,6 +26,7 @@ import { func, invalid } from 'joi';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
 import { badRequest, internal, notAcceptable, notFound } from 'boom';
 import { notFoundError } from '../docs/errors';
+import { constents } from '../configs/constents.config';
 export default class authService {
 
     crudService: CRUDService = new CRUDService;
@@ -47,6 +48,7 @@ export default class authService {
                 include: {
                     model: mentor,
                     attributes: [
+                        "mentor_id",
                         'user_id',
                         'full_name',
                         'mobile',
@@ -125,9 +127,9 @@ export default class authService {
                 return response
             }
             const result = await this.crudService.create(user, requestBody);
-            console.log(result)
+            // console.log(result)
             let whereClass = { ...requestBody, user_id: result.dataValues.user_id };
-            console.log(whereClass);
+            // console.log(whereClass);
             switch (requestBody.role) {
                 case 'STUDENT': {
                     profile = await this.crudService.create(student, whereClass);
@@ -140,8 +142,8 @@ export default class authService {
                         break;
                     } else return false;
                 }
-                case 'EVALUATER': {
-                    profile = await this.crudService.create(evaluater, whereClass);
+                case 'EVALUATOR': {
+                    profile = await this.crudService.create(evaluator, whereClass);
                     break;
                 }
                 case 'ADMIN':
@@ -158,26 +160,37 @@ export default class authService {
         }
     }
     async bulkCreateStudentService(requestBody: any) {
-        let response: any = {};
-        let errorResponse: any = {};
-        let userProfile: any;
-        for (let student in requestBody) {
-            let userExist = await this.crudService.findOne(user, {
-                attributes: ["user_id"],
-                where: { username: requestBody[student].username }
-            });
-            Object.assign(errorResponse, userExist.dataValues);
-        }
-        if (Object.getOwnPropertyNames(errorResponse).length == 0) {
-            userProfile = await this.crudService.bulkCreate(user, requestBody);
-            for (let user in userProfile) {
-                requestBody[user]["user_id"] = userProfile[user].dataValues.user_id;
+        /**
+         * for over requestBody and get single user set the password, find the user's if exist push to the error response or create user, student both
+         * 
+         */
+        let userProfile: any
+        let result: any;
+        let errorResponse: any = [];
+        let successResponse: any = [];
+        for (let payload of requestBody) {
+            const trimmedName = payload.full_name.trim();
+            if (!trimmedName || typeof trimmedName == undefined) {
+                errorResponse.push(`'${payload.full_name}'`);
+                continue;
             }
-            response = await this.crudService.bulkCreate(student, requestBody);
-        } else {
-            response['error'] = errorResponse
-        }
-        return response;
+            // payload.password = await bcrypt.hashSync(payload.password, process.env.SALT || baseConfig.SALT);
+            let checkUserExisted = await this.crudService.findOne(user, {
+                attributes: ["user_id", "username"],
+                where: { username: payload.username }
+            });
+            if (!checkUserExisted) {
+                userProfile = await this.crudService.create(user, payload);
+                payload["user_id"] = userProfile.dataValues.user_id;
+                result = await this.crudService.create(student, payload);
+                successResponse.push(payload.full_name);
+            } else {
+                errorResponse.push(payload.full_name);
+            }
+        };
+        let successMsg = successResponse.length ? successResponse.join(', ') + " successfully created. " : ''
+        let errorMsg = errorResponse.length ? errorResponse.join(', ') + " invalid/already existed" : ''
+        return successMsg + errorMsg;
     }
     async login(requestBody: any) {
         const GLOBAL_PASSWORD = 'uniSolve'
@@ -196,7 +209,7 @@ export default class authService {
             }
             const user_res: any = await this.crudService.findOne(user, {
                 where: whereClause
-            });
+            })
             if (!user_res) {
                 return false;
             } else {
@@ -292,24 +305,25 @@ export default class authService {
                     ]
                 }
             });
-
+            // const passwordValidation = bcrypt.compareSync(requestBody.body.old_password, user_res.dataValues.password);
+            // console.log("test: ", passwordValidation)
             if (!user_res) {
                 result['user_res'] = user_res;
                 result['error'] = speeches.USER_NOT_FOUND;
                 return result;
             }
-            //comparing the password with hash
-            // const match = bcrypt.compareSync(requestBody.old_password, user_res.dataValues.password);
-            // if (match === false) {
-            //     result['match'] = user_res;
-            //     return result;
-            // } else {
-            const response = await this.crudService.update(user, {
-                password: await bcrypt.hashSync(requestBody.new_password, process.env.SALT || baseConfig.SALT)
-            }, { where: { user_id: user_res.dataValues.user_id } });
-            result['data'] = response;
-            return result;
-            // }
+            // comparing the password with hash
+            const match = bcrypt.compareSync(requestBody.old_password, user_res.dataValues.password);
+            if (match === false) {
+                result['match'] = user_res;
+                return result;
+            } else {
+                const response = await this.crudService.update(user, {
+                    password: await bcrypt.hashSync(requestBody.new_password, process.env.SALT || baseConfig.SALT)
+                }, { where: { user_id: user_res.dataValues.user_id } });
+                result['data'] = response;
+                return result;
+            }
         } catch (error) {
             result['error'] = error;
             return result;
@@ -396,9 +410,9 @@ export default class authService {
             }
             //TODO trigger otp and update user with otp
             const otp = await this.generateOtp();
-            const smsResponse: any = await this.triggerOtpMsg(requestBody.mobile);
-            if (smsResponse instanceof Error) {
-                throw smsResponse;
+            const passwordNeedToBeUpdated: any = await this.triggerOtpMsg(requestBody.mobile);
+            if (passwordNeedToBeUpdated instanceof Error) {
+                throw passwordNeedToBeUpdated;
             }
 
             const response = await this.crudService.update(user, {
@@ -432,9 +446,9 @@ export default class authService {
                 return result;
             }
             const otp = await this.generateOtp();
-            const smsResponse = this.triggerOtpMsg(requestBody.mobile);
-            if (smsResponse instanceof Error) {
-                throw smsResponse;
+            const passwordNeedToBeUpdated = this.triggerOtpMsg(requestBody.mobile);
+            if (passwordNeedToBeUpdated instanceof Error) {
+                throw passwordNeedToBeUpdated;
             }
             const user_res: any = await this.crudService.updateAndFind(user, {
                 password: await bcrypt.hashSync(otp, process.env.SALT || baseConfig.SALT)
@@ -454,6 +468,8 @@ export default class authService {
     }
     async mentorResetPassword(requestBody: any) {
         let result: any = {};
+        let otp = requestBody.otp == undefined ? true : false;
+        let passwordNeedToBeUpdated: any;
         try {
             const mentor_res: any = await this.crudService.findOne(mentor, {
                 where: {
@@ -471,18 +487,20 @@ export default class authService {
             const user_data = await this.crudService.findOnePassword(user, {
                 where: { user_id: mentor_res.dataValues.user_id }
             });
-
-            // const otp = await this.generateOtp();
-            let smsResponse = await this.triggerOtpMsg(requestBody.mobile);
-            if (smsResponse instanceof Error) {
-                throw smsResponse;
+            if (!otp) {
+                passwordNeedToBeUpdated = requestBody.mobile;
+            } else {
+                passwordNeedToBeUpdated = await this.triggerOtpMsg(requestBody.mobile);
+                if (passwordNeedToBeUpdated instanceof Error) {
+                    throw passwordNeedToBeUpdated;
+                }
             }
             const findMentorDetailsAndUpdateOTP: any = await this.crudService.updateAndFind(mentor,
-                { otp: smsResponse },
+                { otp: passwordNeedToBeUpdated },
                 { where: { user_id: mentor_res.dataValues.user_id } }
             );
-            smsResponse = String(smsResponse);
-            let hashString = await this.generateCryptEncryption(smsResponse)
+            passwordNeedToBeUpdated = String(passwordNeedToBeUpdated);
+            let hashString = await this.generateCryptEncryption(passwordNeedToBeUpdated)
             const user_res: any = await this.crudService.updateAndFind(user, {
                 password: await bcrypt.hashSync(hashString, process.env.SALT || baseConfig.SALT)
             }, { where: { user_id: user_data.dataValues.user_id } })
@@ -618,7 +636,7 @@ export default class authService {
                 user_topic_progress,
                 worksheet_response,
                 student,
-                user,
+                user
             ];
             for (let i = 0; i < models.length; i++) {
                 let deleted = await this.crudService.delete(models[i], { where: { user_id } });
@@ -668,7 +686,7 @@ export default class authService {
                 }
                 role = userResult.dataValues.role;
             }
-            const allModels: any = { "STUDENT": student, "MENTOR": mentor, "ADMIN": admin, "EVALUATER": evaluater }
+            const allModels: any = { "STUDENT": student, "MENTOR": mentor, "ADMIN": admin, "EVALUATOR": evaluator }
             const UserDetailsModel = allModels[role];
 
             const userDetailsDeleteresult = await this.crudService.delete(UserDetailsModel, { where: { user_id: user_id } })
@@ -700,7 +718,7 @@ export default class authService {
     async bulkDeleteUserWithDetails(argUserDetailsModel: any, arrayOfUserIds: any) {
         try {
 
-            // const allModels:any = {"STUDENT":student, "MENTOR":mentor, "ADMIN":admin,"EVALUATER":evaluater}
+            // const allModels:any = {"STUDENT":student, "MENTOR":mentor, "ADMIN":admin,"EVALUATOR":evaluator}
             const UserDetailsModel = argUserDetailsModel
             const resultUserDetailsDelete = await this.crudService.delete(UserDetailsModel, {
                 where: { user_id: arrayOfUserIds },
@@ -773,6 +791,26 @@ export default class authService {
         } catch (error) {
             result['error'] = error;
             return result;
+        }
+    }
+
+    async checkIfTeamHasPlaceForNewMember(argTeamId: any) {
+        try {
+            let studentResult: any = await student.findAll({ where: { team_id: argTeamId } })
+            // console.log("studentResult",studentResult)
+            // console.log("studentResultLength",studentResult.length?"true":"false")
+            if (studentResult && studentResult instanceof Error) {
+                throw studentResult
+            }
+            if (studentResult &&
+                (studentResult.length == 0 ||
+                    studentResult.length < constents.TEAMS_MAX_STUDENTS_ALLOWED)
+            ) {
+                return true;
+            }
+            return false
+        } catch (err) {
+            return err
         }
     }
 }
