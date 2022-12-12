@@ -1,55 +1,42 @@
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from 'sequelize';
-import { constents } from '../configs/constents.config';
 import db from '../utils/dbconnection.util';
+import { constents } from '../configs/constents.config';
 
-export class dashboard_map_stat extends Model<InferAttributes<dashboard_map_stat>, InferCreationAttributes<dashboard_map_stat>> {
-    declare dashboard_map_stat_id: CreationOptional<number>;
-    declare district_name: string;
-    declare overall_schools: string;
-    declare reg_schools: string;
-    declare schools_with_teams: string;
-    declare teams: string;
-    declare ideas: string;
-    declare students: string;
+
+export class certificate_download extends Model<InferAttributes<certificate_download>, InferCreationAttributes<certificate_download>> {
+    declare certificate_id: CreationOptional<number>;
+    declare certificate_type: string;
+    declare mobile: string;
+    declare faculty_name: string;
+    declare organization_name: string;
     declare status: Enumerator;
     declare created_by: number;
     declare created_at: Date;
     declare updated_by: number;
     declare updated_at: Date;
-}
 
-dashboard_map_stat.init(
-    {
-        dashboard_map_stat_id: {
+    static modelTableName = "certificate_downloads";
+    static structrue: any = {
+        certificate_download_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
         },
-        district_name: {
+        certificate_type: {
+            type: DataTypes.ENUM(...Object.values(constents.certificate_flags.list)),
+            allowNull: true,
+            defaultValue: constents.certificate_flags.default
+        },
+        mobile: {
+            type: DataTypes.STRING,
+            unique: true,
+            allowNull: false
+        },
+        faculty_name: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        overall_schools: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        reg_schools: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        schools_with_teams:{
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        teams: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        ideas: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        students: {
+        organization_name: {
             type: DataTypes.STRING,
             allowNull: false
         },
@@ -79,12 +66,16 @@ dashboard_map_stat.init(
             defaultValue: DataTypes.NOW,
             onUpdate: new Date().toLocaleString()
         }
-    },
+    };
+}
+
+certificate_download.init(
+    certificate_download.structrue,
     {
         sequelize: db,
-        tableName: 'dashboard_map_stats',
+        tableName: certificate_download.modelTableName,
         timestamps: true,
+        updatedAt: 'updated_at',
         createdAt: 'created_at',
-        updatedAt: 'updated_at'
     }
 );

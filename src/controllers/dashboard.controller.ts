@@ -89,7 +89,7 @@ export default class DashboardController extends BaseController {
                             from teams as t
                             where 
                             ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
-                            and t.mentor_id=\`mentor\`.\`user_id\`)
+                            and t.mentor_id=\`mentor\`.\`mentor_id\`)
                             )`),
                         "students_count"
                     ],
@@ -102,7 +102,7 @@ export default class DashboardController extends BaseController {
                             from teams as t
                             where 
                             ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
-                            and t.mentor_id=\`mentor\`.\`user_id\`) 
+                            and t.mentor_id=\`mentor\`.\`mentor_id\`)
                         and c.status not in ('DRAFT')
                         )`),
                         "ideas_count"
@@ -286,6 +286,20 @@ export default class DashboardController extends BaseController {
                             )`),
                         "quiz_completed_count"
                     ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForPostSurveyCreatedAt(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "post_survey_completed_date"
+                    ],
+                    [
+                        db.literal(`(
+                            ${serviceDashboard.getDbLieralForCourseCompletedCreatedAt(addWhereClauseStatusPart,
+                            whereClauseStatusPartLiteral)}
+                            )`),
+                        "course_completed_date"
+                    ],
                     "badges"
                 ]
             })
@@ -467,7 +481,8 @@ export default class DashboardController extends BaseController {
             let result: any = {
                 end_date: "20th November 2022 at 12pm"
             }
-            let teamMembers: any = await studentService.getTeamMembersForUserId(student_user_id)
+            let teamMembers: any = null
+            teamMembers = await studentService.getTeamMembersForUserId(student_user_id)
             if (!teamMembers) {
                 teamMembers = []
             }
@@ -477,7 +492,7 @@ export default class DashboardController extends BaseController {
             result = {
                 ...result,
                 "challenge_submission_status": challenge_submission_status,
-                "team_members": teamMembers
+                // "team_members": teamMembers
             }
             // console.log("teamMembers",teamMembers)
             if (teamMembers.length <= 0) {
@@ -503,7 +518,7 @@ export default class DashboardController extends BaseController {
             result = {
                 ...result,
                 "challenge_submission_status": challenge_submission_status,
-                "team_members": teamMembers
+                // "team_members": teamMembers
             }
             res.status(200).send(dispatcher(res, result, "success"))
             return;
