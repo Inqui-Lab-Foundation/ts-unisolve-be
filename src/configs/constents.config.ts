@@ -74,6 +74,15 @@ export const constents = {
     },
     default: 'HARD'
   },
+  challenge_rating_level_flags: {
+    list: {
+      '2': '2',
+      '3': '3',
+      '4': '4',
+      '5': '5',
+    },
+    default: '2'
+  },
   quiz_question_type_flags: {
     list: {
       'MCQ': 'MCQ',
