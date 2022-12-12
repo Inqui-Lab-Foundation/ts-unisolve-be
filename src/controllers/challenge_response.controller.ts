@@ -21,6 +21,7 @@ import fs from 'fs';
 import { S3 } from "aws-sdk";
 import { ManagedUpload } from "aws-sdk/clients/s3";
 import { challengeResponsesSchema, challengeResponsesUpdateSchema, initiateIdeaSchema } from "../validations/challenge_responses.validations";
+import StudentService from "../services/students.service";
 
 export default class ChallengeResponsesController extends BaseController {
 
@@ -212,7 +213,6 @@ export default class ChallengeResponsesController extends BaseController {
                 // }
                 dataToUpsert["response"] = JSON.stringify(user_response);
                 dataToUpsert = { ...dataToUpsert, created_by: user_id }
-
                 const resultModel = await this.crudService.create(challenge_response, dataToUpsert)
                 if (resultModel instanceof Error) {
                     throw internal(resultModel.message)
@@ -274,6 +274,41 @@ export default class ChallengeResponsesController extends BaseController {
                     ]
                 }
             });
+            if (req.body.status == "SUBMITTED") {
+                const findingTheStudentsBasedOnTeamId = await this.crudService.findAll(student, {
+                    where: { team_id },
+                    attributes: [
+                        'badges',
+                        'student_id'
+                    ]
+                });
+                let studentBadgesObj: any = {}
+                let studentBadgesObjForNull: any = {}
+                findingTheStudentsBasedOnTeamId.forEach(async (s: any) => {
+                    if (!s.dataValues.badges) {
+                        studentBadgesObjForNull["the_change_maker"] = {
+                            completed_date: (new Date())
+                        }
+                        const studentBadgesObjForNullJson = JSON.stringify(studentBadgesObjForNull)
+                        await student.update({ badges: studentBadgesObjForNullJson }, {
+                            where: {
+                                student_id: s.dataValues.student_id
+                            }
+                        })
+                    } else {
+                        studentBadgesObj = JSON.parse(s.dataValues.badges);
+                        studentBadgesObj["the_change_maker"] = {
+                            completed_date: (new Date())
+                        }
+                        const studentBadgesObjJson = JSON.stringify(studentBadgesObj)
+                        await student.update({ badges: studentBadgesObjJson }, {
+                            where: {
+                                student_id: s.dataValues.student_id
+                            }
+                        })
+                    }
+                });
+            }
             res.status(200).send(dispatcher(res, result))
         } catch (err) {
             next(err)
@@ -394,7 +429,7 @@ export default class ChallengeResponsesController extends BaseController {
             const { page, size } = req.query;
             let condition: any = {};
             if (team_id) {
-                condition.team_id =  team_id 
+                condition.team_id = team_id
             }
             const { limit, offset } = this.getPagination(page, size);
             const modelClass = await this.loadModel(model).catch(error => {
