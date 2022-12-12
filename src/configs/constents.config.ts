@@ -86,7 +86,7 @@ export const constents = {
   user_role_flags: {
     list: {
       'ADMIN': 'ADMIN',
-      'EVALUATER': 'EVALUATER',
+      'EVALUATOR': 'EVALUATOR',
       'MENTOR': 'MENTOR',
       'STUDENT': 'STUDENT'
     },
@@ -186,7 +186,15 @@ export const constents = {
     default: "ALL"
   },
   TEAMS_MAX_STUDENTS_ALLOWED: 4,
-  ALPHA_NUMERIC_PATTERN : /^[a-zA-Z0-9 ]*$/,
+  ALPHA_NUMERIC_PATTERN: /^[a-zA-Z0-9 ]*$/,
+  certificate_flags: {
+    list: {
+      '1': '1',
+      '2': '2',
+      '3': '3',
+    },
+    default: '1'
+  },
   TRANSLATION_CONFIG:{
     table_column : {
       "quiz_questions" : {
@@ -210,5 +218,11 @@ export const constents = {
         'accimg_ans_wrong',
       ]}
     }
+  },
+  SEQUELIZE_FLAGS:{
+    DEFAULT_EXCLUDE_SCOPE:['created_at','created_by','updated_at','updated_by','status'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS:['created_at','created_by','updated_at','updated_by'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS:['updated_at','updated_by'],
+    WITH_DEBUGATTRS:[]
   }
 };

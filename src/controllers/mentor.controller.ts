@@ -290,7 +290,7 @@ export default class MentorController extends BaseController {
                 throw notFound();
             } else {
                 const mentorData = await this.crudService.update(modelLoaded, payload, { where: where });
-                const userData = await this.crudService.update(user, { username: req.body.username }, { where: { user_id: findMentorDetail.dataValues.user_id } });
+                const userData = await this.crudService.update(user, payload, { where: { user_id: findMentorDetail.dataValues.user_id } });
                 if (!mentorData || !userData) {
                     throw badRequest()
                 }
