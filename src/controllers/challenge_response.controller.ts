@@ -38,6 +38,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.post(this.path + "/:id/initiate/", validationMiddleware(initiateIdeaSchema), this.initiateIdea.bind(this));
         this.router.post(this.path + "/fileUpload", this.handleAttachment.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
+        this.router.get(this.path + "/updateSubmission", this.submission.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         super.initializeRoutes();
     }
@@ -375,6 +376,24 @@ export default class ChallengeResponsesController extends BaseController {
             next(err)
         }
     }
+    protected async submission(req: Request, res: Response, next: NextFunction) {
+        try {
+            let collectAllChallengeResponseIds: any = [];
+            const findChallengeIds = await this.crudService.findAll(challenge_response);
+            findChallengeIds.forEach((idea: any) => collectAllChallengeResponseIds.push(idea.dataValues.challenge_response_id));
+            let updateStatusToSubmitted = await this.crudService.update(challenge_response, { status: "SUBMITTED" }, {
+                where: {
+                    challenge_response_id: {
+                        [Op.in]: collectAllChallengeResponseIds
+                    }
+                }
+            });
+            let result: any = updateStatusToSubmitted;
+            res.status(200).send(dispatcher(res, result));
+        } catch (err) {
+            next(err)
+        }
+    }
     protected async getResponse(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
             let user_id = res.locals.user_id;
@@ -394,7 +413,7 @@ export default class ChallengeResponsesController extends BaseController {
             const { page, size } = req.query;
             let condition: any = {};
             if (team_id) {
-                condition.team_id =  team_id 
+                condition.team_id = team_id
             }
             const { limit, offset } = this.getPagination(page, size);
             const modelClass = await this.loadModel(model).catch(error => {
