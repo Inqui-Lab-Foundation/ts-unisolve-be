@@ -71,9 +71,7 @@ export default class ChallengeResponsesController extends BaseController {
             let boolStatusWhereClauseRequired = false;
             if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
                 if (paramStatus === 'ALL') {
-                    whereClauseStatusPart = {
-                        [Op.in]: { status: ['SUBMITTED', 'EVALUATION', 'SELECTEDROUND1', 'REJECTEDROUND1'] }
-                    };
+                    whereClauseStatusPart = {};
                     boolStatusWhereClauseRequired = false;
                 } else {
                     whereClauseStatusPart = { "status": paramStatus };
@@ -81,7 +79,7 @@ export default class ChallengeResponsesController extends BaseController {
                 }
             } else if (paramStatus === 'NOTDRAFT') {
                 whereClauseStatusPart = {
-                    status: { [Op.in]: ['SUBMITTED', 'EVALUATION', 'SELECTEDROUND1', 'REJECTEDROUND1'] }
+                    status: { [Op.notIn]: ['DRAFT'] }
                 };
                 boolStatusWhereClauseRequired = false;
             } else {
@@ -138,8 +136,6 @@ export default class ChallengeResponsesController extends BaseController {
                         },
                         limit, offset,
                     })
-                    console.log(responseOfFindAndCountAll);
-
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
                 } catch (error: any) {
