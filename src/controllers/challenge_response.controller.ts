@@ -77,6 +77,11 @@ export default class ChallengeResponsesController extends BaseController {
                     whereClauseStatusPart = { "status": paramStatus };
                     boolStatusWhereClauseRequired = true;
                 }
+            } else if (paramStatus === 'NOTDRAFT') {
+                whereClauseStatusPart = {
+                    status: { [Op.notIn]: ['DRAFT'] }
+                };
+                boolStatusWhereClauseRequired = false;
             } else {
                 whereClauseStatusPart = { "status": "DRAFT" };
                 boolStatusWhereClauseRequired = true;
