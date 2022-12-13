@@ -176,18 +176,8 @@ export default class ChallengeResponsesController extends BaseController {
             let boolStatusWhereClauseRequired = false;
 
             if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
-                if (paramStatus === 'ALL') {
-                    whereClauseStatusPart = {};
-                    boolStatusWhereClauseRequired = false;
-                } else {
-                    whereClauseStatusPart = { "status": paramStatus };
-                    boolStatusWhereClauseRequired = true;
-                }
-            } else if (paramStatus === 'NOTDRAFT') {
-                whereClauseStatusPart = {
-                    status: { [Op.notIn]: ['DRAFT'] }
-                };
-                boolStatusWhereClauseRequired = false;
+                whereClauseStatusPart = { "status": paramStatus };
+                boolStatusWhereClauseRequired = true;
             } else {
                 whereClauseStatusPart = { "status": "DRAFT" };
                 boolStatusWhereClauseRequired = true;
