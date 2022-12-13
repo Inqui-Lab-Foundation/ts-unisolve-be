@@ -39,6 +39,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.post(this.path + "/:id/initiate/", validationMiddleware(initiateIdeaSchema), this.initiateIdea.bind(this));
         this.router.post(this.path + "/fileUpload", this.handleAttachment.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
+        this.router.get(this.path + '/fetchRandomChallenge', this.getRandomChallenge.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         super.initializeRoutes();
     }
@@ -154,6 +155,63 @@ export default class ChallengeResponsesController extends BaseController {
             }
 
             return res.status(200).send(dispatcher(res, data, 'success'));
+        } catch (error) {
+            next(error);
+        }
+    };
+    protected async getRandomChallenge(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let challengeResponse: any;
+            let evaluator_id: any;
+            let where: any = {};
+            let whereClauseStatusPart: any = {}
+
+            let user_id = res.locals.user_id;
+            if (!user_id) throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
+
+            let evaluator_user_id = req.query.evaluator_user_id;
+            if (!evaluator_user_id) throw unauthorized(speeches.ID_REQUIRED);
+
+            const paramStatus: any = req.query.status;
+            let boolStatusWhereClauseRequired = false;
+
+            if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus };
+                boolStatusWhereClauseRequired = true;
+            } else {
+                whereClauseStatusPart = { "status": "DRAFT" };
+                boolStatusWhereClauseRequired = true;
+            };
+            evaluator_id = { evaluated_by: evaluator_user_id }
+            challengeResponse = await this.crudService.findAll(challenge_response, {
+                attributes: [
+                    `challenge_response_id`,
+                    `challenge_id`,
+                    `others`,
+                    `sdg`,
+                    `team_id`,
+                    `response`,
+                    `initiated_by`,
+                    `submitted_by`,
+                    `status`,
+                    [
+                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.status = 'SUBMITTED')`),
+                        'openIdeas'
+                    ],
+                    [
+                        db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                    ],
+                ],
+                where: {
+                    [Op.and]: [
+                        whereClauseStatusPart,
+                        evaluator_id
+                    ]
+                },
+                order: db.literal('rand()'), limit: 1
+            });
+            challengeResponse.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
+            return res.status(200).send(dispatcher(res, challengeResponse, 'success'));
         } catch (error) {
             next(error);
         }
@@ -317,6 +375,33 @@ export default class ChallengeResponsesController extends BaseController {
             res.status(200).send(dispatcher(res, result))
         } catch (err) {
             next(err)
+        }
+    }
+    protected async updateData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { model, id } = req.params;
+            if (model) {
+                this.model = model;
+            };
+            const user_id = res.locals.user_id
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const modelLoaded = await this.loadModel(model);
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
+            payload['evaluated_by'] = user_id
+            payload['evaluated_at'] = new Date().toLocaleString();
+            console.log(payload);
+            const data = await this.crudService.update(modelLoaded, payload, { where: where });
+            console.log(data);
+            if (!data) {
+                throw badRequest()
+            }
+            if (data instanceof Error) {
+                throw data;
+            }
+            return res.status(200).send(dispatcher(res, data, 'updated'));
+        } catch (error) {
+            next(error);
         }
     }
     protected async initiateIdea(req: Request, res: Response, next: NextFunction) {
