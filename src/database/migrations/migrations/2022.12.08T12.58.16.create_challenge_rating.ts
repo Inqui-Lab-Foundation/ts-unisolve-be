@@ -1,7 +1,7 @@
 import { Migration } from '../umzug';
 import { DataTypes } from 'sequelize';
 import { constents } from '../../../configs/constents.config';
-import { challenge_rating } from '../../../models/challenge_rating';
+import { challenge_rating } from '../../../models/challenge_rating.model';
 
 
 // you can put some table-specific imports/code here
