@@ -17,8 +17,8 @@ export const UpdateAnyFieldSchema = Joi.object().keys({
     response: Joi.string().trim().min(1),
     evaluated_by: Joi.number().min(1),
     evaluated_at: Joi.string().trim().min(1),
-    sdg: Joi.string().trim().min(1),
-    others: Joi.string().trim().min(1)
+    sdg: Joi.any(),
+    others: Joi.any()
 });
 export const initiateIdeaSchema = Joi.object().keys({
     sdg: Joi.string().required().messages({
