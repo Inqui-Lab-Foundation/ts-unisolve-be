@@ -102,7 +102,8 @@ export default class ChallengeResponsesController extends BaseController {
                         ],
                         "response",
                         "initiated_by",
-                        "submitted_by",
+                        "created_at",
+                        "submitted_at",
                         "status"
                     ],
                     where: {
@@ -127,7 +128,8 @@ export default class ChallengeResponsesController extends BaseController {
                             ],
                             "response",
                             "initiated_by",
-                            "submitted_by",
+                            "created_at",
+                        "submitted_at",
                             "status"
                         ],
                         where: {
@@ -193,7 +195,8 @@ export default class ChallengeResponsesController extends BaseController {
                     `team_id`,
                     `response`,
                     `initiated_by`,
-                    `submitted_by`,
+                    "created_at",
+                    "submitted_at",
                     `status`,
                     [
                         db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.status = 'SUBMITTED')`),
@@ -235,16 +238,16 @@ export default class ChallengeResponsesController extends BaseController {
             if (challengeRes instanceof Error) {
                 throw internal(challengeRes.message)
             }
-            const studentDetailsBasedOnTeam = await this.crudService.findAll(student, { where: { team_id } });
-            if (studentDetailsBasedOnTeam instanceof Error) {
-                throw internal(studentDetailsBasedOnTeam.message)
-            };
+            // const studentDetailsBasedOnTeam = await this.crudService.findAll(student, { where: { team_id } });
+            // if (studentDetailsBasedOnTeam instanceof Error) {
+            //     throw internal(studentDetailsBasedOnTeam.message)
+            // };
             // console.log(studentDetailsBasedOnTeam.length);
             let dataToUpsert: any = {}
-            dataToUpsert = { challenge_id, team_id, updated_by: user_id, initiated_by: user_id, submitted_by: user_id }
+            dataToUpsert = { challenge_id, team_id, updated_by: user_id }
             let responseObjToAdd: any = {}
             responseObjToAdd = {
-                challenge_question_id: challenge_id,
+                challenge_question_id: questionAnswered.challenge_question_id,
                 selected_option: selected_option,
                 question: questionAnswered.dataValues.question,
                 word_limit: questionAnswered.dataValues.word_limit,
@@ -281,7 +284,7 @@ export default class ChallengeResponsesController extends BaseController {
 
                 // }
                 dataToUpsert["response"] = JSON.stringify(user_response);
-                dataToUpsert = { ...dataToUpsert, created_by: user_id }
+                dataToUpsert = { ...dataToUpsert }
                 const resultModel = await this.crudService.create(challenge_response, dataToUpsert)
                 if (resultModel instanceof Error) {
                     throw internal(resultModel.message)
@@ -332,10 +335,14 @@ export default class ChallengeResponsesController extends BaseController {
                     results.push(result);
                 }
             }
+            
+            let newDate = new Date();
+            let newFormat = (newDate.getFullYear()) + "-" + (1 + newDate.getMonth()) + "-" + newDate.getUTCDate() + ' ' + newDate.getHours() + ':' + newDate.getMinutes() + ':' + newDate.getSeconds();
             const updateStatus = await this.crudService.update(challenge_response, {
                 status: req.body.status,
                 sdg: req.body.sdg,
-                others: req.body.others
+                others: req.body.others,
+                submitted_at: req.body.status == "SUBMITTED" ? newFormat.trim() : null
             }, {
                 where: {
                     [Op.and]: [
@@ -395,7 +402,8 @@ export default class ChallengeResponsesController extends BaseController {
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             payload['evaluated_by'] = user_id
-            payload['evaluated_at'] = new Date().toLocaleString();
+            payload['evaluated_at'] = new Date();
+            console.log(payload['evaluated_at'] = new Date());
             const data = await this.crudService.update(modelLoaded, payload, { where: where });
             if (!data) {
                 throw badRequest()
@@ -450,11 +458,7 @@ export default class ChallengeResponsesController extends BaseController {
                     [
                         db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_by'
                     ],
-                    [
-                        db.literal(`(SELECT team_name FROM teams As s WHERE s.team_id = \`challenge_response\`.\`submitted_by\` )`), 'submitted_by'
-                    ],
                     "created_at",
-                    "updated_at",
                     "sdg"
                 ],
                 where: { challenge_id, team_id }
@@ -469,9 +473,7 @@ export default class ChallengeResponsesController extends BaseController {
                 sdg: req.body.sdg,
                 challenge_id: challenge_id,
                 team_id: team_id,
-                submitted_by: team_id,
                 initiated_by: user_id,
-                updated_by: user_id,
                 created_by: user_id,
                 response: JSON.stringify({})
             }
@@ -529,6 +531,7 @@ export default class ChallengeResponsesController extends BaseController {
     }
     protected async getResponse(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
+            console.log(Date.now);
             let user_id = res.locals.user_id;
             let { team_id } = req.query;
             if (!user_id) {
@@ -561,14 +564,12 @@ export default class ChallengeResponsesController extends BaseController {
                         [
                             db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                         ],
-                        [
-                            db.literal(`(SELECT team_name FROM teams As s WHERE s.team_id = \`challenge_response\`.\`submitted_by\` )`), 'submitted_by'
-                        ],
                         "created_by",
                         "updated_by",
                         "created_at",
                         "updated_at",
                         "initiated_by",
+                        "submitted_at",
                         "sdg",
                         "responses",
                         "team_id",
@@ -595,17 +596,11 @@ export default class ChallengeResponsesController extends BaseController {
                             [
                                 db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                             ],
-                            [
-                                db.literal(`(SELECT team_name FROM teams As s WHERE s.team_id = \`challenge_response\`.\`submitted_by\` )`), 'submitted_by'
-                            ],
-                            [
-                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`created_by\` )`), 'created_by'
-                            ],
-                            [
-                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`updated_by\` )`), 'updated_by'
-                            ],
                             "initiated_by",
+                            "created_at",
+                            "updated_at",
                             "challenge_id",
+                            "submitted_at",
                             "challenge_response_id",
                             "others",
                             "team_id",
