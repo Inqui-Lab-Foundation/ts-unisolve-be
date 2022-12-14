@@ -20,7 +20,7 @@ import path from "path";
 import fs from 'fs';
 import { S3 } from "aws-sdk";
 import { ManagedUpload } from "aws-sdk/clients/s3";
-import { challengeResponsesSchema, challengeResponsesUpdateSchema, initiateIdeaSchema } from "../validations/challenge_responses.validations";
+import { challengeResponsesSchema, challengeResponsesUpdateSchema, initiateIdeaSchema, UpdateAnyFieldSchema } from "../validations/challenge_responses.validations";
 import StudentService from "../services/students.service";
 
 export default class ChallengeResponsesController extends BaseController {
@@ -39,8 +39,8 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.post(this.path + "/:id/initiate/", validationMiddleware(initiateIdeaSchema), this.initiateIdea.bind(this));
         this.router.post(this.path + "/fileUpload", this.handleAttachment.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
-        this.router.get(this.path + '/fetchRandomChallenge', validationMiddleware(), this.getRandomChallenge.bind(this));
-        this.router.put(this.path + '/updateEntry/:id', this.updateAnyFields.bind(this));
+        this.router.get(this.path + '/fetchRandomChallenge', this.getRandomChallenge.bind(this));
+        this.router.put(this.path + '/updateEntry/:id', validationMiddleware(UpdateAnyFieldSchema), this.updateAnyFields.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         super.initializeRoutes();
     }
@@ -184,7 +184,7 @@ export default class ChallengeResponsesController extends BaseController {
                 boolStatusWhereClauseRequired = true;
             };
             evaluator_id = { evaluated_by: evaluator_user_id }
-            challengeResponse = await this.crudService.findAll(challenge_response, {
+            challengeResponse = await this.crudService.findOne(challenge_response, {
                 attributes: [
                     `challenge_response_id`,
                     `challenge_id`,
@@ -210,7 +210,13 @@ export default class ChallengeResponsesController extends BaseController {
                 },
                 order: db.literal('rand()'), limit: 1
             });
-            challengeResponse.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
+            if (!challengeResponse) {
+                throw notFound();
+            };
+            if (challengeResponse instanceof Error) {
+                throw challengeResponse
+            }
+            challengeResponse.dataValues.response = JSON.parse(challengeResponse.dataValues.response)
             return res.status(200).send(dispatcher(res, challengeResponse, 'success'));
         } catch (error) {
             next(error);
