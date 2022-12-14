@@ -39,7 +39,8 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.post(this.path + "/:id/initiate/", validationMiddleware(initiateIdeaSchema), this.initiateIdea.bind(this));
         this.router.post(this.path + "/fileUpload", this.handleAttachment.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
-        this.router.get(this.path + '/fetchRandomChallenge', this.getRandomChallenge.bind(this));
+        this.router.get(this.path + '/fetchRandomChallenge', validationMiddleware(), this.getRandomChallenge.bind(this));
+        this.router.put(this.path + '/updateEntry/:id', this.updateAnyFields.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         super.initializeRoutes();
     }
@@ -387,11 +388,30 @@ export default class ChallengeResponsesController extends BaseController {
             where[`${this.model}_id`] = req.params.id;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
-            payload['evaluated_by'] = user_id
-            payload['evaluated_at'] = new Date().toLocaleString();
-            console.log(payload);
             const data = await this.crudService.update(modelLoaded, payload, { where: where });
-            console.log(data);
+            if (!data) {
+                throw badRequest()
+            }
+            if (data instanceof Error) {
+                throw data;
+            }
+            return res.status(200).send(dispatcher(res, data, 'updated'));
+        } catch (error) {
+            next(error);
+        }
+    };
+    protected async updateAnyFields(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { model, id } = req.params;
+            if (model) {
+                this.model = model;
+            };
+            const user_id = res.locals.user_id
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const modelLoaded = await this.loadModel(model);
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
+            const data = await this.crudService.update(modelLoaded, payload, { where: where });
             if (!data) {
                 throw badRequest()
             }
