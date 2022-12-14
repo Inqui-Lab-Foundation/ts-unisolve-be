@@ -204,8 +204,7 @@ export default class ChallengeResponsesController extends BaseController {
                 ],
                 where: {
                     [Op.and]: [
-                        whereClauseStatusPart,
-                        evaluator_id
+                        whereClauseStatusPart
                     ]
                 },
                 order: db.literal('rand()'), limit: 1
