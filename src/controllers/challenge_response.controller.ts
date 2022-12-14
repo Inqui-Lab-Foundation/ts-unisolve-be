@@ -394,6 +394,8 @@ export default class ChallengeResponsesController extends BaseController {
             where[`${this.model}_id`] = req.params.id;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
+            payload['evaluated_by'] = user_id
+            payload['evaluated_at'] = new Date().toLocaleString();
             const data = await this.crudService.update(modelLoaded, payload, { where: where });
             if (!data) {
                 throw badRequest()
