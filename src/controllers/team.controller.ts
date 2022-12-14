@@ -108,6 +108,13 @@ export default class TeamController extends BaseController {
                             FROM challenge_responses AS idea
                             WHERE idea.team_id = \`team\`.\`team_id\`
                         )`), 'ideaStatus'
+                    ],
+                    [
+                        db.literal(`(
+                            SELECT challenge_response_id
+                            FROM challenge_responses AS idea
+                            WHERE idea.team_id = \`team\`.\`team_id\`
+                        )`), 'challenge_response_id'
                     ]
                 ]
             } else {
