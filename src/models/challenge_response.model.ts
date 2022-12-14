@@ -10,7 +10,7 @@ export class challenge_response extends Model<InferAttributes<challenge_response
     declare sdg: String;
     declare response: string;
     declare initiated_by: String;
-    declare submitted_by: String;
+    declare submitted_at: String;
     declare evaluated_by: String;
     declare evaluated_at: Date;
     declare status: Enumerator;
@@ -60,8 +60,8 @@ challenge_response.init(
             type: DataTypes.INTEGER,
             allowNull: true
         },
-        submitted_by: {
-            type: DataTypes.INTEGER,
+        submitted_at: {
+            type: DataTypes.DATE(),
             allowNull: true
         },
         evaluated_by: {
