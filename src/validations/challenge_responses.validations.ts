@@ -16,7 +16,7 @@ export const UpdateAnyFieldSchema = Joi.object().keys({
     team_id: Joi.number().min(1),
     response: Joi.string().trim().min(1),
     evaluated_by: Joi.number().min(1),
-    evaluated_at: Joi.string().trim().min(1),
+    evaluated_at: Joi.any(),
     sdg: Joi.any(),
     others: Joi.any()
 });

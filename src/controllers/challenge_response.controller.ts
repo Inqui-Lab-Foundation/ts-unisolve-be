@@ -396,14 +396,15 @@ export default class ChallengeResponsesController extends BaseController {
             if (model) {
                 this.model = model;
             };
+            let newDate = new Date();
+            let newFormat = (newDate.getFullYear()) + "-" + (1 + newDate.getMonth()) + "-" + newDate.getUTCDate() + ' ' + newDate.getHours() + ':' + newDate.getMinutes() + ':' + newDate.getSeconds();
             const user_id = res.locals.user_id
             const where: any = {};
             where[`${this.model}_id`] = req.params.id;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             payload['evaluated_by'] = user_id
-            payload['evaluated_at'] = new Date();
-            console.log(payload['evaluated_at'] = new Date());
+            payload['evaluated_at'] = newFormat.trim();
             const data = await this.crudService.update(modelLoaded, payload, { where: where });
             if (!data) {
                 throw badRequest()

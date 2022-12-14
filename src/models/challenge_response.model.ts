@@ -69,7 +69,7 @@ challenge_response.init(
             allowNull: true
         },
         evaluated_at: {
-            type: DataTypes.TEXT('long'),
+            type: DataTypes.DATE,
             allowNull: true
         },
         status: {
