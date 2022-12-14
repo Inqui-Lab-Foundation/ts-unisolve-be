@@ -33,6 +33,6 @@ export const challengeResponsesSchema = Joi.object().keys({
         'any.only': speeches.COMMON_STATUS_INVALID,
         'string.empty': speeches.COMMON_STATUS_REQUIRED
     }),
-    sdg: Joi.string().trim().min(1),
-    others: Joi.string().trim().min(1)
+    sdg: Joi.any(),
+    others: Joi.any()
 });
