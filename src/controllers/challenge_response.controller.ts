@@ -214,12 +214,12 @@ export default class ChallengeResponsesController extends BaseController {
                 },
                 order: db.literal('rand()'), limit: 1
             });
-            if (!challengeResponse) {
-                throw notFound();
-            };
             if (challengeResponse instanceof Error) {
                 throw challengeResponse
             }
+            if (!challengeResponse) {
+                throw notFound("All challenge has been accepted, no more challenge to display");
+            };
             challengeResponse.dataValues.response = JSON.parse(challengeResponse.dataValues.response)
             return res.status(200).send(dispatcher(res, challengeResponse, 'success'));
         } catch (error) {
