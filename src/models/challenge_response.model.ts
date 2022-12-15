@@ -14,6 +14,7 @@ export class challenge_response extends Model<InferAttributes<challenge_response
     declare evaluated_by: String;
     declare evaluated_at: Date;
     declare status: Enumerator;
+    declare evaluation_status: Enumerator;
     declare created_by: number;
     declare created_at: Date;
     declare updated_by: number;
@@ -70,6 +71,10 @@ challenge_response.init(
         },
         evaluated_at: {
             type: DataTypes.DATE,
+            allowNull: true
+        },
+        evaluation_status: {
+            type: DataTypes.ENUM(...Object.values(constents.evaluation_status.list)),
             allowNull: true
         },
         status: {
