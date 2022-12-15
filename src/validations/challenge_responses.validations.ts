@@ -3,7 +3,7 @@ import { constents } from '../configs/constents.config';
 import { speeches } from '../configs/speeches.config';
 
 export const challengeResponsesUpdateSchema = Joi.object().keys({
-    status: Joi.string().valid(...Object.values(constents.challenges_flags.list)).required().messages({
+    status: Joi.string().valid(...Object.values(constents.evaluation_status.list)).required().messages({
         'any.only': speeches.COMMON_STATUS_INVALID,
         'string.empty': speeches.COMMON_STATUS_REQUIRED
     })
