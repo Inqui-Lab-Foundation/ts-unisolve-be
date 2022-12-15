@@ -396,8 +396,15 @@ export default class ChallengeResponsesController extends BaseController {
             if (model) {
                 this.model = model;
             };
+
+            // redirecting status field to evaluater_status field and removing status from the request body;
+            req.body['evaluation_status'] = req.body.status;
+            delete req.body.status;
+
+            //date format 
             let newDate = new Date();
             let newFormat = (newDate.getFullYear()) + "-" + (1 + newDate.getMonth()) + "-" + newDate.getUTCDate() + ' ' + newDate.getHours() + ':' + newDate.getMinutes() + ':' + newDate.getSeconds();
+            
             const user_id = res.locals.user_id
             const where: any = {};
             where[`${this.model}_id`] = req.params.id;
