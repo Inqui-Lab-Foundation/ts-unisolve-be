@@ -129,7 +129,7 @@ export default class ChallengeResponsesController extends BaseController {
                             "response",
                             "initiated_by",
                             "created_at",
-                        "submitted_at",
+                            "submitted_at",
                             "status"
                         ],
                         where: {
@@ -208,17 +208,18 @@ export default class ChallengeResponsesController extends BaseController {
                 ],
                 where: {
                     [Op.and]: [
-                        whereClauseStatusPart
+                        whereClauseStatusPart,
+                        { evaluation_status: null }
                     ]
                 },
                 order: db.literal('rand()'), limit: 1
             });
-            if (!challengeResponse) {
-                throw notFound();
-            };
             if (challengeResponse instanceof Error) {
                 throw challengeResponse
             }
+            if (!challengeResponse) {
+                throw notFound("All challenge has been accepted, no more challenge to display");
+            };
             challengeResponse.dataValues.response = JSON.parse(challengeResponse.dataValues.response)
             return res.status(200).send(dispatcher(res, challengeResponse, 'success'));
         } catch (error) {
@@ -335,7 +336,7 @@ export default class ChallengeResponsesController extends BaseController {
                     results.push(result);
                 }
             }
-            
+
             let newDate = new Date();
             let newFormat = (newDate.getFullYear()) + "-" + (1 + newDate.getMonth()) + "-" + newDate.getUTCDate() + ' ' + newDate.getHours() + ':' + newDate.getMinutes() + ':' + newDate.getSeconds();
             const updateStatus = await this.crudService.update(challenge_response, {
@@ -404,7 +405,7 @@ export default class ChallengeResponsesController extends BaseController {
             //date format 
             let newDate = new Date();
             let newFormat = (newDate.getFullYear()) + "-" + (1 + newDate.getMonth()) + "-" + newDate.getUTCDate() + ' ' + newDate.getHours() + ':' + newDate.getMinutes() + ':' + newDate.getSeconds();
-            
+
             const user_id = res.locals.user_id
             const where: any = {};
             where[`${this.model}_id`] = req.params.id;
@@ -583,7 +584,8 @@ export default class ChallengeResponsesController extends BaseController {
                         "team_id",
                         "challenge_id",
                         "status",
-                        "others"
+                        "others",
+                        "evaluation_status"
                     ],
                     where: {
                         [Op.and]: [
@@ -615,7 +617,8 @@ export default class ChallengeResponsesController extends BaseController {
                             "response",
                             "response",
                             "status",
-                            "sdg"
+                            "sdg",
+                            "evaluation_status"
                         ],
                         limit, offset
                     })
