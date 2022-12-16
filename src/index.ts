@@ -38,6 +38,7 @@ import TutorialVideoController from "./controllers/tutorial_video.controller";
 import ReportController from "./controllers/report.controller";
 import CertificateDownloadController from "./controllers/ceritificate_download.controller";
 import ChallengeResponsesController from "./controllers/challenge_response.controller";
+import InstructionController from "./controllers/instructions.controller";
 
 // validating env variables
 validateEnv();
@@ -80,7 +81,8 @@ try {
         new BadgeController,
         new TutorialVideoController,
         new ReportController,
-        new CertificateDownloadController
+        new CertificateDownloadController,
+        new InstructionController
     ], Number(process.env.APP_PORT));
     // starting app
     app.listen();

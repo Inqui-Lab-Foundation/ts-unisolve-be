@@ -576,7 +576,13 @@ export default class DashboardController extends BaseController {
     private async getMapStats(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
             this.model = dashboard_map_stat.name
-            return await this.getData(req, res, next)
+            return await this.getData(req, res, next, [],
+                [
+                    [db.fn('DISTINCT', db.col('district_name')), 'district_name'],
+                    `dashboard_map_stat_id`,
+                    `overall_schools`, `reg_schools`, `schools_with_teams`, `teams`, `ideas`, `students`, `status`, `created_by`, `created_at`, `updated_by`, `updated_at`
+                ]
+            )
         } catch (error) {
             next(error);
         }
