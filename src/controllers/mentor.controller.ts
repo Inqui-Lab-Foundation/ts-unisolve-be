@@ -239,13 +239,7 @@ export default class MentorController extends BaseController {
                                 "organization_code",
                                 "organization_name",
                                 "organization_id",
-                                "principal_name",
-                                "principal_mobile",
-                                "principal_email",
-                                "city",
-                                "district",
-                                "state",
-                                "country"
+                                "district"
                             ], where: whereClauseOfDistrict,
                             require: false
                         }, limit, offset
