@@ -139,6 +139,20 @@ export default class StudentController extends BaseController {
             } else {
                 try {
                     const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                        attributes: [
+                            "student_id",
+                            "user_id",
+                            "UUID",
+                            "full_name",
+                            "date_of_birth",
+                            "qualification",
+                            "badges",
+                            "status",
+                            "Age",
+                            "Grade",
+                            "Gender"
+                        ],
+                        raw: true,
                         where: {
                             [Op.and]: [
                                 whereClauseStatusPart,
@@ -149,16 +163,20 @@ export default class StudentController extends BaseController {
                         include: {
                             model: team,
                             attributes: [
-                                'mentor_id'
+                                'team_id',
+                                'team_name',
                             ],
                             include: {
                                 model: mentor,
                                 attributes: [
-                                    'organization_code',
+                                    'mentor_id',
+                                    'full_name'
                                 ],
                                 include: {
                                     model: organization,
                                     attributes: [
+                                        'organization_name',
+                                        'organization_code',
                                         "district"
                                     ]
                                 }
