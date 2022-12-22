@@ -682,6 +682,7 @@ export default class ChallengeResponsesController extends BaseController {
                     "evaluated_by",
                     "evaluated_at",
                     "evaluation_status",
+                    "response",
                     [
                         db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                     ],
@@ -699,6 +700,7 @@ export default class ChallengeResponsesController extends BaseController {
             if (data instanceof Error) {
                 throw data;
             }
+            data.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
             return res.status(200).send(dispatcher(res, data, 'success'));
         } catch (error) {
             next(error)
