@@ -25,7 +25,6 @@ export default class AdminController extends BaseController {
         this.router.post(`${this.path}/login`, this.login.bind(this));
         this.router.get(`${this.path}/logout`, this.logout.bind(this));
         this.router.put(`${this.path}/changePassword`, this.changePassword.bind(this));
-        // this.router.put(`${this.path}/updatePassword`, this.updatePassword.bind(this));
         super.initializeRoutes();
     }
     protected getData(req: Request, res: Response, next: NextFunction) {
@@ -49,17 +48,17 @@ export default class AdminController extends BaseController {
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         if (!req.body.username || req.body.username === "") req.body.username = req.body.full_name.replace(/\s/g, '');
         if (!req.body.password || req.body.password === "") req.body.password = this.password;
-        if (!req.body.role || req.body.role !== 'ADMIN') {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
+        if (req.body.role == 'ADMIN' || req.body.role == 'EADMIN') {
+            const result = await this.authService.register(req.body);
+            if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.EVALUATOR_EXISTS, 406));
+            return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
         }
-        const result = await this.authService.register(req.body);
-        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.EVALUATOR_EXISTS, 406));
-        return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
+        return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
     }
 
     private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         let adminDetails: any;
-        req.body['role'] = 'ADMIN'
+        if (req.query.eAdmin && req.query.eAdmin == 'true') { req.body['role'] = 'EADMIN' } else { req.body['role'] = 'ADMIN' }
         const result = await this.authService.login(req.body);
         if (!result) {
             return res.status(404).send(dispatcher(res, result, 'error', speeches.USER_NOT_FOUND));
