@@ -22,6 +22,9 @@ import { S3 } from "aws-sdk";
 import { ManagedUpload } from "aws-sdk/clients/s3";
 import { challengeResponsesSchema, challengeResponsesUpdateSchema, initiateIdeaSchema, UpdateAnyFieldSchema } from "../validations/challenge_responses.validations";
 import StudentService from "../services/students.service";
+import { team } from "../models/team.model";
+import { mentor } from "../models/mentor.model";
+import { organization } from "../models/organization.model";
 
 export default class ChallengeResponsesController extends BaseController {
 
@@ -43,6 +46,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.put(this.path + '/updateEntry/:id', validationMiddleware(UpdateAnyFieldSchema), this.updateAnyFields.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         this.router.get(`${this.path}/evaluated/:evaluator_id`, this.getChallengesForEvaluator.bind(this))
+        this.router.get(`${this.path}/customFilter/`, this.getChallengesBasedOnFilter.bind(this))
         super.initializeRoutes();
     }
 
@@ -682,6 +686,8 @@ export default class ChallengeResponsesController extends BaseController {
                     "evaluated_by",
                     "evaluated_at",
                     "evaluation_status",
+                    "rejected_reason",
+                    "sdg",
                     "response",
                     [
                         db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
@@ -692,6 +698,69 @@ export default class ChallengeResponsesController extends BaseController {
                 ],
                 where: {
                     evaluated_by: evaluator_id
+                }
+            });
+            if (!data) {
+                throw badRequest(data.message)
+            };
+            if (data instanceof Error) {
+                throw data;
+            }
+            data.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
+            return res.status(200).send(dispatcher(res, data, 'success'));
+        } catch (error) {
+            next(error)
+        }
+    };
+    private async getChallengesBasedOnFilter(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { district, sdg } = req.query
+            let whereClauseOfDistrict: any = {}
+            whereClauseOfDistrict['district'] = district && typeof district == 'string' ? district : `%%`
+            whereClauseOfDistrict['sdg'] = sdg && typeof district == 'string' ? sdg : `%%`
+            console.log(whereClauseOfDistrict);
+            const data = await this.crudService.findAll(challenge_response, {
+                attributes: [
+                    "challenge_response_id",
+                    "challenge_id",
+                    "initiated_by",
+                    "status",
+                    "evaluated_by",
+                    "evaluated_at",
+                    "submitted_at",
+                    "evaluation_status",
+                    "rejected_reason",
+                    "sdg",
+                    "response",
+                    [
+                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                    ]
+                ],
+                where: {
+                    [Op.and]: [
+                        { sdg: { [Op.like]: whereClauseOfDistrict.sdg } },
+                        db.literal('`team->mentor->organization`.`district` like' + JSON.stringify(whereClauseOfDistrict.district))
+                    ]
+                },
+                include: {
+                    model: team,
+                    attributes: [
+                        'team_id',
+                        'team_name',
+                    ],
+                    include: {
+                        model: mentor,
+                        attributes: [
+                            'mentor_id',
+                            'full_name'
+                        ],
+                        include: {
+                            model: organization,
+                            attributes: [
+                                "district"
+                            ]
+                        }
+                    }
                 }
             });
             if (!data) {
