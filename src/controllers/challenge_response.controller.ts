@@ -42,6 +42,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.get(this.path + '/fetchRandomChallenge', this.getRandomChallenge.bind(this));
         this.router.put(this.path + '/updateEntry/:id', validationMiddleware(UpdateAnyFieldSchema), this.updateAnyFields.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
+        this.router.get(`${this.path}/evaluated/:evaluator_id`, this.getChallengesForEvaluator.bind(this))
         super.initializeRoutes();
     }
 
@@ -661,6 +662,46 @@ export default class ChallengeResponsesController extends BaseController {
                 throw data;
             }
             return res.status(200).send(dispatcher(res, data, 'deleted'));
+        } catch (error) {
+            next(error)
+        }
+    };
+    private async getChallengesForEvaluator(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { evaluator_id } = req.params
+            if (!evaluator_id) {
+                throw badRequest(speeches.TEAM_NAME_ID)
+            };
+            const data = await this.crudService.findAll(challenge_response, {
+                attributes: [
+                    "challenge_response_id",
+                    "challenge_id",
+                    "team_id",
+                    "initiated_by",
+                    "status",
+                    "evaluated_by",
+                    "evaluated_at",
+                    "evaluation_status",
+                    "response",
+                    [
+                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                    ],
+                    [
+                        db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                    ],
+                ],
+                where: {
+                    evaluated_by: evaluator_id
+                }
+            });
+            if (!data) {
+                throw badRequest(data.message)
+            };
+            if (data instanceof Error) {
+                throw data;
+            }
+            data.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
+            return res.status(200).send(dispatcher(res, data, 'success'));
         } catch (error) {
             next(error)
         }
