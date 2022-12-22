@@ -204,7 +204,7 @@ export default class ChallengeResponsesController extends BaseController {
                     "submitted_at",
                     `status`,
                     [
-                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.status = 'SUBMITTED')`),
+                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null)`),
                         'openIdeas'
                     ],
                     [
