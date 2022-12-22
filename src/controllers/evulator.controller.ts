@@ -10,6 +10,7 @@ import { evaluatorSchema, evaluatorUpdateSchema } from '../validations/evaluator
 import { evaluator } from '../models/evaluator.model';
 import { user } from '../models/user.model';
 import { badRequest } from 'boom';
+import db from "../utils/dbconnection.util"
 
 export default class EvaluatorController extends BaseController {
     model = "evaluator";
@@ -32,7 +33,21 @@ export default class EvaluatorController extends BaseController {
         this.router.post(`${this.path}/bulkUpload`, this.bulkUpload.bind(this))
         // this.router.put(`${this.path}/updatePassword`, this.updatePassword.bind(this));
         super.initializeRoutes();
+    };
+
+    protected getData(req: Request, res: Response, next: NextFunction) {
+        return super.getData(req, res, next, [],
+            [
+                "evaluator_id", "organization_name", "date_of_birth", "city", "district", "mobile", "status",
+            ], {
+            attributes: [
+                "user_id",
+                "username",
+                "full_name"
+            ], model: user, required: false }
+        );
     }
+
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         if (!req.body.username || req.body.username === "") req.body.username = req.body.full_name.replace(/\s/g, '');
         if (!req.body.password || req.body.password === "") req.body.password = this.password;
@@ -41,7 +56,7 @@ export default class EvaluatorController extends BaseController {
         };
         const payload = this.autoFillTrackingColumns(req, res, evaluator);
         const result = await this.authService.register(payload);
-        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.EVALUATOR_EXISTS, 406)); 
+        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.EVALUATOR_EXISTS, 406));
         return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
     }
 
@@ -49,11 +64,11 @@ export default class EvaluatorController extends BaseController {
         req.body['role'] = 'EVALUATOR'
         const result = await this.authService.login(req.body);
         if (!result) {
-            return res.status(404).send(dispatcher(res,result, 'error', speeches.USER_NOT_FOUND));
+            return res.status(404).send(dispatcher(res, result, 'error', speeches.USER_NOT_FOUND));
         } else if (result.error) {
-            return res.status(401).send(dispatcher(res,result.error, 'error', speeches.USER_RISTRICTED, 401));
+            return res.status(401).send(dispatcher(res, result.error, 'error', speeches.USER_RISTRICTED, 401));
         } else {
-            return res.status(200).send(dispatcher(res,result.data, 'success', speeches.USER_LOGIN_SUCCESS));
+            return res.status(200).send(dispatcher(res, result.data, 'success', speeches.USER_LOGIN_SUCCESS));
         }
     }
 
@@ -62,21 +77,21 @@ export default class EvaluatorController extends BaseController {
         if (result.error) {
             next(result.error);
         } else {
-            return res.status(200).send(dispatcher(res,speeches.LOGOUT_SUCCESS, 'success'));
+            return res.status(200).send(dispatcher(res, speeches.LOGOUT_SUCCESS, 'success'));
         }
     }
 
     private async changePassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         const result = await this.authService.changePassword(req.body, res);
         if (!result) {
-            return res.status(404).send(dispatcher(res,null, 'error', speeches.USER_NOT_FOUND));
+            return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_NOT_FOUND));
         } else if (result.error) {
-            return res.status(404).send(dispatcher(res,result.error, 'error', result.error));
+            return res.status(404).send(dispatcher(res, result.error, 'error', result.error));
         }
         else if (result.match) {
-            return res.status(404).send(dispatcher(res,null, 'error', speeches.USER_PASSWORD));
+            return res.status(404).send(dispatcher(res, null, 'error', speeches.USER_PASSWORD));
         } else {
-            return res.status(202).send(dispatcher(res,result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
+            return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
         }
     }
 
