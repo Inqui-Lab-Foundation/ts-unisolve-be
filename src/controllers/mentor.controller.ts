@@ -174,6 +174,10 @@ export default class MentorController extends BaseController {
             // if (current_user !== getUserIdFromMentorId.getDataValue("user_id")) {
             //     throw forbidden();
             // };
+            let district: any = req.query.district;
+            let whereClauseOfDistrict: any = district ?
+                { district: { [Op.like]: req.query.district } } :
+                { district: { [Op.like]: `%%` } }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
@@ -235,14 +239,9 @@ export default class MentorController extends BaseController {
                                 "organization_code",
                                 "organization_name",
                                 "organization_id",
-                                "principal_name",
-                                "principal_mobile",
-                                "principal_email",
-                                "city",
-                                "district",
-                                "state",
-                                "country"
-                            ]
+                                "district"
+                            ], where: whereClauseOfDistrict,
+                            require: false
                         }, limit, offset
                     })
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);

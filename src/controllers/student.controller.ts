@@ -22,6 +22,8 @@ import { mentor } from '../models/mentor.model';
 import { organization } from '../models/organization.model';
 import { badRequest, internal, notFound } from 'boom';
 import { find } from 'lodash';
+import { string } from 'joi';
+import db from "../utils/dbconnection.util"
 
 export default class StudentController extends BaseController {
     model = "student";
@@ -81,7 +83,11 @@ export default class StudentController extends BaseController {
             } else {
                 whereClauseStatusPart = { "status": "ACTIVE" };
                 boolStatusWhereClauseRequired = true;
-            }
+            };
+            let district: any = req.query.district;
+            let whereClauseOfDistrict: any = district ?
+                { district: req.query.district } :
+                { district: `%%` }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
@@ -133,13 +139,50 @@ export default class StudentController extends BaseController {
             } else {
                 try {
                     const responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                        attributes: [
+                            "student_id",
+                            "user_id",
+                            "UUID",
+                            "full_name",
+                            "date_of_birth",
+                            "qualification",
+                            "badges",
+                            "status",
+                            "Age",
+                            "Grade",
+                            "Gender"
+                        ],
+                        raw: true,
                         where: {
                             [Op.and]: [
                                 whereClauseStatusPart,
-                                condition
+                                condition,
+                                db.literal('`team->mentor->organization`.`district` like' + JSON.stringify(whereClauseOfDistrict.district))
                             ]
+                        },
+                        include: {
+                            model: team,
+                            attributes: [
+                                'team_id',
+                                'team_name',
+                            ],
+                            include: {
+                                model: mentor,
+                                attributes: [
+                                    'mentor_id',
+                                    'full_name'
+                                ],
+                                include: {
+                                    model: organization,
+                                    attributes: [
+                                        'organization_name',
+                                        'organization_code',
+                                        "district"
+                                    ]
+                                }
+                            }
                         }, limit, offset
-                    })
+                    });
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
                 } catch (error: any) {
@@ -178,14 +221,16 @@ export default class StudentController extends BaseController {
             };
             const user_id = res.locals.user_id
             const studentTableDetails = await student.findOne(
-                {where:{
-                    student_id:id
-                }}
+                {
+                    where: {
+                        student_id: id
+                    }
+                }
             )
-            if(!studentTableDetails){
+            if (!studentTableDetails) {
                 throw notFound(speeches.USER_NOT_FOUND)
             }
-            if(studentTableDetails instanceof Error){
+            if (studentTableDetails instanceof Error) {
                 throw studentTableDetails
             }
 
@@ -194,8 +239,8 @@ export default class StudentController extends BaseController {
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
 
-            if(req.body.full_name.trim() != studentTableDetails.getDataValue("full_name").trim()){
-                
+            if (req.body.full_name.trim() != studentTableDetails.getDataValue("full_name").trim()) {
+
                 let trimmedTeamName: any;
                 let trimmedStudentName: any;
                 trimmedStudentName = req.body.full_name.replace(/[\n\r\s\t]+/g, '').toLowerCase();
@@ -212,17 +257,17 @@ export default class StudentController extends BaseController {
                 payload['UUID'] = studentPassword;
                 const studentDetails = await this.crudService.findOne(user, { where: { username: username } });
                 // console.log(studentDetails);
-                
+
                 if (studentDetails) {
                     if (studentDetails.dataValues.username == username) throw badRequest(speeches.USER_FULLNAME_EXISTED);
                     if (studentDetails instanceof Error) throw studentDetails;
-                };   
+                };
                 const user_data = await this.crudService.update(user, {
                     full_name: payload.full_name,
                     username: username,
                     password: await bcrypt.hashSync(cryptoEncryptedString, process.env.SALT || baseConfig.SALT),
                 }, { where: { user_id: studentTableDetails.getDataValue("user_id") } });
-                if(!user_data){
+                if (!user_data) {
                     throw internal()
                 }
                 if (user_data instanceof Error) {
@@ -231,13 +276,13 @@ export default class StudentController extends BaseController {
 
             }
             const student_data = await this.crudService.updateAndFind(modelLoaded, payload, { where: where });
-            if (!student_data ) {
+            if (!student_data) {
                 throw badRequest()
             }
             if (student_data instanceof Error) {
                 throw student_data;
             }
-            
+
             return res.status(200).send(dispatcher(res, student_data, 'updated'));
         } catch (error) {
             next(error);

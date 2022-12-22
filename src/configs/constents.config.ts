@@ -164,6 +164,14 @@ export const constents = {
     },
     default: "DRAFT"
   },
+  evaluation_status: {
+    list: {
+      "EVALUATION": "EVALUATION",
+      "SELECTEDROUND1": "SELECTEDROUND1",
+      "REJECTEDROUND1": "REJECTEDROUND1"
+    },
+    default: "EVALUATION"
+  },
   quiz_survey_status_flags: {
     list: {
       "ALL": "ALL",
