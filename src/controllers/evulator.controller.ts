@@ -38,7 +38,7 @@ export default class EvaluatorController extends BaseController {
     protected getData(req: Request, res: Response, next: NextFunction) {
         return super.getData(req, res, next, [],
             [
-                "evaluator_id", "organization_name", "date_of_birth", "city", "district", "mobile", "status",
+                "evaluator_id", "district", "mobile", "status",
             ], {
             attributes: [
                 "user_id",
