@@ -91,9 +91,13 @@ export default class ChallengeResponsesController extends BaseController {
                 boolStatusWhereClauseRequired = true;
             };
             //evaluation status filter
-            if (evaluation_status && (evaluation_status in constents.evaluation_status.list)) {
-                whereClauseStatusPart = { 'evaluation_status': evaluation_status };
-            };
+            if (evaluation_status) {
+                if (evaluation_status in constents.evaluation_status.list) {
+                    whereClauseStatusPart = { 'evaluation_status': evaluation_status };
+                } else {
+                    whereClauseStatusPart['evaluation_status'] = null;
+                }
+            }
             console.log(whereClauseStatusPart);
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
@@ -225,7 +229,7 @@ export default class ChallengeResponsesController extends BaseController {
                     "submitted_at",
                     `status`,
                     [
-                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null)`),
+                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null AND idea.status = 'SUBMITTED')`),
                         'openIdeas'
                     ],
                     [
