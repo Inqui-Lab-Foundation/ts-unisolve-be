@@ -87,7 +87,7 @@ export default class ChallengeResponsesController extends BaseController {
                     boolStatusWhereClauseRequired = true;
                 }
             } else {
-                whereClauseStatusPart = { "status": "DRAFT" };
+                whereClauseStatusPart = { "status": "SUBMITTED" };
                 boolStatusWhereClauseRequired = true;
             };
             //evaluation status filter
