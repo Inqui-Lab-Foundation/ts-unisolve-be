@@ -60,11 +60,12 @@ export default class ChallengeResponsesController extends BaseController {
             let data: any;
             const { model, id } = req.params;
             const paramStatus: any = req.query.status;
+            const evaluation_status: any = req.query.evaluation_status;
             if (model) {
                 this.model = model;
             };
             // pagination
-            const { page, size, title, evaluation_status } = req.query;
+            const { page, size, title } = req.query;
             let condition: any = {};
             if (team_id) {
                 condition.team_id = { [Op.like]: `%${team_id}%` }
@@ -90,10 +91,13 @@ export default class ChallengeResponsesController extends BaseController {
                 boolStatusWhereClauseRequired = true;
             };
             //evaluation status filter
-            if (evaluation_status && typeof evaluation_status == 'string') {
-                whereClauseStatusPart['status'] = `%%`
-                whereClauseStatusPart['evaluation_status'] = evaluation_status;
-            };
+            if (evaluation_status) {
+                if (evaluation_status in constents.evaluation_status.list) {
+                    whereClauseStatusPart = { 'evaluation_status': evaluation_status };
+                } else {
+                    whereClauseStatusPart['evaluation_status'] = null;
+                }
+            }
             console.log(whereClauseStatusPart);
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
@@ -112,12 +116,16 @@ export default class ChallengeResponsesController extends BaseController {
                         "evaluated_at",
                         "evaluation_status",
                         "status",
+                        "rejected_reason",
                         [
                             db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
                         ],
                         [
                             db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                         ],
+                        [
+                            db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
+                        ]
                     ],
                     where: {
                         [Op.and]: [
@@ -143,6 +151,10 @@ export default class ChallengeResponsesController extends BaseController {
                             "evaluated_at",
                             "evaluation_status",
                             "status",
+                            "rejected_reason",
+                            [
+                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
+                            ],
                             [
                                 db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
                             ],
@@ -152,8 +164,7 @@ export default class ChallengeResponsesController extends BaseController {
                         ],
                         where: {
                             [Op.and]: [
-                                { status: { [Op.like]: whereClauseStatusPart.status } },
-                                { evaluation_status: whereClauseStatusPart.evaluation_status ? { [Op.like]: whereClauseStatusPart.evaluation_status } : null },
+                                whereClauseStatusPart,
                                 condition
                             ]
                         },
@@ -218,7 +229,7 @@ export default class ChallengeResponsesController extends BaseController {
                     "submitted_at",
                     `status`,
                     [
-                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null)`),
+                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null AND idea.status = 'SUBMITTED')`),
                         'openIdeas'
                     ],
                     [
