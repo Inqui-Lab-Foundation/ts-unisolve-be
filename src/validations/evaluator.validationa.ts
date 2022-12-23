@@ -11,15 +11,6 @@ export const evaluatorSchema = Joi.object().keys({
     }),
     role: Joi.string().required().messages({
         'string.empty': speeches.USER_ROLE_REQUIRED
-    }),
-    team_id: Joi.string().trim().min(1).required().messages({
-        'string.empty': speeches.USER_TEAMID_REQUIRED
-    }),
-    organization_code: Joi.string().trim().min(1).required().messages({
-        'string.empty': speeches.USER_ORGANIZATION_CODE_REQUIRED
-    }),
-    qualification: Joi.string().trim().min(1).required().messages({
-        'string.empty': speeches.USER_QUALIFICATION_REQUIRED
     })
 });
 
