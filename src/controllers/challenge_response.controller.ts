@@ -85,11 +85,6 @@ export default class ChallengeResponsesController extends BaseController {
                     whereClauseStatusPart = { "status": paramStatus };
                     boolStatusWhereClauseRequired = true;
                 }
-            } else if (paramStatus === 'NOTDRAFT') {
-                whereClauseStatusPart = {
-                    status: { [Op.notIn]: ['DRAFT'] }
-                };
-                boolStatusWhereClauseRequired = false;
             } else {
                 whereClauseStatusPart = { "status": "DRAFT" };
                 boolStatusWhereClauseRequired = true;
@@ -98,11 +93,7 @@ export default class ChallengeResponsesController extends BaseController {
             if (evaluation_status && typeof evaluation_status == 'string') {
                 whereClauseStatusPart['status'] = `%%`
                 whereClauseStatusPart['evaluation_status'] = evaluation_status;
-            } else {
-                whereClauseStatusPart['evaluation_status'] = `%%`;
-            }
-            // if status nd evaluation status both are undefined
-            if (whereClauseStatusPart.status == 'DRAFT' && whereClauseStatusPart.evaluation_status == `%%`)  whereClauseStatusPart['evaluation_status'] == null
+            };
             console.log(whereClauseStatusPart);
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
@@ -123,6 +114,9 @@ export default class ChallengeResponsesController extends BaseController {
                         "status",
                         [
                             db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                        ],
+                        [
+                            db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                         ],
                     ],
                     where: {
@@ -152,11 +146,14 @@ export default class ChallengeResponsesController extends BaseController {
                             [
                                 db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
                             ],
+                            [
+                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                            ],
                         ],
                         where: {
                             [Op.and]: [
                                 { status: { [Op.like]: whereClauseStatusPart.status } },
-                                { evaluation_status: { [Op.like]: whereClauseStatusPart.evaluation_status } },
+                                { evaluation_status: whereClauseStatusPart.evaluation_status ? { [Op.like]: whereClauseStatusPart.evaluation_status } : null },
                                 condition
                             ]
                         },
