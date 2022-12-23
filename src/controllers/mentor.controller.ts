@@ -175,7 +175,7 @@ export default class MentorController extends BaseController {
             //     throw forbidden();
             // };
             let district: any = req.query.district;
-            let whereClauseOfDistrict: any = district ?
+            let whereClauseOfDistrict: any = district && district !== 'All Districts' ?
                 { district: { [Op.like]: req.query.district } } :
                 { district: { [Op.like]: `%%` } }
             if (id) {

@@ -85,7 +85,7 @@ export default class StudentController extends BaseController {
                 boolStatusWhereClauseRequired = true;
             };
             let district: any = req.query.district;
-            let whereClauseOfDistrict: any = district ?
+            let whereClauseOfDistrict: any = district && district !== 'All Districts' ?
                 { district: req.query.district } :
                 { district: `%%` }
             if (id) {

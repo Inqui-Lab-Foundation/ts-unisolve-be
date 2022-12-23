@@ -2,7 +2,7 @@ import Joi from 'joi';
 import { constents } from '../configs/constents.config';
 import { speeches } from '../configs/speeches.config';
 
-export const evaluatorSchema = Joi.object().keys({
+export const adminSchema = Joi.object().keys({
     username: Joi.string().trim().min(1).required().messages({
         'string.empty': speeches.USER_USERNAME_REQUIRED
     }),
@@ -11,19 +11,10 @@ export const evaluatorSchema = Joi.object().keys({
     }),
     role: Joi.string().required().messages({
         'string.empty': speeches.USER_ROLE_REQUIRED
-    }),
-    team_id: Joi.string().trim().min(1).required().messages({
-        'string.empty': speeches.USER_TEAMID_REQUIRED
-    }),
-    organization_code: Joi.string().trim().min(1).required().messages({
-        'string.empty': speeches.USER_ORGANIZATION_CODE_REQUIRED
-    }),
-    qualification: Joi.string().trim().min(1).required().messages({
-        'string.empty': speeches.USER_QUALIFICATION_REQUIRED
     })
 });
 
-export const evaluatorLoginSchema = Joi.object().keys({
+export const adminLoginSchema = Joi.object().keys({
     username: Joi.string().required().messages({
         'string.empty': speeches.USER_USERNAME_REQUIRED
     }),
@@ -31,7 +22,7 @@ export const evaluatorLoginSchema = Joi.object().keys({
         'string.empty': speeches.USER_PASSWORD_REQUIRED
     })
 });
-export const evaluatorChangePasswordSchema = Joi.object().keys({
+export const adminChangePasswordSchema = Joi.object().keys({
     user_id: Joi.string().required().messages({
         'string.empty': speeches.USER_USERID_REQUIRED
     }),
@@ -42,19 +33,16 @@ export const evaluatorChangePasswordSchema = Joi.object().keys({
         'string.empty': speeches.USER_NEWPASSWORD_REQUIRED
     })
 });
-export const evaluatorResetPasswordSchema = Joi.object().keys({
+export const adminResetPasswordSchema = Joi.object().keys({
     user_id: Joi.string().required().messages({
         'string.empty': speeches.USER_USERID_REQUIRED
     })
 });
 
-export const evaluatorUpdateSchema = Joi.object().keys({
+export const adminUpdateSchema = Joi.object().keys({
     status: Joi.string().valid(...Object.values(constents.common_status_flags.list)),
     username: Joi.string().trim().min(1).required().messages({
         'string.empty': speeches.USER_USERNAME_REQUIRED
-    }),
-    mobile: Joi.string().trim().min(1).required().messages({
-        'string.empty': speeches.MOBILE_NUMBER_REQUIRED
     }),
     full_name: Joi.string().trim().min(1).regex(constents.ALPHA_NUMERIC_PATTERN).required().messages({
         'string.empty': speeches.USER_FULLNAME_REQUIRED

@@ -620,7 +620,6 @@ export default class ChallengeResponsesController extends BaseController {
                             "others",
                             "team_id",
                             "response",
-                            "response",
                             "status",
                             "sdg",
                             "evaluation_status"
@@ -679,12 +678,12 @@ export default class ChallengeResponsesController extends BaseController {
             const data = await this.crudService.findAll(challenge_response, {
                 attributes: [
                     "challenge_response_id",
-                    "challenge_id",
                     "team_id",
                     "initiated_by",
                     "status",
                     "evaluated_by",
                     "evaluated_at",
+                    "submitted_at",
                     "evaluation_status",
                     "rejected_reason",
                     "sdg",
