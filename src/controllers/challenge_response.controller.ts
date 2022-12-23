@@ -64,7 +64,7 @@ export default class ChallengeResponsesController extends BaseController {
                 this.model = model;
             };
             // pagination
-            const { page, size, title } = req.query;
+            const { page, size, title, evaluation_status } = req.query;
             let condition: any = {};
             if (team_id) {
                 condition.team_id = { [Op.like]: `%${team_id}%` }
@@ -76,6 +76,7 @@ export default class ChallengeResponsesController extends BaseController {
             const where: any = {};
             let whereClauseStatusPart: any = {}
             let boolStatusWhereClauseRequired = false;
+            //status filter
             if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
                 if (paramStatus === 'ALL') {
                     whereClauseStatusPart = {};
@@ -92,7 +93,17 @@ export default class ChallengeResponsesController extends BaseController {
             } else {
                 whereClauseStatusPart = { "status": "DRAFT" };
                 boolStatusWhereClauseRequired = true;
+            };
+            //evaluation status filter
+            if (evaluation_status && typeof evaluation_status == 'string') {
+                whereClauseStatusPart['status'] = `%%`
+                whereClauseStatusPart['evaluation_status'] = evaluation_status;
+            } else {
+                whereClauseStatusPart['evaluation_status'] = `%%`;
             }
+            // if status nd evaluation status both are undefined
+            if (whereClauseStatusPart.status == 'DRAFT' && whereClauseStatusPart.evaluation_status == `%%`)  whereClauseStatusPart['evaluation_status'] == null
+            console.log(whereClauseStatusPart);
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 // console.log(where)
@@ -102,18 +113,20 @@ export default class ChallengeResponsesController extends BaseController {
                         "challenge_id",
                         "sdg",
                         "team_id",
-                        [
-                            db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
-                        ],
                         "response",
                         "initiated_by",
                         "created_at",
                         "submitted_at",
-                        "status"
+                        "evaluated_by",
+                        "evaluated_at",
+                        "evaluation_status",
+                        "status",
+                        [
+                            db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                        ],
                     ],
                     where: {
                         [Op.and]: [
-                            whereClauseStatusPart,
                             where,
                             condition
                         ]
@@ -128,18 +141,22 @@ export default class ChallengeResponsesController extends BaseController {
                             "challenge_id",
                             "sdg",
                             "team_id",
-                            [
-                                db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
-                            ],
                             "response",
                             "initiated_by",
                             "created_at",
                             "submitted_at",
-                            "status"
+                            "evaluated_by",
+                            "evaluated_at",
+                            "evaluation_status",
+                            "status",
+                            [
+                                db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                            ],
                         ],
                         where: {
                             [Op.and]: [
-                                whereClauseStatusPart,
+                                { status: { [Op.like]: whereClauseStatusPart.status } },
+                                { evaluation_status: { [Op.like]: whereClauseStatusPart.evaluation_status } },
                                 condition
                             ]
                         },
@@ -717,7 +734,6 @@ export default class ChallengeResponsesController extends BaseController {
             let whereClauseOfDistrict: any = {}
             whereClauseOfDistrict['district'] = district && typeof district == 'string' ? district : `%%`
             whereClauseOfDistrict['sdg'] = sdg && typeof district == 'string' ? sdg : `%%`
-            console.log(whereClauseOfDistrict);
             const data = await this.crudService.findAll(challenge_response, {
                 attributes: [
                     "challenge_response_id",
