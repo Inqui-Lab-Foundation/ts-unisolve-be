@@ -61,6 +61,9 @@ export default class ChallengeResponsesController extends BaseController {
             const { model, id } = req.params;
             const paramStatus: any = req.query.status;
             const evaluation_status: any = req.query.evaluation_status;
+            const district: any = req.query.district;
+            const sdg: any = req.query.sdg;
+            const rejected_reason: any = req.query.rejected_reason;
             if (model) {
                 this.model = model;
             };
@@ -98,7 +101,32 @@ export default class ChallengeResponsesController extends BaseController {
                     whereClauseStatusPart['evaluation_status'] = null;
                 }
             }
-            console.log(whereClauseStatusPart);
+            //district filter
+            let districtFilter: any;
+            if (district) {
+                if (district && typeof district == 'string') {
+                    districtFilter = { 'district': district }
+                } else {
+                    districtFilter['district'] = `%%`
+                }
+            }
+            //sdg filter
+            if (sdg) {
+                if (sdg && typeof sdg == 'string') {
+                    whereClauseStatusPart = { 'sdg': sdg };
+                } else {
+                    whereClauseStatusPart['sdg'] = null;
+                }
+            }
+            //reason for reject filter
+            if (rejected_reason) {
+                if (rejected_reason && typeof rejected_reason == 'string') {
+                    whereClauseStatusPart = { 'rejected_reason': rejected_reason };
+                } else {
+                    whereClauseStatusPart['rejected_reason'] = null;
+                }
+            }
+            console.log(whereClauseStatusPart, districtFilter.district)
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 // console.log(where)
@@ -164,12 +192,34 @@ export default class ChallengeResponsesController extends BaseController {
                         ],
                         where: {
                             [Op.and]: [
+                                condition,
                                 whereClauseStatusPart,
-                                condition
+                                db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
                             ]
+                        },
+                        include: {
+                            model: team,
+                            attributes: [
+                                'team_id',
+                                'team_name',
+                            ],
+                            include: {
+                                model: mentor,
+                                attributes: [
+                                    'mentor_id',
+                                    'full_name'
+                                ],
+                                include: {
+                                    model: organization,
+                                    attributes: [
+                                        "district"
+                                    ]
+                                }
+                            }
                         },
                         limit, offset,
                     })
+                    // console.log(responseOfFindAndCountAll);
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
                 } catch (error: any) {
