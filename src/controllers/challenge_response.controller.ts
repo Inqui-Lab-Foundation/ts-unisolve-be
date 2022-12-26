@@ -78,55 +78,35 @@ export default class ChallengeResponsesController extends BaseController {
                 next(error)
             });
             const where: any = {};
-            let whereClauseStatusPart: any = {}
-            let boolStatusWhereClauseRequired = false;
+            let whereClauseEvaluationStatusStatusPart: any = {}
+            let additionalFilter: any = {};
+            let districtFilter: any = {};
+            let boolStatusWhereClauseEvaluationStatusRequired = false;
             //status filter
             if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
                 if (paramStatus === 'ALL') {
-                    whereClauseStatusPart = {};
-                    boolStatusWhereClauseRequired = false;
+                    whereClauseEvaluationStatusStatusPart = {};
+                    boolStatusWhereClauseEvaluationStatusRequired = false;
                 } else {
-                    whereClauseStatusPart = { "status": paramStatus };
-                    boolStatusWhereClauseRequired = true;
+                    whereClauseEvaluationStatusStatusPart = { "status": paramStatus };
+                    boolStatusWhereClauseEvaluationStatusRequired = true;
                 }
             } else {
-                whereClauseStatusPart = { "status": "SUBMITTED" };
-                boolStatusWhereClauseRequired = true;
+                whereClauseEvaluationStatusStatusPart = { "status": "SUBMITTED" };
+                boolStatusWhereClauseEvaluationStatusRequired = true;
             };
             //evaluation status filter
             if (evaluation_status) {
                 if (evaluation_status in constents.evaluation_status.list) {
-                    whereClauseStatusPart = { 'evaluation_status': evaluation_status };
+                    whereClauseEvaluationStatusStatusPart = { 'evaluation_status': evaluation_status };
                 } else {
-                    whereClauseStatusPart['evaluation_status'] = null;
+                    whereClauseEvaluationStatusStatusPart['evaluation_status'] = null;
                 }
             }
-            //district filter
-            let districtFilter: any;
-            if (district) {
-                if (district && typeof district == 'string') {
-                    districtFilter = { 'district': district }
-                } else {
-                    districtFilter['district'] = `%%`
-                }
-            }
-            //sdg filter
-            if (sdg) {
-                if (sdg && typeof sdg == 'string') {
-                    whereClauseStatusPart = { 'sdg': sdg };
-                } else {
-                    whereClauseStatusPart['sdg'] = null;
-                }
-            }
-            //reason for reject filter
-            if (rejected_reason) {
-                if (rejected_reason && typeof rejected_reason == 'string') {
-                    whereClauseStatusPart = { 'rejected_reason': rejected_reason };
-                } else {
-                    whereClauseStatusPart['rejected_reason'] = null;
-                }
-            }
-            console.log(whereClauseStatusPart, districtFilter.district)
+            districtFilter['district'] = district && typeof district == 'string' ? district : `%%`
+            additionalFilter['sdg'] = { [Op.like]: sdg && typeof sdg == 'string' ? sdg : `%%` }
+            additionalFilter['rejected_reason'] = { [Op.like]: rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : `%%` }
+            // console.log(whereClauseEvaluationStatusStatusPart, additionalFilter);
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 // console.log(where)
@@ -193,7 +173,8 @@ export default class ChallengeResponsesController extends BaseController {
                         where: {
                             [Op.and]: [
                                 condition,
-                                whereClauseStatusPart,
+                                whereClauseEvaluationStatusStatusPart,
+                                additionalFilter,
                                 db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
                             ]
                         },
@@ -746,10 +727,27 @@ export default class ChallengeResponsesController extends BaseController {
     };
     private async getChallengesForEvaluator(req: Request, res: Response, next: NextFunction) {
         try {
-            const { evaluator_id } = req.params
+            let whereClauseEvaluationStatus: any = {};
+            let additionalFilter: any = {};
+            let districtFilter: any = {};
+            const evaluator_id: any = req.params.evaluator_id
+            const evaluation_status: any = req.query.evaluation_status;
+            const district: any = req.query.district;
+            const sdg: any = req.query.sdg;
+            const rejected_reason: any = req.query.rejected_reason;
             if (!evaluator_id) {
                 throw badRequest(speeches.TEAM_NAME_ID)
             };
+            if (evaluation_status) {
+                if (evaluation_status in constents.evaluation_status.list) {
+                    whereClauseEvaluationStatus = { 'evaluation_status': evaluation_status };
+                } else {
+                    whereClauseEvaluationStatus['evaluation_status'] = null;
+                }
+            }
+            districtFilter['district'] = district && typeof district == 'string' ? district : `%%`
+            additionalFilter['sdg'] = { [Op.like]: sdg && typeof sdg == 'string' ? sdg : `%%` }
+            additionalFilter['rejected_reason'] = { [Op.like]: rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : `%%` }
             const data = await this.crudService.findAll(challenge_response, {
                 attributes: [
                     "challenge_response_id",
@@ -771,7 +769,32 @@ export default class ChallengeResponsesController extends BaseController {
                     ],
                 ],
                 where: {
-                    evaluated_by: evaluator_id
+                    [Op.and]: [
+                        { evaluated_by: evaluator_id },
+                        whereClauseEvaluationStatus,
+                        additionalFilter,
+                        db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
+                    ]
+                },
+                include: {
+                    model: team,
+                    attributes: [
+                        'team_id',
+                        'team_name',
+                    ],
+                    include: {
+                        model: mentor,
+                        attributes: [
+                            'mentor_id',
+                            'full_name'
+                        ],
+                        include: {
+                            model: organization,
+                            attributes: [
+                                "district"
+                            ]
+                        }
+                    }
                 }
             });
             if (!data) {
