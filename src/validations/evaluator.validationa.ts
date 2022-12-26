@@ -43,5 +43,6 @@ export const evaluatorUpdateSchema = Joi.object().keys({
     status: Joi.string().valid(...Object.values(constents.common_status_flags.list)),
     username: Joi.string(),
     mobile: Joi.string(),
-    full_name: Joi.string()
+    full_name: Joi.string(),
+    district: Joi.string()
 });
