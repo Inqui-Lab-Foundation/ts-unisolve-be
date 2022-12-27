@@ -175,7 +175,7 @@ export default class ChallengeResponsesController extends BaseController {
                                 condition,
                                 whereClauseEvaluationStatusStatusPart,
                                 additionalFilter,
-                                db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
+                                // db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
                             ]
                         },
                         include: {
@@ -191,6 +191,7 @@ export default class ChallengeResponsesController extends BaseController {
                                     'full_name'
                                 ],
                                 include: {
+                                    where: districtFilter,
                                     model: organization,
                                     attributes: [
                                         "district"
@@ -773,7 +774,7 @@ export default class ChallengeResponsesController extends BaseController {
                         { evaluated_by: evaluator_id },
                         whereClauseEvaluationStatus,
                         additionalFilter,
-                        db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
+                        // db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
                     ]
                 },
                 include: {
@@ -789,6 +790,7 @@ export default class ChallengeResponsesController extends BaseController {
                             'full_name'
                         ],
                         include: {
+                            where: districtFilter,
                             model: organization,
                             attributes: [
                                 "district"
@@ -813,56 +815,58 @@ export default class ChallengeResponsesController extends BaseController {
         try {
             const { district, sdg } = req.query
             let whereClauseOfDistrict: any = {}
-            whereClauseOfDistrict['district'] = district && typeof district == 'string' ? district : `%%`
-            whereClauseOfDistrict['sdg'] = sdg && typeof district == 'string' ? sdg : `%%`
+            let whereClauseOfSdg: any = {}
+            whereClauseOfDistrict['district'] = { [Op.like]: district && typeof district == 'string' ? district : `%%` }
+            whereClauseOfSdg['sdg'] = { [Op.like]: sdg && typeof district == 'string' ? sdg : `%%` }
             const data = await this.crudService.findAll(challenge_response, {
-                attributes: [
-                    "challenge_response_id",
-                    "challenge_id",
-                    "initiated_by",
-                    "status",
-                    "evaluated_by",
-                    "evaluated_at",
-                    "submitted_at",
-                    "evaluation_status",
-                    "rejected_reason",
-                    "sdg",
-                    "response",
-                    [
-                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
-                    ]
-                ],
-                where: {
-                    [Op.and]: [
-                        { sdg: { [Op.like]: whereClauseOfDistrict.sdg } },
-                        db.literal('`team->mentor->organization`.`district` like' + JSON.stringify(whereClauseOfDistrict.district))
-                    ]
-                },
-                include: {
-                    model: team,
                     attributes: [
-                        'team_id',
-                        'team_name',
+                        "challenge_response_id",
+                        "challenge_id",
+                        "initiated_by",
+                        "status",
+                        "evaluated_by",
+                        "evaluated_at",
+                        "submitted_at",
+                        "evaluation_status",
+                        "rejected_reason",
+                        "sdg",
+                        "response",
+                        [
+                            db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                        ]
                     ],
+                    where: {
+                        [Op.and]: [
+                            whereClauseOfSdg,
+                            // db.literal('`team->mentor->organization`.`district` like' + JSON.stringify(whereClauseOfDistrict.district))
+                        ]
+                    },
                     include: {
-                        model: mentor,
+                        model: team,
                         attributes: [
-                            'mentor_id',
-                            'full_name'
+                            'team_id',
+                            'team_name',
                         ],
                         include: {
-                            model: organization,
+                            model: mentor,
                             attributes: [
-                                "district"
-                            ]
+                                'mentor_id',
+                                'full_name'
+                            ],
+                            include: {
+                                where: whereClauseOfDistrict,
+                                model: organization,
+                                attributes: [
+                                    "district"
+                                ]
+                            }
                         }
                     }
-                }
-            });
-            if (!data) {
-                throw badRequest(data.message)
-            };
-            if (data instanceof Error) {
+                });
+                if(!data) {
+                    throw badRequest(data.message)
+                };
+                if(data instanceof Error) {
                 throw data;
             }
             data.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })

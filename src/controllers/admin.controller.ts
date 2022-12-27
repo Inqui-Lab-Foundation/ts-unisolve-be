@@ -43,7 +43,8 @@ export default class AdminController extends BaseController {
             attributes: [
                 "user_id",
                 "username",
-                "full_name"
+                "full_name",
+                "role"
             ], model: user, required: false
         }
         );
