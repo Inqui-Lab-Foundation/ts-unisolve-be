@@ -88,7 +88,7 @@ export default class StudentController extends BaseController {
             let districtFilter: any = {}
             if (district) {
                 districtFilter['whereClause'] = district && typeof district == 'string' && district !== 'All Districts' ? { district } : {}
-                districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
+                districtFilter["liter"] = district && typeof district == 'string' && district !== 'All Districts' ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
             }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
