@@ -9,7 +9,7 @@ import ValidationsHolder from '../validations/validationHolder';
 import { evaluatorSchema, evaluatorUpdateSchema } from '../validations/evaluator.validationa';
 import { evaluator } from '../models/evaluator.model';
 import { user } from '../models/user.model';
-import { badRequest } from 'boom';
+import { badRequest, notFound } from 'boom';
 import db from "../utils/dbconnection.util"
 
 export default class EvaluatorController extends BaseController {
@@ -38,7 +38,7 @@ export default class EvaluatorController extends BaseController {
     protected getData(req: Request, res: Response, next: NextFunction) {
         return super.getData(req, res, next, [],
             [
-                "evaluator_id", "organization_name", "date_of_birth", "city", "district", "mobile", "status",
+                "evaluator_id", "district", "mobile", "status",
             ], {
             attributes: [
                 "user_id",
@@ -46,6 +46,40 @@ export default class EvaluatorController extends BaseController {
                 "full_name"
             ], model: user, required: false }
         );
+    }
+
+    protected async updateData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { model, id } = req.params;
+            if (model) {
+                this.model = model;
+            };
+            const user_id = res.locals.user_id
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const modelLoaded = await this.loadModel(model);
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded)
+            const findEvaluatorDetail = await this.crudService.findOne(modelLoaded, { where: where });
+            if (!findEvaluatorDetail || findEvaluatorDetail instanceof Error) {
+                throw notFound();
+            } else {
+                const evaluatorData = await this.crudService.update(modelLoaded, payload, { where: where });
+                const userData = await this.crudService.update(user, payload, { where: { user_id: findEvaluatorDetail.dataValues.user_id } });
+                if (!evaluatorData || !userData) {
+                    throw badRequest()
+                }
+                if (evaluatorData instanceof Error) {
+                    throw evaluatorData;
+                }
+                if (userData instanceof Error) {
+                    throw userData;
+                }
+                const data = { userData, evaluator };
+                return res.status(200).send(dispatcher(res, data, 'updated'));
+            }
+        } catch (error) {
+            next(error);
+        }
     }
 
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {

@@ -88,7 +88,8 @@ export const constents = {
       'ADMIN': 'ADMIN',
       'EVALUATOR': 'EVALUATOR',
       'MENTOR': 'MENTOR',
-      'STUDENT': 'STUDENT'
+      'STUDENT': 'STUDENT',
+      "EADMIN": "EADMIN"
     },
     default: 'ADMIN'
   },

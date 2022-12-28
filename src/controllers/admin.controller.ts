@@ -6,6 +6,9 @@ import authService from '../services/auth.service';
 import BaseController from './base.controller';
 import ValidationsHolder from '../validations/validationHolder';
 import { user } from '../models/user.model';
+import { admin } from '../models/admin.model';
+import { adminSchema, adminUpdateSchema } from '../validations/admins.validationa';
+import { badRequest, notFound } from 'boom';
 
 export default class AdminController extends BaseController {
     model = "admin";
@@ -16,7 +19,7 @@ export default class AdminController extends BaseController {
         this.path = '/admins';
     }
     protected initializeValidations(): void {
-        this.validations = new ValidationsHolder(null, null);
+        this.validations = new ValidationsHolder(adminSchema, adminUpdateSchema);
     }
     protected initializeRoutes(): void {
         //example route to add
@@ -25,7 +28,6 @@ export default class AdminController extends BaseController {
         this.router.post(`${this.path}/login`, this.login.bind(this));
         this.router.get(`${this.path}/logout`, this.logout.bind(this));
         this.router.put(`${this.path}/changePassword`, this.changePassword.bind(this));
-        // this.router.put(`${this.path}/updatePassword`, this.updatePassword.bind(this));
         super.initializeRoutes();
     }
     protected getData(req: Request, res: Response, next: NextFunction) {
@@ -41,25 +43,61 @@ export default class AdminController extends BaseController {
             attributes: [
                 "user_id",
                 "username",
-                "full_name"
+                "full_name",
+                "role"
             ], model: user, required: false
         }
         );
     }
+
+    protected async updateData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const { model, id } = req.params;
+            if (model) {
+                this.model = model;
+            };
+            const user_id = res.locals.user_id
+            const where: any = {};
+            where[`${this.model}_id`] = req.params.id;
+            const modelLoaded = await this.loadModel(model);
+            const payload = this.autoFillTrackingColumns(req, res, modelLoaded)
+            const findAdminDetail = await this.crudService.findOne(modelLoaded, { where: where });
+            if (!findAdminDetail || findAdminDetail instanceof Error) {
+                throw notFound();
+            } else {
+                const adminData = await this.crudService.update(modelLoaded, payload, { where: where });
+                const userData = await this.crudService.update(user, payload, { where: { user_id: findAdminDetail.dataValues.user_id } });
+                if (!adminData || !userData) {
+                    throw badRequest()
+                }
+                if (adminData instanceof Error) {
+                    throw adminData;
+                }
+                if (userData instanceof Error) {
+                    throw userData;
+                }
+                const data = { userData, admin };
+                return res.status(200).send(dispatcher(res, data, 'updated'));
+            }
+        } catch (error) {
+            next(error);
+        }
+    }
+
     private async register(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         if (!req.body.username || req.body.username === "") req.body.username = req.body.full_name.replace(/\s/g, '');
         if (!req.body.password || req.body.password === "") req.body.password = this.password;
-        if (!req.body.role || req.body.role !== 'ADMIN') {
-            return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
+        if (req.body.role == 'ADMIN' || req.body.role == 'EADMIN') {
+            const result = await this.authService.register(req.body);
+            if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.ADMIN_EXISTS, 406));
+            return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
         }
-        const result = await this.authService.register(req.body);
-        if (result.user_res) return res.status(406).send(dispatcher(res, result.user_res.dataValues, 'error', speeches.EVALUATOR_EXISTS, 406));
-        return res.status(201).send(dispatcher(res, result.profile.dataValues, 'success', speeches.USER_REGISTERED_SUCCESSFULLY, 201));
+        return res.status(406).send(dispatcher(res, null, 'error', speeches.USER_ROLE_REQUIRED, 406));
     }
 
     private async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         let adminDetails: any;
-        req.body['role'] = 'ADMIN'
+        if (req.query.eAdmin && req.query.eAdmin == 'true') { req.body['role'] = 'EADMIN' } else { req.body['role'] = 'ADMIN' }
         const result = await this.authService.login(req.body);
         if (!result) {
             return res.status(404).send(dispatcher(res, result, 'error', speeches.USER_NOT_FOUND));
@@ -98,7 +136,6 @@ export default class AdminController extends BaseController {
             return res.status(202).send(dispatcher(res, result.data, 'accepted', speeches.USER_PASSWORD_CHANGE, 202));
         }
     }
-
     // private async updatePassword(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     //     const result = await this.authService.updatePassword(req.body, res);
     //     if (!result) {
