@@ -155,7 +155,7 @@ export default class MentorController extends BaseController {
             // const current_user = res.locals.user_id; 
             // pagination
             const { page, size, status } = req.query;
-            let condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
+            // let condition = status ? { status: { [Op.like]: `%${status}%` } } : null;
             const { limit, offset } = this.getPagination(page, size);
             const modelClass = await this.loadModel(model).catch(error => {
                 next(error)
@@ -240,7 +240,7 @@ export default class MentorController extends BaseController {
                         where: {
                             [Op.and]: [
                                 whereClauseStatusPart,
-                                condition
+                                // condition
                             ]
                         },
                         include: {

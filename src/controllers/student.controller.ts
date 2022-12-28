@@ -85,9 +85,11 @@ export default class StudentController extends BaseController {
                 boolStatusWhereClauseRequired = true;
             };
             let district: any = req.query.district;
-            let whereClauseOfDistrict: any = district && district !== 'All Districts' ?
-                { district: req.query.district } :
-                { district: `%%` }
+            let districtFilter: any = {}
+            if (district) {
+                districtFilter['whereClause'] = district && typeof district == 'string' && district !== 'All Districts' ? { district } : {}
+                districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
+            }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 data = await this.crudService.findOne(modelClass, {
@@ -156,7 +158,7 @@ export default class StudentController extends BaseController {
                             [Op.and]: [
                                 whereClauseStatusPart,
                                 condition,
-                                // db.literal('`team->mentor->organization`.`district` like' + JSON.stringify(whereClauseOfDistrict.district))
+                                districtFilter.liter
                             ]
                         },
                         include: {
@@ -172,7 +174,8 @@ export default class StudentController extends BaseController {
                                     'full_name'
                                 ],
                                 include: {
-                                    where: whereClauseOfDistrict,
+                                    where: districtFilter.whereClause,
+                                    required: false,
                                     model: organization,
                                     attributes: [
                                         'organization_name',

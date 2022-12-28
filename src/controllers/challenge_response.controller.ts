@@ -78,35 +78,41 @@ export default class ChallengeResponsesController extends BaseController {
                 next(error)
             });
             const where: any = {};
-            let whereClauseEvaluationStatusStatusPart: any = {}
+            let whereClauseStatusPart: any = {}
             let additionalFilter: any = {};
             let districtFilter: any = {};
             let boolStatusWhereClauseEvaluationStatusRequired = false;
             //status filter
             if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
                 if (paramStatus === 'ALL') {
-                    whereClauseEvaluationStatusStatusPart = {};
+                    whereClauseStatusPart = {};
                     boolStatusWhereClauseEvaluationStatusRequired = false;
                 } else {
-                    whereClauseEvaluationStatusStatusPart = { "status": paramStatus };
+                    whereClauseStatusPart = { "status": paramStatus };
                     boolStatusWhereClauseEvaluationStatusRequired = true;
                 }
             } else {
-                whereClauseEvaluationStatusStatusPart = { "status": "SUBMITTED" };
+                whereClauseStatusPart = { "status": "SUBMITTED" };
                 boolStatusWhereClauseEvaluationStatusRequired = true;
             };
             //evaluation status filter
             if (evaluation_status) {
                 if (evaluation_status in constents.evaluation_status.list) {
-                    whereClauseEvaluationStatusStatusPart = { 'evaluation_status': evaluation_status };
+                    whereClauseStatusPart = { 'evaluation_status': evaluation_status };
                 } else {
-                    whereClauseEvaluationStatusStatusPart['evaluation_status'] = null;
+                    whereClauseStatusPart['evaluation_status'] = null;
                 }
             }
-            districtFilter['district'] = district && typeof district == 'string' ? district : `%%`
-            additionalFilter['sdg'] = { [Op.like]: sdg && typeof sdg == 'string' ? sdg : `%%` }
-            additionalFilter['rejected_reason'] = { [Op.like]: rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : `%%` }
-            // console.log(whereClauseEvaluationStatusStatusPart, additionalFilter);
+            if (sdg) {
+                additionalFilter = sdg && typeof sdg == 'string' ? { sdg } : {}
+            }
+            if (rejected_reason) {
+                additionalFilter = rejected_reason && typeof rejected_reason == 'string' ? { rejected_reason } : {}
+            }
+            if (district) {
+                districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
+                districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
+            }
             if (id) {
                 where[`${this.model}_id`] = req.params.id;
                 // console.log(where)
@@ -173,9 +179,9 @@ export default class ChallengeResponsesController extends BaseController {
                         where: {
                             [Op.and]: [
                                 condition,
-                                whereClauseEvaluationStatusStatusPart,
+                                whereClauseStatusPart,
                                 additionalFilter,
-                                // db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
+                                districtFilter.liter
                             ]
                         },
                         include: {
@@ -191,7 +197,8 @@ export default class ChallengeResponsesController extends BaseController {
                                     'full_name'
                                 ],
                                 include: {
-                                    where: districtFilter,
+                                    where: districtFilter.whereClauseForDistrict,
+                                    required: false,
                                     model: organization,
                                     attributes: [
                                         "district"
@@ -201,7 +208,7 @@ export default class ChallengeResponsesController extends BaseController {
                         },
                         limit, offset,
                     })
-                    // console.log(responseOfFindAndCountAll);
+                    console.log(responseOfFindAndCountAll);
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
                 } catch (error: any) {
@@ -746,9 +753,19 @@ export default class ChallengeResponsesController extends BaseController {
                     whereClauseEvaluationStatus['evaluation_status'] = null;
                 }
             }
-            districtFilter['district'] = district && typeof district == 'string' ? district : `%%`
-            additionalFilter['sdg'] = { [Op.like]: sdg && typeof sdg == 'string' ? sdg : `%%` }
-            additionalFilter['rejected_reason'] = { [Op.like]: rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : `%%` }
+            if (sdg) {
+                additionalFilter = sdg && typeof sdg == 'string' ? { sdg } : {}
+            }
+            if (rejected_reason) {
+                additionalFilter = rejected_reason && typeof rejected_reason == 'string' ? { rejected_reason } : {}
+            }
+            if (district) {
+                districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
+                districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
+            }
+            // districtFilter['district'] = district && typeof district == 'string' ? district : `%%`
+            // additionalFilter['sdg'] = { [Op.like]: sdg && typeof sdg == 'string' ? sdg : `%%` }
+            // additionalFilter['rejected_reason'] = { [Op.like]: rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : `%%` }
             const data = await this.crudService.findAll(challenge_response, {
                 attributes: [
                     "challenge_response_id",
@@ -774,7 +791,7 @@ export default class ChallengeResponsesController extends BaseController {
                         { evaluated_by: evaluator_id },
                         whereClauseEvaluationStatus,
                         additionalFilter,
-                        // db.literal('`team->mentor->organization`.`district` like ' + JSON.stringify(districtFilter.district))
+                        districtFilter.liter
                     ]
                 },
                 include: {
@@ -790,7 +807,8 @@ export default class ChallengeResponsesController extends BaseController {
                             'full_name'
                         ],
                         include: {
-                            where: districtFilter,
+                            where: districtFilter.whereClauseForDistrict,
+                            required: false,
                             model: organization,
                             attributes: [
                                 "district"
@@ -816,8 +834,14 @@ export default class ChallengeResponsesController extends BaseController {
             const { district, sdg } = req.query
             let whereClauseOfDistrict: any = {}
             let whereClauseOfSdg: any = {}
-            whereClauseOfDistrict['district'] = { [Op.like]: district && typeof district == 'string' ? district : `%%` }
-            whereClauseOfSdg['sdg'] = { [Op.like]: sdg && typeof district == 'string' ? sdg : `%%` }
+            if (district) {
+                whereClauseOfDistrict['whereClause'] = district && typeof district == 'string' ? { district } : {}
+                whereClauseOfDistrict["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
+            }
+            if (sdg) {
+                whereClauseOfSdg = sdg && typeof sdg == 'string' ? { sdg } : {}
+            }
+            // whereClauseOfSdg['sdg'] = { [Op.like]: sdg && typeof district == 'string' ? sdg : `%%` }
             const data = await this.crudService.findAll(challenge_response, {
                     attributes: [
                         "challenge_response_id",
@@ -838,7 +862,7 @@ export default class ChallengeResponsesController extends BaseController {
                     where: {
                         [Op.and]: [
                             whereClauseOfSdg,
-                            // db.literal('`team->mentor->organization`.`district` like' + JSON.stringify(whereClauseOfDistrict.district))
+                            whereClauseOfDistrict.liter
                         ]
                     },
                     include: {
@@ -854,7 +878,8 @@ export default class ChallengeResponsesController extends BaseController {
                                 'full_name'
                             ],
                             include: {
-                                where: whereClauseOfDistrict,
+                                where: whereClauseOfDistrict.whereClause,
+                                required: false,
                                 model: organization,
                                 attributes: [
                                     "district"
