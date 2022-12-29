@@ -39,6 +39,13 @@ export const constents = {
     },
     default: 'ACTIVE'
   },
+  evaluation_process_status_flags: {
+    list: {
+      'ACCEPT_REJECT': 'ACCEPT_REJECT',
+      'RATING_SCALE': 'RATING_SCALE'
+    },
+    default: 'ACCEPT_REJECT'
+  },
   tut_videos_type_flags: {
     list: {
       'ALL': 'ALL',
