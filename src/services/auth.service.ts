@@ -149,6 +149,9 @@ export default class authService {
                 case 'ADMIN':
                     profile = await this.crudService.create(admin, whereClass);
                     break;
+                case 'EADMIN':
+                    profile = await this.crudService.create(admin, whereClass);
+                    break;
                 default:
                     profile = null;
             }

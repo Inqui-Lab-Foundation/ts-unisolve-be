@@ -33,7 +33,7 @@ export default class CRUDController implements IController {
     }
 
     protected initializeStatusFlags() {
-        this.statusFlagsToUse = constents.common_status_flags;
+        this.statusFlagsToUse = constents.common_status_flags.list;
     }
 
 

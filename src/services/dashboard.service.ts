@@ -189,7 +189,7 @@ export default class DashboardService extends BaseService {
             const challengeReg = await this.crudService.findAll(challenge_response, {
                 where: { 
                     team_id: teamIdInDistrict,
-                    status: 'ACTIVE'
+                    status: 'SUBMITTED'
                 }
             });
 

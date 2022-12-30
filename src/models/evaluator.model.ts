@@ -10,10 +10,6 @@ export class evaluator extends Model<InferAttributes<evaluator>, InferCreationAt
     declare evaluator_id: CreationOptional<number>;
     declare user_id: string;
     declare full_name: string;
-    declare date_of_birth: Date;
-    declare qualification: string;
-    declare organization_name: string;
-    declare city: string;
     declare mobile: string;
     declare district: string;
     declare status: Enumerator;
@@ -29,10 +25,6 @@ export class evaluator extends Model<InferAttributes<evaluator>, InferCreationAt
             autoIncrement: true,
             primaryKey: true,
         },
-        organization_name: {
-            type: DataTypes.STRING,
-            allowNull: true,
-        },
         user_id: {
             type: DataTypes.INTEGER,
             allowNull: false
@@ -40,17 +32,6 @@ export class evaluator extends Model<InferAttributes<evaluator>, InferCreationAt
         full_name: {
             type: DataTypes.STRING,
             allowNull: false,
-        },
-        date_of_birth: {
-            type: DataTypes.DATE,
-            allowNull: true
-        },
-        qualification: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
-        city: {
-            type: DataTypes.STRING
         },
         district: {
             type: DataTypes.STRING
