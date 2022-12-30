@@ -84,7 +84,7 @@ try {
         new TutorialVideoController,
         new ReportController,
         new CertificateDownloadController,
-        new ChallengeRatingController
+        new ChallengeRatingController,
         new InstructionController,
         new EvaluationProcess
     ], Number(process.env.APP_PORT));
