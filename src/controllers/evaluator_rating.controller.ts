@@ -1,19 +1,19 @@
-import { challengeRatingSchema, challengeRatingUpdateSchema } from "../validations/challenge_rating.validations";
+import { challengeRatingSchema, challengeRatingUpdateSchema } from "../validations/evaluator_rating.validations";
 import ValidationsHolder from "../validations/validationHolder";
 import BaseController from "./base.controller";
 
-export default class ChallengeRatingController extends BaseController {
+export default class EvaluatorRatingController extends BaseController {
 
-    model = "challenge_rating";
+    model = "evaluator_rating";
 
     protected initializePath(): void {
-        this.path = '/challengeRating';
+        this.path = '/evaluatorRating';
     }
 
     protected initializeValidations(): void {
         this.validations = new ValidationsHolder(challengeRatingSchema, challengeRatingUpdateSchema);
     }
-    
+
     protected initializeRoutes(): void {
         //example route to add 
         // this.router.post(this.path+"/:id/response", this.submitResponse.bind(this));

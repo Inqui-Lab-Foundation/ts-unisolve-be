@@ -5,27 +5,28 @@ import { challenge_response } from './challenge_response.model';
 import { evaluator } from './evaluator.model';
 
 
-export class challenge_rating extends Model<InferAttributes<challenge_rating>, InferCreationAttributes<challenge_rating>> {
-    declare challenge_evaluator_id: CreationOptional<number>;
+export class evaluator_rating extends Model<InferAttributes<evaluator_rating>, InferCreationAttributes<evaluator_rating>> {
+    declare evaluator_rating_id: CreationOptional<number>;
     declare evaluator_id: ForeignKey<number>;
     declare challenge_response_id: string;
     declare level: Enumerator;
-    declare param_1: string;
-    declare param_2: string;
-    declare param_3: string;
-    declare param_4: string;
-    declare param_5: string;
-    declare overall: string;
-    declare submitted_by: number;
+    declare param_1: number;
+    declare param_2: number;
+    declare param_3: number;
+    declare param_4: number;
+    declare param_5: number;
+    declare comments: string;
+    declare overall: number;
+    declare submitted_at: Date;
     declare status: Enumerator;
     declare created_by: number;
     declare created_at: Date;
     declare updated_by: number;
     declare updated_at: Date;
 
-    static modelTableName = "challenge_ratings";
+    static modelTableName = "evaluator_ratings";
     static structure: any = {
-        challenge_rating_id: {
+        evaluator_rating_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
@@ -36,6 +37,7 @@ export class challenge_rating extends Model<InferAttributes<challenge_rating>, I
         },
         challenge_response_id: {
             type: DataTypes.INTEGER,
+            unique: true,
             allowNull: false
         },
         status: {
@@ -43,42 +45,45 @@ export class challenge_rating extends Model<InferAttributes<challenge_rating>, I
             defaultValue: constents.common_status_flags.default
         },
         level: {
-            type: DataTypes.ENUM(...Object.values(constents.challenge_rating_level_flags.list)),
+            type: DataTypes.STRING,
             allowNull: false,
-            defaultValue: constents.challenge_rating_level_flags.default
         },
         param_1: {
-            type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: '0'
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
         },
         param_2: {
-            type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: '0'
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
         },
         param_3: {
-            type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: '0'
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
         },
         param_4: {
-            type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: '0'
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
         },
         param_5: {
-            type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: '0'
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        },
+        comments: {
+            type: DataTypes.TEXT('long'),
+            allowNull: true
         },
         overall: {
-            type: DataTypes.STRING,
+            type: DataTypes.DECIMAL,
             allowNull: true,
-            defaultValue: '0'
+            defaultValue: 0
         },
-        submitted_by: {
-            type: DataTypes.INTEGER,
+        submitted_at: {
+            type: DataTypes.DATE,
             allowNull: true
         },
         created_by: {
@@ -104,18 +109,18 @@ export class challenge_rating extends Model<InferAttributes<challenge_rating>, I
         }
     };
 }
-challenge_rating.init(
-    challenge_rating.structure,
+evaluator_rating.init(
+    evaluator_rating.structure,
     {
         sequelize: db,
-        tableName: challenge_rating.modelTableName,
+        tableName: evaluator_rating.modelTableName,
         timestamps: true,
         updatedAt: 'updated_at',
         createdAt: 'created_at',
     }
 );
 
-challenge_response.belongsTo(challenge_rating, { foreignKey: 'challenge_response_id' });
-challenge_rating.hasMany(challenge_response, { foreignKey: 'challenge_response_id' });
-challenge_rating.belongsTo(evaluator, { foreignKey: 'evaluator_id' });
-challenge_rating.hasMany(evaluator, { foreignKey: 'evaluator_id' });
+challenge_response.belongsTo(evaluator_rating, { foreignKey: 'challenge_response_id' });
+evaluator_rating.hasMany(challenge_response, { foreignKey: 'challenge_response_id' });
+evaluator_rating.belongsTo(evaluator, { foreignKey: 'evaluator_id' });
+evaluator_rating.hasMany(evaluator, { foreignKey: 'evaluator_id' });

@@ -74,7 +74,7 @@ export const constents = {
     },
     default: 'HARD'
   },
-  challenge_rating_level_flags: {
+  evaluator_rating_level_flags: {
     list: {
       '2': '2',
       '3': '3',
@@ -181,7 +181,7 @@ export const constents = {
     },
     default: "ALL"
   },
-  translations_flags:{
+  translations_flags: {
     default_locale: "en"
   },
   default_image_path: "/images/default.jpg",
@@ -204,34 +204,35 @@ export const constents = {
     },
     default: '1'
   },
-  TRANSLATION_CONFIG:{
-    table_column : {
-      "quiz_questions" : {
-        "primary_key" : "quiz_question_id",
-        "columns" : [
-        'question',
-        'option_a',
-        'option_b',
-        'option_c',
-        'option_d',
-        'correct_ans',
-        'question_image',
-        'question_icon',
-        'msg_ans_correct',
-        'msg_ans_wrong',
-        'ar_image_ans_correct',
-        'ar_video_ans_correct',
-        'accimg_ans_correct',
-        'ar_image_ans_wrong',
-        'ar_video_ans_wrong',
-        'accimg_ans_wrong',
-      ]}
+  TRANSLATION_CONFIG: {
+    table_column: {
+      "quiz_questions": {
+        "primary_key": "quiz_question_id",
+        "columns": [
+          'question',
+          'option_a',
+          'option_b',
+          'option_c',
+          'option_d',
+          'correct_ans',
+          'question_image',
+          'question_icon',
+          'msg_ans_correct',
+          'msg_ans_wrong',
+          'ar_image_ans_correct',
+          'ar_video_ans_correct',
+          'accimg_ans_correct',
+          'ar_image_ans_wrong',
+          'ar_video_ans_wrong',
+          'accimg_ans_wrong',
+        ]
+      }
     }
   },
-  SEQUELIZE_FLAGS:{
-    DEFAULT_EXCLUDE_SCOPE:['created_at','created_by','updated_at','updated_by','status'],
-    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS:['created_at','created_by','updated_at','updated_by'],
-    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS:['updated_at','updated_by'],
-    WITH_DEBUGATTRS:[]
+  SEQUELIZE_FLAGS: {
+    DEFAULT_EXCLUDE_SCOPE: ['created_at', 'created_by', 'updated_at', 'updated_by', 'status'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS: ['created_at', 'created_by', 'updated_at', 'updated_by'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS: ['updated_at', 'updated_by'],
+    WITH_DEBUGATTRS: []
   }
 };
