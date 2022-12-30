@@ -38,7 +38,7 @@ import TutorialVideoController from "./controllers/tutorial_video.controller";
 import ReportController from "./controllers/report.controller";
 import CertificateDownloadController from "./controllers/ceritificate_download.controller";
 import ChallengeResponsesController from "./controllers/challenge_response.controller";
-import ChallengeRatingController from "./controllers/evaluator_rating.controller";
+import EvaluatorRatingController from "./controllers/evaluator_rating.controller";
 import InstructionController from "./controllers/instructions.controller";
 import EvaluationProcess from "./controllers/evaluation_process.controller";
 
@@ -84,9 +84,9 @@ try {
         new TutorialVideoController,
         new ReportController,
         new CertificateDownloadController,
-        new ChallengeRatingController,
+        new EvaluatorRatingController,
         new InstructionController,
-        new EvaluationProcess
+        new EvaluationProcess,
     ], Number(process.env.APP_PORT));
     // starting app
     app.listen();
