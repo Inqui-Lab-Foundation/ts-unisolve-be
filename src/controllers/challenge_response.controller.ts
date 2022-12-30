@@ -42,6 +42,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.post(this.path + "/:id/initiate/", validationMiddleware(initiateIdeaSchema), this.initiateIdea.bind(this));
         this.router.post(this.path + "/fileUpload", this.handleAttachment.bind(this));
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
+        this.router.get(this.path + "/updateSubmission", this.submission.bind(this));
         this.router.get(this.path + '/fetchRandomChallenge', this.getRandomChallenge.bind(this));
         this.router.put(this.path + '/updateEntry/:id', validationMiddleware(UpdateAnyFieldSchema), this.updateAnyFields.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
@@ -602,6 +603,24 @@ export default class ChallengeResponsesController extends BaseController {
                 result['attachments'] = attachments;
                 result['errors'] = errs;
             }
+            res.status(200).send(dispatcher(res, result));
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async submission(req: Request, res: Response, next: NextFunction) {
+        try {
+            let collectAllChallengeResponseIds: any = [];
+            const findChallengeIds = await this.crudService.findAll(challenge_response);
+            findChallengeIds.forEach((idea: any) => collectAllChallengeResponseIds.push(idea.dataValues.challenge_response_id));
+            let updateStatusToSubmitted = await this.crudService.update(challenge_response, { status: "SUBMITTED" }, {
+                where: {
+                    challenge_response_id: {
+                        [Op.in]: collectAllChallengeResponseIds
+                    }
+                }
+            });
+            let result: any = updateStatusToSubmitted;
             res.status(200).send(dispatcher(res, result));
         } catch (err) {
             next(err)
