@@ -66,6 +66,7 @@ export default class ChallengeResponsesController extends BaseController {
             const district: any = req.query.district;
             const sdg: any = req.query.sdg;
             const rejected_reason: any = req.query.rejected_reason;
+            const evaluator_id: any = req.query.evaluator_id;
             if (model) {
                 this.model = model;
             };
@@ -110,6 +111,9 @@ export default class ChallengeResponsesController extends BaseController {
             }
             if (rejected_reason) {
                 additionalFilter = rejected_reason && typeof rejected_reason == 'string' ? { rejected_reason } : {}
+            }
+            if (evaluator_id) {
+                additionalFilter = evaluator_id && typeof evaluator_id == 'string' ? { evaluated_by: evaluator_id } : {}
             }
             if (district) {
                 districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
@@ -210,7 +214,7 @@ export default class ChallengeResponsesController extends BaseController {
                         },
                         limit, offset,
                     })
-                    console.log(responseOfFindAndCountAll);
+                    // console.log(responseOfFindAndCountAll);
                     const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
                     data = result;
                 } catch (error: any) {
@@ -239,6 +243,7 @@ export default class ChallengeResponsesController extends BaseController {
             let evaluator_id: any;
             let whereClause: any = {};
             let whereClauseStatusPart: any = {}
+            let attributesNeedFetch: any;
 
             let user_id = res.locals.user_id;
             if (!user_id) throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
@@ -262,31 +267,39 @@ export default class ChallengeResponsesController extends BaseController {
             let level = req.query.level;
 
             if (level) {
-                console.log(level);
                 if (level && typeof level == 'string') {
                     const noOfEvaluation = await this.crudService.findAll(evaluator_rating, {
                         where: { evaluator_id: evaluator_user_id }
                     });
+                    attributesNeedFetch = [
+                        `challenge_response_id`,
+                        `challenge_id`,
+                        `others`,
+                        `sdg`,
+                        `team_id`,
+                        `response`,
+                        `initiated_by`,
+                        "created_at",
+                        "submitted_at",
+                        `status`,
+                        'evaluation_status',
+                        "evaluated_at",
+                        'evaluated_by',
+                        [
+                            db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.status = 'SUBMITTED' and idea.evaluation_status = 'SELECTEDROUND1')`),
+                            'openIdeas'
+                        ],
+                        [
+                            db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                        ],
+                    ],
+                        console.log(noOfEvaluation.length);
                     if (noOfEvaluation.length == 0) {
-                        whereClause = {
-                            [Op.and]: [
-                                whereClauseStatusPart,
-                                { evaluation_status: "SELECTEDROUND1" }
-                            ]
-                        }
-                    }
+                        whereClause = { [Op.and]: [whereClauseStatusPart, { evaluation_status: "SELECTEDROUND1" }] }
+                    } else whereClause = { [Op.and]: [whereClauseStatusPart, { evaluation_status: "SELECTEDROUND1" }] }
                 }
             } else {
-                whereClause = {
-                    [Op.and]: [
-                        whereClauseStatusPart,
-                        { evaluation_status: 'null' }
-                    ]
-                }
-            }
-
-            challengeResponse = await this.crudService.findOne(challenge_response, {
-                attributes: [
+                attributesNeedFetch = [
                     `challenge_response_id`,
                     `challenge_id`,
                     `others`,
@@ -297,6 +310,9 @@ export default class ChallengeResponsesController extends BaseController {
                     "created_at",
                     "submitted_at",
                     `status`,
+                    'evaluation_status',
+                    "evaluated_at",
+                    'evaluated_by',
                     [
                         db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null AND idea.status = 'SUBMITTED')`),
                         'openIdeas'
@@ -305,6 +321,15 @@ export default class ChallengeResponsesController extends BaseController {
                         db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
                     ],
                 ],
+                    whereClause = {
+                        [Op.and]: [
+                            whereClauseStatusPart,
+                            { evaluation_status: { [Op.is]: null } }
+                        ]
+                    }
+            }
+            challengeResponse = await this.crudService.findOne(challenge_response, {
+                attributes: attributesNeedFetch,
                 where: whereClause,
                 order: db.literal('rand()'), limit: 1
             });
