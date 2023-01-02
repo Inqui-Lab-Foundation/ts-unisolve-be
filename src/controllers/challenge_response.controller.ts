@@ -290,7 +290,7 @@ export default class ChallengeResponsesController extends BaseController {
                             'openIdeas'
                         ],
                         [
-                            db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                            db.literal(`(SELECT count(*) FROM evaluator_ratings as idea where idea.evaluated_id = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
                         ],
                     ],
                         console.log(noOfEvaluation.length);
@@ -310,9 +310,6 @@ export default class ChallengeResponsesController extends BaseController {
                     "created_at",
                     "submitted_at",
                     `status`,
-                    'evaluation_status',
-                    "evaluated_at",
-                    'evaluated_by',
                     [
                         db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null AND idea.status = 'SUBMITTED')`),
                         'openIdeas'
