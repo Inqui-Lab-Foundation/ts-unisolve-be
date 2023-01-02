@@ -4,6 +4,7 @@ import { speeches } from '../configs/speeches.config';
 
 export const evaluationProcessSchema = Joi.object().keys({
     level_name: Joi.string().trim().min(1),
+    district: Joi.string(),
     no_of_evaluation: Joi.number(),
     eval_schema: Joi.string().valid(...Object.values(constents.evaluation_process_status_flags.list)),
     status: Joi.string().valid(...Object.values(constents.common_status_flags.list))
