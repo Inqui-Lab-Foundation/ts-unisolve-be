@@ -521,7 +521,7 @@ export default class ChallengeResponsesController extends BaseController {
 
             const user_id = res.locals.user_id
             const where: any = {};
-            where[`${this.model} _id`] = req.params.id;
+            where[`${this.model}_id`] = req.params.id;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             payload['evaluated_by'] = user_id
