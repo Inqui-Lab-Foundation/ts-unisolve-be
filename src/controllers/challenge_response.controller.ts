@@ -1,6 +1,6 @@
 import Boom, { badData, badRequest, internal, notAcceptable, notFound, unauthorized } from "boom";
 import { NextFunction, Request, Response } from "express";
-import { Op } from "sequelize";
+import { Op, QueryTypes } from "sequelize";
 import db from "../utils/dbconnection.util";
 import { constents } from "../configs/constents.config";
 import { speeches } from "../configs/speeches.config";
@@ -26,6 +26,7 @@ import { team } from "../models/team.model";
 import { mentor } from "../models/mentor.model";
 import { organization } from "../models/organization.model";
 import { evaluator_rating } from "../models/evaluator_rating.model";
+import { evaluation_process } from "../models/evaluation_process.model";
 
 export default class ChallengeResponsesController extends BaseController {
 
@@ -266,77 +267,73 @@ export default class ChallengeResponsesController extends BaseController {
 
             let level = req.query.level;
 
-            if (level) {
-                if (level && typeof level == 'string') {
-                    const noOfEvaluation = await this.crudService.findAll(evaluator_rating, {
-                        where: { evaluator_id: evaluator_user_id }
-                    });
-                    attributesNeedFetch = [
-                        `challenge_response_id`,
-                        `challenge_id`,
-                        `others`,
-                        `sdg`,
-                        `team_id`,
-                        `response`,
-                        `initiated_by`,
-                        "created_at",
-                        "submitted_at",
-                        `status`,
-                        'evaluation_status',
-                        "evaluated_at",
-                        'evaluated_by',
-                        [
-                            db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.status = 'SUBMITTED' and idea.evaluation_status = 'SELECTEDROUND1')`),
-                            'openIdeas'
+            if (level && typeof level == 'string') {
+                switch (level) {
+                    case 'L1':
+                        attributesNeedFetch = [
+                            `challenge_response_id`,
+                            `challenge_id`,
+                            `others`,
+                            `sdg`,
+                            `team_id`,
+                            `response`,
+                            `initiated_by`,
+                            "created_at",
+                            "submitted_at",
+                            `status`,
+                            [
+                                db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.status = 'SUBMITTED')`),
+                                'overAllIdeas'
+                            ],
+                            [
+                                db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null AND idea.status = 'SUBMITTED')`),
+                                'openIdeas'
+                            ],
+                            [
+                                db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                            ],
                         ],
-                        [
-                            db.literal(`(SELECT count(*) FROM evaluator_ratings as idea where idea.evaluated_id = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
-                        ],
-                    ],
-                        console.log(noOfEvaluation.length);
-                    if (noOfEvaluation.length == 0) {
-                        whereClause = { [Op.and]: [whereClauseStatusPart, { evaluation_status: "SELECTEDROUND1" }] }
-                    } else whereClause = { [Op.and]: [whereClauseStatusPart, { evaluation_status: "SELECTEDROUND1" }] }
+                            whereClause = {
+                                [Op.and]: [
+                                    whereClauseStatusPart,
+                                    { evaluation_status: { [Op.is]: null } }
+                                ]
+                            }
+                        challengeResponse = await this.crudService.findOne(challenge_response, {
+                            attributes: attributesNeedFetch,
+                            where: whereClause,
+                            order: db.literal('rand()'), limit: 1
+                        });
+                        if (challengeResponse instanceof Error) {
+                            throw challengeResponse
+                        }
+                        if (!challengeResponse) {
+                            throw notFound("All challenge has been accepted, no more challenge to display");
+                        };
+                        challengeResponse.dataValues.response = JSON.parse(challengeResponse.dataValues.response)
+                        break;
+                    case 'L2':
+                        let activeDistrict = await this.crudService.findOne(evaluation_process, {
+                            attributes: ['district'], where: { status: 'ACTIVE' }
+                        });
+                        let districts = activeDistrict.dataValues.district;
+                        if (districts && districts !== null) {
+                            challengeResponse = await db.query(`SELECT challenge_responses.challenge_response_id, challenge_responses.challenge_id, challenge_responses.sdg, challenge_responses.team_id, challenge_responses.response, challenge_responses.initiated_by,  challenge_responses.created_at, challenge_responses.submitted_at,    challenge_responses.status,    (SELECT COUNT(*) FROM challenge_responses AS idea WHERE idea.evaluation_status = 'SELECTEDROUND1') AS 'overAllIdeas', (SELECT COUNT(*) FROM l1_accepted) AS 'openIdeas', (SELECT COUNT(*) FROM evaluator_ratings AS A WHERE A.evaluator_id = ${evaluator_user_id.toString()}) AS 'evaluatedIdeas' FROM l1_accepted AS l1_accepted LEFT OUTER JOIN challenge_responses AS challenge_responses ON l1_accepted.challenge_response_id = challenge_responses.challenge_response_id WHERE  district IN (${districts}) AND NOT FIND_IN_SET(${evaluator_user_id.toString()}, l1_accepted.evals) ORDER BY RAND() LIMIT 1`, { type: QueryTypes.SELECT })
+                        } else {
+                            challengeResponse = await db.query(`SELECT challenge_responses.challenge_response_id, challenge_responses.challenge_id, challenge_responses.sdg, challenge_responses.team_id, challenge_responses.response, challenge_responses.initiated_by,  challenge_responses.created_at, challenge_responses.submitted_at,    challenge_responses.status,    (SELECT COUNT(*) FROM challenge_responses AS idea WHERE idea.evaluation_status = 'SELECTEDROUND1') AS 'overAllIdeas', (SELECT COUNT(*) FROM l1_accepted) AS 'openIdeas', (SELECT COUNT(*) FROM evaluator_ratings AS A WHERE A.evaluator_id = ${evaluator_user_id.toString()}) AS 'evaluatedIdeas' FROM l1_accepted AS l1_accepted LEFT OUTER JOIN challenge_responses AS challenge_responses ON l1_accepted.challenge_response_id = challenge_responses.challenge_response_id WHERE NOT FIND_IN_SET(${evaluator_user_id.toString()}, l1_accepted.evals) ORDER BY RAND() LIMIT 1`, { type: QueryTypes.SELECT });
+                        }
+                        if (challengeResponse instanceof Error) {
+                            throw challengeResponse
+                        }
+                        if (!challengeResponse) {
+                            throw notFound("All challenge has been rated, no more challenge to display");
+                        };
+                        challengeResponse[0].response = JSON.parse(challengeResponse[0].response)
+                        break;
+                    default:
+                        break;
                 }
-            } else {
-                attributesNeedFetch = [
-                    `challenge_response_id`,
-                    `challenge_id`,
-                    `others`,
-                    `sdg`,
-                    `team_id`,
-                    `response`,
-                    `initiated_by`,
-                    "created_at",
-                    "submitted_at",
-                    `status`,
-                    [
-                        db.literal(`( SELECT count(*) FROM challenge_responses as idea where idea.evaluation_status is null AND idea.status = 'SUBMITTED')`),
-                        'openIdeas'
-                    ],
-                    [
-                        db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
-                    ],
-                ],
-                    whereClause = {
-                        [Op.and]: [
-                            whereClauseStatusPart,
-                            { evaluation_status: { [Op.is]: null } }
-                        ]
-                    }
             }
-            challengeResponse = await this.crudService.findOne(challenge_response, {
-                attributes: attributesNeedFetch,
-                where: whereClause,
-                order: db.literal('rand()'), limit: 1
-            });
-            if (challengeResponse instanceof Error) {
-                throw challengeResponse
-            }
-            if (!challengeResponse) {
-                throw notFound("All challenge has been accepted, no more challenge to display");
-            };
-            challengeResponse.dataValues.response = JSON.parse(challengeResponse.dataValues.response)
             return res.status(200).send(dispatcher(res, challengeResponse, 'success'));
         } catch (error) {
             next(error);
@@ -524,7 +521,7 @@ export default class ChallengeResponsesController extends BaseController {
 
             const user_id = res.locals.user_id
             const where: any = {};
-            where[`${this.model}_id`] = req.params.id;
+            where[`${this.model} _id`] = req.params.id;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             payload['evaluated_by'] = user_id
@@ -549,7 +546,7 @@ export default class ChallengeResponsesController extends BaseController {
             };
             const user_id = res.locals.user_id
             const where: any = {};
-            where[`${this.model}_id`] = req.params.id;
+            where[`${this.model} _id`] = req.params.id;
             const modelLoaded = await this.loadModel(model);
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             const data = await this.crudService.update(modelLoaded, payload, { where: where });
