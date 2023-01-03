@@ -259,7 +259,7 @@ export default class ChallengeResponsesController extends BaseController {
                 whereClauseStatusPart = { "status": paramStatus };
                 boolStatusWhereClauseRequired = true;
             } else {
-                whereClauseStatusPart = { "status": "DRAFT" };
+                whereClauseStatusPart = { "status": "SUBMITTED" };
                 boolStatusWhereClauseRequired = true;
             };
 
