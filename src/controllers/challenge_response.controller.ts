@@ -25,8 +25,8 @@ import StudentService from "../services/students.service";
 import { team } from "../models/team.model";
 import { mentor } from "../models/mentor.model";
 import { organization } from "../models/organization.model";
-import { evaluator_rating } from "../models/evaluator_rating.model";
 import { evaluation_process } from "../models/evaluation_process.model";
+import { evaluator_rating } from "../models/evaluator_rating.model";
 
 export default class ChallengeResponsesController extends BaseController {
 
@@ -56,7 +56,6 @@ export default class ChallengeResponsesController extends BaseController {
     protected async getData(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
             let user_id = res.locals.user_id;
-            let appendLevelResult: any;
             let { team_id } = req.query;
             if (!user_id) {
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS)
@@ -77,25 +76,6 @@ export default class ChallengeResponsesController extends BaseController {
             let condition: any = {};
             if (team_id) {
                 condition = { team_id };
-                appendLevelResult = {
-                    model: evaluator_rating,
-                    required: false,
-                    attributes: [
-                        'evaluator_rating_id',
-                        'evaluator_id',
-                        'challenge_response_id',
-                        'status',
-                        'level',
-                        'param_1',
-                        'param_2',
-                        'param_3',
-                        'param_4',
-                        'param_5',
-                        'comments',
-                        'overall',
-                        'submitted_at'
-                    ]
-                }
             }
             const { limit, offset } = this.getPagination(page, size);
             const modelClass = await this.loadModel(model).catch(error => {
@@ -212,6 +192,30 @@ export default class ChallengeResponsesController extends BaseController {
                             ]
                         },
                         include: [{
+                            model: evaluator_rating,
+                            required: false,
+                            // group: ['challenge_response_id'],
+                            // having: [[Op.gt]: ['count('challenge_response_id')' > 2]],
+                            attributes: [
+                                'evaluator_rating_id',
+                                'evaluator_id',
+                                'challenge_response_id',
+                                'status',
+                                'level',
+                                'param_1',
+                                'param_2',
+                                'param_3',
+                                'param_4',
+                                'param_5',
+                                'comments',
+                                'overall',
+                                'submitted_at',
+                                "created_at",
+                                [
+                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
+                                ]
+                            ]
+                        }, {
                             model: team,
                             attributes: [
                                 'team_id',
@@ -232,7 +236,7 @@ export default class ChallengeResponsesController extends BaseController {
                                     ]
                                 }
                             }
-                        }, appendLevelResult],
+                        }],
                         limit, offset,
                     })
                     console.log(responseOfFindAndCountAll);
@@ -345,7 +349,7 @@ export default class ChallengeResponsesController extends BaseController {
                         }
                         const evaluatedIdeas = await db.query(`SELECT COUNT(*) as evaluatedIdeas FROM evaluator_ratings AS A WHERE A.evaluator_id = ${evaluator_user_id.toString()}`, { type: QueryTypes.SELECT })
                         let throwMessage = {
-                            message: 'All challenge has been rated, no more challenge to display', 
+                            message: 'All challenge has been rated, no more challenge to display',
                             //@ts-ignore
                             evaluatedIdeas: evaluatedIdeas[0].evaluatedIdeas
                         };
@@ -834,6 +838,7 @@ export default class ChallengeResponsesController extends BaseController {
             const district: any = req.query.district;
             const sdg: any = req.query.sdg;
             const rejected_reason: any = req.query.rejected_reason;
+            const level: any = req.query.level;
             if (!evaluator_id) {
                 throw badRequest(speeches.TEAM_NAME_ID)
             };
@@ -882,7 +887,26 @@ export default class ChallengeResponsesController extends BaseController {
                         districtFilter.liter
                     ]
                 },
-                include: {
+                include: [{
+                    model: evaluator_rating,
+                    // where: { evaluator_id },
+                    attributes: [
+                        'evaluator_rating_id',
+                        'evaluator_id',
+                        'challenge_response_id',
+                        'status',
+                        'level',
+                        'param_1',
+                        'param_2',
+                        'param_3',
+                        'param_4',
+                        'param_5',
+                        'comments',
+                        'overall',
+                        'submitted_at'
+                    ],
+                    required: false,
+                }, {
                     model: team,
                     attributes: [
                         'team_id',
@@ -903,7 +927,7 @@ export default class ChallengeResponsesController extends BaseController {
                             ]
                         }
                     }
-                }
+                }],
             });
             if (!data) {
                 throw badRequest(data.message)
