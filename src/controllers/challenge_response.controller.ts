@@ -339,15 +339,22 @@ export default class ChallengeResponsesController extends BaseController {
                         let districts = activeDistrict.dataValues.district
                         if (districts !== null) {
                             let districtsArray = districts.replace(/,/g, "','")
-                            challengeResponse = await db.query("SELECT challenge_responses.challenge_response_id, challenge_responses.challenge_id, challenge_responses.sdg, challenge_responses.team_id, challenge_responses.response, challenge_responses.initiated_by,  challenge_responses.created_at, challenge_responses.submitted_at,    challenge_responses.status, (SELECT COUNT(*) FROM challenge_responses AS idea WHERE idea.evaluation_status = 'SELECTEDROUND1') AS 'overAllIdeas', (SELECT COUNT(*) FROM l1_accepted) AS 'openIdeas', (SELECT COUNT(*) FROM evaluator_ratings AS A WHERE A.evaluator_id = " + evaluator_user_id.toString() + ") AS 'evaluatedIdeas' FROM l1_accepted AS l1_accepted LEFT OUTER JOIN challenge_responses AS challenge_responses ON l1_accepted.challenge_response_id = challenge_responses.challenge_response_id WHERE l1_accepted.district IN ('" + districtsArray + "') AND NOT FIND_IN_SET(" + evaluator_user_id.toString() + ", l1_accepted.evals) ORDER BY RAND() LIMIT 1", { type: QueryTypes.SELECT });
+                            challengeResponse = await db.query("SELECT challenge_responses.challenge_response_id, challenge_responses.challenge_id, challenge_responses.sdg, challenge_responses.team_id, challenge_responses.response, challenge_responses.initiated_by,  challenge_responses.created_at, challenge_responses.submitted_at,    challenge_responses.status, (SELECT COUNT(*) FROM challenge_responses AS idea WHERE idea.evaluation_status = 'SELECTEDROUND1') AS 'overAllIdeas', (SELECT COUNT(*) FROM l1_accepted WHERE l1_accepted.district IN ('" + districtsArray + "')) AS 'openIdeas', (SELECT COUNT(*) FROM evaluator_ratings AS A WHERE A.evaluator_id = " + evaluator_user_id.toString() + ") AS 'evaluatedIdeas' FROM l1_accepted AS l1_accepted LEFT OUTER JOIN challenge_responses AS challenge_responses ON l1_accepted.challenge_response_id = challenge_responses.challenge_response_id WHERE l1_accepted.district IN ('" + districtsArray + "') AND NOT FIND_IN_SET(" + evaluator_user_id.toString() + ", l1_accepted.evals) ORDER BY RAND() LIMIT 1", { type: QueryTypes.SELECT });
                         } else {
                             challengeResponse = await db.query(`SELECT challenge_responses.challenge_response_id, challenge_responses.challenge_id, challenge_responses.sdg, challenge_responses.team_id, challenge_responses.response, challenge_responses.initiated_by,  challenge_responses.created_at, challenge_responses.submitted_at,    challenge_responses.status,    (SELECT COUNT(*) FROM challenge_responses AS idea WHERE idea.evaluation_status = 'SELECTEDROUND1') AS 'overAllIdeas', (SELECT COUNT(*) FROM l1_accepted) AS 'openIdeas', (SELECT COUNT(*) FROM evaluator_ratings AS A WHERE A.evaluator_id = ${evaluator_user_id.toString()}) AS 'evaluatedIdeas' FROM l1_accepted AS l1_accepted LEFT OUTER JOIN challenge_responses AS challenge_responses ON l1_accepted.challenge_response_id = challenge_responses.challenge_response_id WHERE NOT FIND_IN_SET(${evaluator_user_id.toString()}, l1_accepted.evals) ORDER BY RAND() LIMIT 1`, { type: QueryTypes.SELECT });
                         }
+                        const evaluatedIdeas = await db.query(`SELECT COUNT(*) as evaluatedIdeas FROM evaluator_ratings AS A WHERE A.evaluator_id = ${evaluator_user_id.toString()}`, { type: QueryTypes.SELECT })
+                        let throwMessage = {
+                            message: 'All challenge has been rated, no more challenge to display', 
+                            //@ts-ignore
+                            evaluatedIdeas: evaluatedIdeas[0].evaluatedIdeas
+                        };
                         if (challengeResponse instanceof Error) {
                             throw challengeResponse
                         }
                         if (challengeResponse.length == 0) {
-                            throw notFound("All challenge has been rated, no more challenge to display");
+                            // throw notFound("All challenge has been rated, no more challenge to display");
+                            return res.status(200).send(dispatcher(res, throwMessage, 'success'));
                         };
                         challengeResponse[0].response = JSON.parse(challengeResponse[0].response)
                         break;
@@ -847,9 +854,6 @@ export default class ChallengeResponsesController extends BaseController {
                 districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
                 districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
             }
-            // districtFilter['district'] = district && typeof district == 'string' ? district : `%%`
-            // additionalFilter['sdg'] = { [Op.like]: sdg && typeof sdg == 'string' ? sdg : `%%` }
-            // additionalFilter['rejected_reason'] = { [Op.like]: rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : `%%` }
             const data = await this.crudService.findAll(challenge_response, {
                 attributes: [
                     "challenge_response_id",
