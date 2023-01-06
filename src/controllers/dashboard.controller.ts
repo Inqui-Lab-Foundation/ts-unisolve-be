@@ -610,7 +610,8 @@ export default class DashboardController extends BaseController {
             const submitted_count = await db.query("SELECT count(challenge_response_id) as 'submitted_count' FROM challenge_responses where status = 'SUBMITTED'", { type: QueryTypes.SELECT });
             const selected_round_one_count = await db.query("SELECT count(challenge_response_id) as 'selected_round_one_count' FROM challenge_responses where evaluation_status = 'SELECTEDROUND1'", { type: QueryTypes.SELECT });
             const rejected_round_one_count = await db.query("SELECT count(challenge_response_id) as 'rejected_round_one_count' FROM challenge_responses where evaluation_status = 'REJECTEDROUND1'", { type: QueryTypes.SELECT });
-            console.log(submitted_count, selected_round_one_count, rejected_round_one_count);
+            const l2_yet_to_processed = await db.query("SELECT COUNT(*) AS l2_yet_to_processed FROM l1_accepted;", { type: QueryTypes.SELECT });
+            const l2_processed = await db.query("SELECT challenge_response_id, count(challenge_response_id) AS l2_processed FROM unisolve_db.evaluator_ratings group by challenge_response_id HAVING COUNT(challenge_response_id) > 2", { type: QueryTypes.SELECT });
             if (!submitted_count || !rejected_round_one_count || !selected_round_one_count) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
@@ -623,9 +624,17 @@ export default class DashboardController extends BaseController {
             if (rejected_round_one_count instanceof Error) {
                 throw rejected_round_one_count
             };
+            if (l2_yet_to_processed instanceof Error) {
+                throw l2_yet_to_processed
+            };
+            if (l2_processed instanceof Error) {
+                throw l2_processed
+            };
             response['submitted_count'] = Object.values(submitted_count[0]).toString()
             response['selected_round_one_count'] = Object.values(selected_round_one_count[0]).toString()
             response["rejected_round_one_count"] = Object.values(rejected_round_one_count[0]).toString()
+            response["l2_processed"] = (l2_processed.length).toString()
+            response["l2_yet_to_processed"] = Object.values(l2_yet_to_processed[0]).toString()
             res.status(200).send(dispatcher(res, response, "success"))
         } catch (err) {
             next(err)
