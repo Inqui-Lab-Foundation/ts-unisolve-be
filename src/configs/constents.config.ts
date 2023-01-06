@@ -69,7 +69,7 @@ export const constents = {
       'OPEN': 'OPEN',
       'INPROGRESS': 'INPROGRESS',
       'RESOLVED': 'RESOLVED',
-      'BLOCKED': 'BLOCKED'
+      'INVALID': 'INVALID'
     },
     default: 'OPEN'
   },
