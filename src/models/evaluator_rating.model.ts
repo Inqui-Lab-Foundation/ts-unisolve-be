@@ -120,7 +120,7 @@ evaluator_rating.init(
     }
 );
 
-challenge_response.belongsTo(evaluator_rating, { foreignKey: 'challenge_response_id', constraints: false });
-evaluator_rating.hasMany(challenge_response, { foreignKey: 'challenge_response_id', constraints: false });
+challenge_response.hasMany(evaluator_rating, { foreignKey: 'challenge_response_id', constraints: false })
+evaluator_rating.belongsTo(challenge_response, { foreignKey: 'challenge_response_id', constraints: false });
 evaluator_rating.belongsTo(evaluator, { foreignKey: 'evaluator_id', constraints: false });
 evaluator_rating.hasMany(evaluator, { foreignKey: 'evaluator_id', constraints: false });
