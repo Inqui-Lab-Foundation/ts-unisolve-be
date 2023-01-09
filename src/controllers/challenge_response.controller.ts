@@ -940,7 +940,7 @@ export default class ChallengeResponsesController extends BaseController {
                             ],
                             where: {
                                 [Op.and]: [
-                                    { evaluated_by: evaluator_id },
+                                    // { evaluated_by: evaluator_id },
                                     db.literal('`evaluator_ratings`.`evaluator_id` =' + JSON.stringify(evaluator_id)),
                                     whereClauseEvaluationStatus,
                                     additionalFilter,
@@ -964,7 +964,8 @@ export default class ChallengeResponsesController extends BaseController {
                                     'param_5',
                                     'comments',
                                     'overall',
-                                    'submitted_at'
+                                    'submitted_at',
+                                    "created_at"
                                 ]
                             }, {
                                 model: team,
