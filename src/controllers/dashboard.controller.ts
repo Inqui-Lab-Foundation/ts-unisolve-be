@@ -612,6 +612,7 @@ export default class DashboardController extends BaseController {
             const rejected_round_one_count = await db.query("SELECT count(challenge_response_id) as 'rejected_round_one_count' FROM challenge_responses where evaluation_status = 'REJECTEDROUND1'", { type: QueryTypes.SELECT });
             const l2_yet_to_processed = await db.query("SELECT COUNT(*) AS l2_yet_to_processed FROM l1_accepted;", { type: QueryTypes.SELECT });
             const l2_processed = await db.query("SELECT challenge_response_id, count(challenge_response_id) AS l2_processed FROM unisolve_db.evaluator_ratings group by challenge_response_id HAVING COUNT(challenge_response_id) > 2", { type: QueryTypes.SELECT });
+            const draft_count = await db.query("SELECT count(challenge_response_id) as 'draft_count' FROM challenge_responses where status = 'DRAFT'", { type: QueryTypes.SELECT });
             if (!submitted_count || !rejected_round_one_count || !selected_round_one_count) {
                 throw notFound(speeches.DATA_NOT_FOUND)
             }
@@ -630,7 +631,11 @@ export default class DashboardController extends BaseController {
             if (l2_processed instanceof Error) {
                 throw l2_processed
             };
+            if (draft_count instanceof Error) {
+                throw draft_count
+            };
             response['submitted_count'] = Object.values(submitted_count[0]).toString()
+            response['draft_count'] = Object.values(draft_count[0]).toString()
             response['selected_round_one_count'] = Object.values(selected_round_one_count[0]).toString()
             response["rejected_round_one_count"] = Object.values(rejected_round_one_count[0]).toString()
             response["l2_processed"] = (l2_processed.length).toString()
