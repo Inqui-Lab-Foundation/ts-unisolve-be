@@ -971,6 +971,12 @@ export default class ChallengeResponsesController extends BaseController {
             if (!req.files) {
                 return result;
             }
+            let file_name_prefix: any;
+            if (process.env.NODE_ENV == "prod") {
+                file_name_prefix = `ideas/${team_id}` 
+            } else {
+                file_name_prefix = `ideas/stage/${team_id}`
+            }
             // console.log(process.env.DB_HOST)
             for (const file_name of Object.keys(files)) {
                 const file = files[file_name];
@@ -978,7 +984,7 @@ export default class ChallengeResponsesController extends BaseController {
                 if (readFile instanceof Error) {
                     errs.push(`Error uploading file: ${file.originalFilename} err: ${readFile}`)
                 }
-                file.originalFilename = `ideas/${team_id}/${file.originalFilename}`;
+                file.originalFilename = `${file_name_prefix}/${file.originalFilename}`;
                 let params = {
                     Bucket: 'unisole-assets',
                     Key: file.originalFilename,
