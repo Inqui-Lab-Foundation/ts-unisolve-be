@@ -596,7 +596,7 @@ export default class ChallengeResponsesController extends BaseController {
                 if (readFile instanceof Error) {
                     errs.push(`Error uploading file: ${file.originalFilename} err: ${readFile}`)
                 }
-                file.originalFilename = `ideas/${team_id}/${file.originalFilename}`;
+            file.originalFilename = `${file_name_prefix}/${file.originalFilename}`;
                 let params = {
                     Bucket: 'unisole-assets',
                     Key: file.originalFilename,
