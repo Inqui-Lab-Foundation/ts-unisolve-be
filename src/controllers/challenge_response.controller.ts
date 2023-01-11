@@ -361,20 +361,33 @@ export default class ChallengeResponsesController extends BaseController {
                                             where: { level: 'L2' },
                                             required: false,
                                             attributes: [
-                                                'evaluator_rating_id',
-                                                'evaluator_id',
-                                                'challenge_response_id',
-                                                'status',
-                                                'level',
-                                                'param_1',
-                                                'param_2',
-                                                'param_3',
-                                                'param_4',
-                                                'param_5',
-                                                'comments',
-                                                'overall',
-                                                'submitted_at',
-                                                "created_at",
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_1) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_1'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_2'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_3) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_4) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_5) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_5'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(comments) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'comments'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
+                                                ],
+                                                [
+                                                    db.literal(`(SELECT  JSON_ARRAYAGG(evaluator_id) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'evaluator_id'
+                                                ],
                                                 [
                                                     db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
                                                 ]
@@ -446,20 +459,33 @@ export default class ChallengeResponsesController extends BaseController {
                                         where: { level: 'L2' },
                                         required: false,
                                         attributes: [
-                                            'evaluator_rating_id',
-                                            'evaluator_id',
-                                            'challenge_response_id',
-                                            'status',
-                                            'level',
-                                            'param_1',
-                                            'param_2',
-                                            'param_3',
-                                            'param_4',
-                                            'param_5',
-                                            'comments',
-                                            'overall',
-                                            'submitted_at',
-                                            "created_at",
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_1) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_1'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_2'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_3) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_4) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_5) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_5'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(comments) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'comments'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
+                                            ],
+                                            [
+                                                db.literal(`(SELECT  JSON_ARRAYAGG(evaluator_id) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'evaluator_id'
+                                            ],
                                             [
                                                 db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
                                             ]
@@ -972,7 +998,7 @@ export default class ChallengeResponsesController extends BaseController {
                 return result;
             }
             let file_name_prefix: any;
-            if (process.env.NODE_ENV == "prod") {
+            if (process.env.DB_HOST?.includes("prod")) {
                 file_name_prefix = `ideas/${team_id}` 
             } else {
                 file_name_prefix = `ideas/stage/${team_id}`
