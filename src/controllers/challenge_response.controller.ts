@@ -523,7 +523,9 @@ export default class ChallengeResponsesController extends BaseController {
                                                 required: false,
                                                 model: organization,
                                                 attributes: [
-                                                    "district"
+                                                    "district",
+                                                    "organization_name",
+                                                    "organization_code"
                                                 ]
                                             }
                                         }
@@ -1451,6 +1453,7 @@ export default class ChallengeResponsesController extends BaseController {
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS)
             }
             let data: any;
+            let response: any;
             const paramStatus: any = req.query.status;
             const district: any = req.query.district;
             const sdg: any = req.query.sdg;
@@ -1473,16 +1476,19 @@ export default class ChallengeResponsesController extends BaseController {
                 boolStatusWhereClauseEvaluationStatusRequired = true;
             };
             if (sdg) {
-                additionalFilter = sdg && typeof sdg == 'string' ? { sdg } : {}
+                additionalFilter["whereClause"] = sdg && typeof sdg == 'string' ? { sdg } : {}
+                districtFilter["liter"] = district ? db.literal('evaluator_ratings->challenge_response`.`sdg` = ' + JSON.stringify(district)) : {};
             }
             if (district) {
                 districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
-                districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {};
+                districtFilter["liter"] = district ? db.literal('`evaluator_ratings->challenge_response->team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {};
             }
             data = await this.crudService.findAll(evaluation_results, {
                 where: {
                     [Op.and]: [
-                        whereClauseStatusPart
+                        whereClauseStatusPart,
+                        districtFilter.liter,
+                        additionalFilter.liter,
                     ]
                 },
                 include: [{
@@ -1522,7 +1528,7 @@ export default class ChallengeResponsesController extends BaseController {
                     ],
                     include: {
                         model: challenge_response,
-                        where: { additionalFilter },
+                        where: additionalFilter.whereClause,
                         attributes: [
                             "challenge_response_id",
                             "challenge_id",
@@ -1545,10 +1551,7 @@ export default class ChallengeResponsesController extends BaseController {
                             ],
                             [
                                 db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_name'
-                            ],
-                            // [
-                            //     db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_members'
-                            // ],
+                            ]
                         ],
                         include: {
                             model: team,
@@ -1585,11 +1588,13 @@ export default class ChallengeResponsesController extends BaseController {
             if (data instanceof Error) {
                 throw data;
             }
-            // data = data.forEach((Element: any) =>
-            //     Element.dataValues.evaluator_ratings.forEach((element2: any) => {
-            //         element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
-            //     })
-            // )
+            for (let i = 0; i < data.length; i++) {
+                let evaluator_ratings = data[i].dataValues.evaluator_ratings;
+                for (let j = 0; j < evaluator_ratings.length; j++) {
+                    let response = JSON.parse(evaluator_ratings[j].challenge_response.dataValues.response);
+                    evaluator_ratings[j].challenge_response.dataValues.response = response;
+                }
+            }
             return res.status(200).send(dispatcher(res, data, 'success'));
         } catch (error: any) {
             return res.status(500).send(dispatcher(res, error, 'error'))
@@ -1598,4 +1603,4 @@ export default class ChallengeResponsesController extends BaseController {
     private async districtWiseRating(req: Request, res: Response, next: NextFunction) {
         return 'nothing'
     }
-}
+} 
