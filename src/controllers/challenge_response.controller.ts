@@ -1476,16 +1476,19 @@ export default class ChallengeResponsesController extends BaseController {
                 boolStatusWhereClauseEvaluationStatusRequired = true;
             };
             if (sdg) {
-                additionalFilter = sdg && typeof sdg == 'string' ? { sdg } : {}
+                additionalFilter["whereClause"] = sdg && typeof sdg == 'string' ? { sdg } : {}
+                districtFilter["liter"] = district ? db.literal('evaluator_ratings->challenge_response`.`sdg` = ' + JSON.stringify(district)) : {};
             }
             if (district) {
                 districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
-                districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {};
+                districtFilter["liter"] = district ? db.literal('`evaluator_ratings->challenge_response->team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {};
             }
             data = await this.crudService.findAll(evaluation_results, {
                 where: {
                     [Op.and]: [
-                        whereClauseStatusPart
+                        whereClauseStatusPart,
+                        districtFilter.liter,
+                        additionalFilter.liter,
                     ]
                 },
                 include: [{
@@ -1525,7 +1528,7 @@ export default class ChallengeResponsesController extends BaseController {
                     ],
                     include: {
                         model: challenge_response,
-                        // where: { additionalFilter },
+                        where: additionalFilter.whereClause,
                         attributes: [
                             "challenge_response_id",
                             "challenge_id",
@@ -1563,7 +1566,7 @@ export default class ChallengeResponsesController extends BaseController {
                                     'full_name'
                                 ],
                                 include: {
-                                    // where: districtFilter.whereClauseForDistrict,
+                                    where: districtFilter.whereClauseForDistrict,
                                     required: false,
                                     model: organization,
                                     attributes: [
@@ -1586,11 +1589,11 @@ export default class ChallengeResponsesController extends BaseController {
             if (data instanceof Error) {
                 throw data;
             }
-            // data = data.forEach((Element: any) =>
-            //     Element.dataValues.evaluator_ratings.forEach((element2: any) => {
-            //         element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
-            //     })
-            // )
+            data = data.forEach((Element: any) =>
+                Element.dataValues.evaluator_ratings.forEach((element2: any) => {
+                    element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
+                })
+            )
             return res.status(200).send(dispatcher(res, data, 'success'));
         } catch (error: any) {
             return res.status(500).send(dispatcher(res, error, 'error'))
