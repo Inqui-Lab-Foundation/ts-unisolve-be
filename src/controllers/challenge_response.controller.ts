@@ -1582,18 +1582,19 @@ export default class ChallengeResponsesController extends BaseController {
                 group: [`evaluation_results.challenge_response_id`],
                 limit, offset, subQuery: false
             });
-            // console.log(data);
             if (!data) {
                 throw badRequest(data.message)
             };
             if (data instanceof Error) {
                 throw data;
             }
-            // response = data.forEach((Element: any) =>
-            //     Element.dataValues.evaluator_ratings.forEach((element2: any) => {
-            //         element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
-            //     })
-            // );
+            for (let i = 0; i < data.length; i++) {
+                let evaluator_ratings = data[i].dataValues.evaluator_ratings;
+                for (let j = 0; j < evaluator_ratings.length; j++) {
+                    let response = JSON.parse(evaluator_ratings[j].challenge_response.dataValues.response);
+                    evaluator_ratings[j].challenge_response.dataValues.response = response;
+                }
+            }
             return res.status(200).send(dispatcher(res, data, 'success'));
         } catch (error: any) {
             return res.status(500).send(dispatcher(res, error, 'error'))
@@ -1602,4 +1603,4 @@ export default class ChallengeResponsesController extends BaseController {
     private async districtWiseRating(req: Request, res: Response, next: NextFunction) {
         return 'nothing'
     }
-}
+} 
