@@ -497,6 +497,9 @@ export default class ChallengeResponsesController extends BaseController {
                                                 db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
                                             ],
                                             [
+                                                db.literal(`(SELECT ROUND(AVG(CAST(overall AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall_avg'
+                                            ],
+                                            [
                                                 db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
                                             ],
                                             [
@@ -1457,6 +1460,7 @@ export default class ChallengeResponsesController extends BaseController {
             const paramStatus: any = req.query.status;
             const district: any = req.query.district;
             const sdg: any = req.query.sdg;
+            const level: any = req.query.level;
             const { page, size } = req.query;
             const { limit, offset } = this.getPagination(page, size);
             const where: any = {};
@@ -1482,17 +1486,23 @@ export default class ChallengeResponsesController extends BaseController {
             if (district) {
                 districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
                 districtFilter["liter"] = district ? db.literal('`evaluator_ratings->challenge_response->team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {};
+            };
+            if (level) {
+                where["levelWhere"] = level && typeof level == 'string' ? { level } : {}
+                where["liter"] = level ? db.literal('`evaluator_ratings`.`level` = ' + JSON.stringify(level)) : {}
             }
             data = await this.crudService.findAll(evaluation_results, {
                 where: {
                     [Op.and]: [
                         whereClauseStatusPart,
+                        where.liter,
                         districtFilter.liter,
                         additionalFilter.liter,
                     ]
                 },
                 include: [{
                     model: evaluator_rating,
+                    where: { level: level },
                     required: false,
                     attributes: [
                         [
@@ -1551,7 +1561,10 @@ export default class ChallengeResponsesController extends BaseController {
                             ],
                             [
                                 db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_name'
-                            ]
+                            ],
+                            [
+                                db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_members'
+                            ],
                         ],
                         include: {
                             model: team,
