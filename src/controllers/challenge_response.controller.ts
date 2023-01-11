@@ -1551,7 +1551,10 @@ export default class ChallengeResponsesController extends BaseController {
                             ],
                             [
                                 db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_name'
-                            ]
+                            ],
+                            [
+                                db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_members'
+                            ],
                         ],
                         include: {
                             model: team,
