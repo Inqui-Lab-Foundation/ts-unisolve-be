@@ -1589,11 +1589,11 @@ export default class ChallengeResponsesController extends BaseController {
             if (data instanceof Error) {
                 throw data;
             }
-            data = data.forEach((Element: any) =>
-                Element.dataValues.evaluator_ratings.forEach((element2: any) => {
-                    element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
-                })
-            )
+            // response = data.forEach((Element: any) =>
+            //     Element.dataValues.evaluator_ratings.forEach((element2: any) => {
+            //         element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
+            //     })
+            // );
             return res.status(200).send(dispatcher(res, data, 'success'));
         } catch (error: any) {
             return res.status(500).send(dispatcher(res, error, 'error'))
