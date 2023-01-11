@@ -523,7 +523,9 @@ export default class ChallengeResponsesController extends BaseController {
                                                 required: false,
                                                 model: organization,
                                                 attributes: [
-                                                    "district"
+                                                    "district",
+                                                    "organization_name",
+                                                    "organization_code"
                                                 ]
                                             }
                                         }
