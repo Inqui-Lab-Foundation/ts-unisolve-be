@@ -1453,6 +1453,7 @@ export default class ChallengeResponsesController extends BaseController {
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS)
             }
             let data: any;
+            let response: any;
             const paramStatus: any = req.query.status;
             const district: any = req.query.district;
             const sdg: any = req.query.sdg;
@@ -1524,7 +1525,7 @@ export default class ChallengeResponsesController extends BaseController {
                     ],
                     include: {
                         model: challenge_response,
-                        where: { additionalFilter },
+                        // where: { additionalFilter },
                         attributes: [
                             "challenge_response_id",
                             "challenge_id",
@@ -1547,10 +1548,7 @@ export default class ChallengeResponsesController extends BaseController {
                             ],
                             [
                                 db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_name'
-                            ],
-                            // [
-                            //     db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`evaluator_ratings->challenge_response\`.\`team_id\` )`), 'team_members'
-                            // ],
+                            ]
                         ],
                         include: {
                             model: team,
@@ -1565,7 +1563,7 @@ export default class ChallengeResponsesController extends BaseController {
                                     'full_name'
                                 ],
                                 include: {
-                                    where: districtFilter.whereClauseForDistrict,
+                                    // where: districtFilter.whereClauseForDistrict,
                                     required: false,
                                     model: organization,
                                     attributes: [
@@ -1581,17 +1579,18 @@ export default class ChallengeResponsesController extends BaseController {
                 group: [`evaluation_results.challenge_response_id`],
                 limit, offset, subQuery: false
             });
+            console.log(data);
             if (!data) {
                 throw badRequest(data.message)
             };
             if (data instanceof Error) {
                 throw data;
             }
-            // data = data.forEach((Element: any) =>
-            //     Element.dataValues.evaluator_ratings.forEach((element2: any) => {
-            //         element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
-            //     })
-            // )
+            data = data.forEach((Element: any) =>
+                Element.dataValues.evaluator_ratings.forEach((element2: any) => {
+                    element2.challenge_response.dataValues.response = JSON.parse(element2.challenge_response.dataValues.response)
+                })
+            )
             return res.status(200).send(dispatcher(res, data, 'success'));
         } catch (error: any) {
             return res.status(500).send(dispatcher(res, error, 'error'))
