@@ -417,6 +417,9 @@ export default class ChallengeResponsesController extends BaseController {
                                             db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
                                         ],
                                         [
+                                            db.literal(`(SELECT ROUND(AVG(CAST(overall AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall_avg'
+                                        ],
+                                        [
                                             db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
                                         ],
                                         [
@@ -1441,6 +1444,9 @@ export default class ChallengeResponsesController extends BaseController {
                         ],
                         [
                             db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`evaluator_ratings->challenge_response\`.\`challenge_response_id\`)`), 'overall'
+                        ],
+                        [
+                            db.literal(`(SELECT ROUND(AVG(CAST(overall AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`evaluator_ratings->challenge_response\`.\`challenge_response_id\`)`), 'overall_avg'
                         ],
                         [
                             db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`evaluator_ratings->challenge_response\`.\`challenge_response_id\`)`), 'created_at'
