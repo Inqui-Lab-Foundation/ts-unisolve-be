@@ -265,6 +265,15 @@ export default class ChallengeResponsesController extends BaseController {
                     switch (level) {
                         case 'L1':
                             whereClauseStatusPart['status'] = "SUBMITTED";
+                            if (yetToProcessList) {
+                                if (yetToProcessList && yetToProcessList == 'L1') {
+                                    whereClauseStatusPart['evaluation_status'] = {
+                                        [Op.or]: [
+                                            { [Op.is]: null }, ''
+                                        ]
+                                    }
+                                }
+                            }
                             responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
                                 attributes: [
                                     "challenge_response_id",
@@ -328,217 +337,124 @@ export default class ChallengeResponsesController extends BaseController {
                             });
                             break;
                         case 'L2':
+                            // cleaning up the repeated code: observation everything is same except the having groupBy clause so separating both of them based the parameter
+                            let havingClausePart: any;
+                            let groupByClausePart: any;
                             whereClauseStatusPart['evaluation_status'] = "SELECTEDROUND1";
                             if (yetToProcessList) {
-                                if (yetToProcessList && yetToProcessList == 'true') {
-                                    responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
-                                        attributes: [
-                                            "challenge_response_id",
-                                            "challenge_id",
-                                            "sdg",
-                                            "team_id",
-                                            "response",
-                                            "initiated_by",
-                                            "created_at",
-                                            "submitted_at",
-                                            "evaluated_by",
-                                            "evaluated_at",
-                                            "evaluation_status",
-                                            "status",
-                                            "rejected_reason",
-                                            [
-                                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
-                                            ],
-                                        ],
-                                        where: {
-                                            [Op.and]: [
-                                                condition,
-                                                whereClauseStatusPart,
-                                                additionalFilter,
-                                                districtFilter.liter
-                                            ]
-                                        },
-                                        include: [{
-                                            model: evaluator_rating,
-                                            where: { level: 'L2' },
-                                            required: false,
-                                            attributes: [
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_1) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_1'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_2'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_3) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_4) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(param_5) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_5'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(comments) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'comments'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT  JSON_ARRAYAGG(evaluator_id) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'evaluator_id'
-                                                ],
-                                                [
-                                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
-                                                ]
-                                            ]
-                                        }, {
-                                            model: team,
-                                            attributes: [
-                                                'team_id',
-                                                'team_name',
-                                            ],
-                                            include: {
-                                                model: mentor,
-                                                attributes: [
-                                                    'mentor_id',
-                                                    'full_name'
-                                                ],
-                                                include: {
-                                                    where: districtFilter.whereClauseForDistrict,
-                                                    required: false,
-                                                    model: organization,
-                                                    attributes: [
-                                                        "district",
-                                                        "organization_name",
-                                                        "organization_code"
-                                                    ]
-                                                }
-                                            }
-                                        }],
-                                        group: [`challenge_response.challenge_response_id`],
-                                        having: db.Sequelize.where(db.Sequelize.fn('count', db.Sequelize.col(`evaluator_ratings.challenge_response_id`)), {
-                                            [Op.lt]: 3
-                                        }), limit, offset, subQuery: false
-                                    });
+                                if (yetToProcessList && yetToProcessList == 'L2') {
+                                    groupByClausePart = [`challenge_response.challenge_response_id`];
+                                    havingClausePart = db.Sequelize.where(db.Sequelize.fn('count', db.Sequelize.col(`evaluator_ratings.challenge_response_id`)), {
+                                        [Op.lt]: 3
+                                    })
                                 }
                             } else {
-                                responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
-                                    attributes: [
-                                        "challenge_response_id",
-                                        "challenge_id",
-                                        "sdg",
-                                        "team_id",
-                                        "response",
-                                        "initiated_by",
-                                        "created_at",
-                                        "submitted_at",
-                                        "evaluated_by",
-                                        "evaluated_at",
-                                        "evaluation_status",
-                                        "status",
-                                        "rejected_reason",
-                                        [
-                                            db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
-                                        ],
-                                        [
-                                            db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
-                                        ],
-                                        [
-                                            db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
-                                        ],
-                                        [
-                                            db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
-                                        ],
+                                groupByClausePart = [`evaluator_ratings.challenge_response_id`];
+                                havingClausePart = db.Sequelize.where(db.Sequelize.fn('count', db.Sequelize.col(`evaluator_ratings.challenge_response_id`)), {
+                                    [Op.gte]: 3
+                                })
+                            }
+                            responseOfFindAndCountAll = await this.crudService.findAndCountAll(modelClass, {
+                                attributes: [
+                                    "challenge_response_id",
+                                    "challenge_id",
+                                    "sdg",
+                                    "team_id",
+                                    "response",
+                                    "initiated_by",
+                                    "created_at",
+                                    "submitted_at",
+                                    "evaluated_by",
+                                    "evaluated_at",
+                                    "evaluation_status",
+                                    "status",
+                                    "rejected_reason",
+                                    [
+                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
                                     ],
-                                    where: {
-                                        [Op.and]: [
-                                            condition,
-                                            whereClauseStatusPart,
-                                            additionalFilter,
-                                            districtFilter.liter
+                                    [
+                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                                    ],
+                                    [
+                                        db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                    ],
+                                    [
+                                        db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
+                                    ],
+                                ],
+                                where: {
+                                    [Op.and]: [
+                                        condition,
+                                        whereClauseStatusPart,
+                                        additionalFilter,
+                                        districtFilter.liter
+                                    ]
+                                },
+                                include: [{
+                                    model: evaluator_rating,
+                                    where: { level: 'L2' },
+                                    required: false,
+                                    attributes: [
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(param_1) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_1'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(param_2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_2'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(param_3) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(param_4) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(param_5) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_5'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(comments) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'comments'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT  JSON_ARRAYAGG(evaluator_id) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'evaluator_id'
+                                        ],
+                                        [
+                                            db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
                                         ]
-                                    },
-                                    include: [{
-                                        model: evaluator_rating,
-                                        where: { level: 'L2' },
-                                        required: false,
+                                    ]
+                                }, {
+                                    model: team,
+                                    attributes: [
+                                        'team_id',
+                                        'team_name',
+                                    ],
+                                    include: {
+                                        model: mentor,
                                         attributes: [
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_1) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_1'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_2'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_3) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_4) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(param_5) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_5'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(comments) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'comments'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT ROUND(AVG(CAST(overall AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall_avg'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT  JSON_ARRAYAGG(evaluator_id) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'evaluator_id'
-                                            ],
-                                            [
-                                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
-                                            ]
-                                        ]
-                                    }, {
-                                        model: team,
-                                        attributes: [
-                                            'team_id',
-                                            'team_name',
+                                            'mentor_id',
+                                            'full_name'
                                         ],
                                         include: {
-                                            model: mentor,
+                                            where: districtFilter.whereClauseForDistrict,
+                                            required: false,
+                                            model: organization,
                                             attributes: [
-                                                'mentor_id',
-                                                'full_name'
-                                            ],
-                                            include: {
-                                                where: districtFilter.whereClauseForDistrict,
-                                                required: false,
-                                                model: organization,
-                                                attributes: [
-                                                    "district",
-                                                    "organization_name",
-                                                    "organization_code"
-                                                ]
-                                            }
+                                                "district",
+                                                "organization_name",
+                                                "organization_code"
+                                            ]
                                         }
-                                    }],
-                                    group: [`evaluator_ratings.challenge_response_id`],
-                                    having: db.Sequelize.where(db.Sequelize.fn('count', db.Sequelize.col(`evaluator_ratings.challenge_response_id`)), {
-                                        [Op.gt]: 2
-                                    }), limit, offset, subQuery: false
-                                });
-                            }
+                                    }
+                                }],
+                                group: groupByClausePart,
+                                having: havingClausePart,
+                                subQuery: false,
+                                limit, offset,
+                            });
                             responseOfFindAndCountAll.count = responseOfFindAndCountAll.count.length
                             break;
                         case level !== 'L1' && 'L2':
