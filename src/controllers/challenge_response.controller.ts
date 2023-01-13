@@ -53,6 +53,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.get(`${this.path}/customFilter/`, this.getChallengesBasedOnFilter.bind(this));
         this.router.get(`${this.path}/districtWiseRating/`, this.districtWiseRating.bind(this));
         this.router.get(`${this.path}/evaluationResult/`, this.evaluationResult.bind(this));
+        this.router.get(`${this.path}/finalEvaluation/`, this.finalEvaluation.bind(this));
         super.initializeRoutes();
     }
 
@@ -1367,6 +1368,155 @@ export default class ChallengeResponsesController extends BaseController {
         } catch (error) {
             next(error)
         }
+    };
+    private async finalEvaluation(req: Request, res: Response, next: NextFunction) {
+        // try {
+        let user_id = res.locals.user_id;
+        if (!user_id) {
+            throw unauthorized(speeches.UNAUTHORIZED_ACCESS)
+        }
+        let key: any = req.query.key;
+        let data: any;
+        const paramStatus: any = req.query.status;
+        const district: any = req.query.district;
+        const sdg: any = req.query.sdg;
+        const level: any = req.query.level;
+        const { page, size } = req.query;
+        const { limit, offset } = this.getPagination(page, size);
+        const where: any = {};
+        let whereClauseStatusPart: any = {}
+        let additionalFilter: any = {};
+        let districtFilter: any = {};
+        let boolStatusWhereClauseEvaluationStatusRequired = false;
+        //status filter
+        if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
+            whereClauseStatusPart = { "status": paramStatus };
+            boolStatusWhereClauseEvaluationStatusRequired = true;
+        } else if (paramStatus === 'ALL') {
+            whereClauseStatusPart = {};
+            boolStatusWhereClauseEvaluationStatusRequired = false;
+        } else {
+            whereClauseStatusPart = { "evaluation_status": "SELECTEDROUND1" };
+            boolStatusWhereClauseEvaluationStatusRequired = true;
+        };
+        if (key) {
+            whereClauseStatusPart["final_result"] = key
+        } else {
+            whereClauseStatusPart["final_result"] = '0'
+        }
+        if (sdg) {
+            whereClauseStatusPart["sdg"] = sdg && typeof sdg == 'string' ? sdg : {}
+        }
+        if (district) {
+            whereClauseStatusPart["district"] = district && typeof district == 'string' ? district : {}
+        };
+        if (level) {
+            where["levelWhere"] = level && typeof level == 'string' ? { level } : {}
+            where["liter"] = level ? db.literal('`challenge_response->evaluator_ratings`.`level` = ' + JSON.stringify(level)) : {}
+        }
+        data = await this.crudService.findAll(challenge_response, {
+            attributes: [
+                "challenge_response_id",
+                "challenge_id",
+                "sdg",
+                "team_id",
+                "response",
+                "initiated_by",
+                "created_at",
+                "submitted_at",
+                "evaluated_by",
+                "evaluated_at",
+                "evaluation_status",
+                "status",
+                "rejected_reason",
+                "final_result",	"district",
+                [
+                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
+                ],
+                [
+                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                ],
+                [
+                    db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`challenge_response\`.\`team_id\` )`), 'team_name'
+                ],
+                [
+                    db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
+                ],
+            ],
+            where: {
+                [Op.and]: [
+                    whereClauseStatusPart,
+                    where.liter,
+                ]
+            },
+            include: [{
+                model: evaluator_rating,
+                where: where,
+                required: false,
+                attributes: [
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(param_1) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_1'
+                    ],
+                    [
+                        db.literal(`(SELECT ROUND(AVG(CAST(param_1 AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_1_avg'
+                    ],
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(param_2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_2'
+                    ],
+                    [
+                        db.literal(`(SELECT ROUND(AVG(CAST(param_2 AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_2_avg'
+                    ],
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(param_3) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3'
+                    ],
+                    [
+                        db.literal(`(SELECT ROUND(AVG(CAST(param_3 AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3_avg'
+                    ],
+
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(param_4) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4'
+                    ],
+                    [
+                        db.literal(`(SELECT ROUND(AVG(CAST(param_4 AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4_avg'
+                    ],
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(param_5) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_5'
+                    ],
+                    [
+                        db.literal(`(SELECT ROUND(AVG(CAST(param_5 AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_5_avg'
+                    ],
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(comments) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'comments'
+                    ],
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(overall) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall'
+                    ],
+                    [
+                        db.literal(`(SELECT ROUND(AVG(CAST(overall AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'overall_avg'
+                    ],
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(created_at) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'created_at'
+                    ],
+                    [
+                        db.literal(`(SELECT  JSON_ARRAYAGG(evaluator_id) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'evaluator_id'
+                    ],
+                    // [
+                    //     db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
+                    // ]
+                ]
+            }]
+        });
+        if (!data) {
+            throw badRequest(data.message)
+        };
+        if (data instanceof Error) {
+            throw data;
+        }
+        data.forEach((element: any) => { element.dataValues.response = JSON.parse(element.dataValues.response) })
+        return res.status(200).send(dispatcher(res, data, 'success'));
+        // } catch (error: any) {
+        //     next(error)
+        // }
     };
     private async evaluationResult(req: Request, res: Response, next: NextFunction) {
         try {

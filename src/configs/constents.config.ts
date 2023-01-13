@@ -174,16 +174,19 @@ export const constents = {
   challenges_flags: {
     list: {
       "DRAFT": "DRAFT",
-      "SUBMITTED": "SUBMITTED",
-      "EVALUATION": "EVALUATION",
-      "SELECTEDROUND1": "SELECTEDROUND1",
-      "REJECTEDROUND1": "REJECTEDROUND1"
+      "SUBMITTED": "SUBMITTED"
     },
     default: "DRAFT"
   },
+  final_result_flags: {
+    list: {
+      "0": "0",
+      "1": "1"
+    },
+    default: null
+  },
   evaluation_status: {
     list: {
-      "EVALUATION": "EVALUATION",
       "SELECTEDROUND1": "SELECTEDROUND1",
       "REJECTEDROUND1": "REJECTEDROUND1"
     },
