@@ -1414,7 +1414,7 @@ export default class ChallengeResponsesController extends BaseController {
         //     where["levelWhere"] = level && typeof level == 'string' ? { level } : {}
         //     where["liter"] = level ? db.literal('`challenge_response->evaluator_ratings`.`level` = ' + JSON.stringify(level)) : {}
         // }
-        console.log(whereClauseStatusPart, where);
+        // console.log(whereClauseStatusPart, where);
         data = await this.crudService.findAll(challenge_response, {
             attributes: [
                 "challenge_response_id",
