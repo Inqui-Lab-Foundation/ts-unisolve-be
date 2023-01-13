@@ -90,7 +90,6 @@ export default class ChallengeResponsesController extends BaseController {
         const where: any = {};
         let whereClauseStatusPart: any = {}
         let additionalFilter: any = {};
-        let districtFilter: any = {};
         let boolStatusWhereClauseEvaluationStatusRequired = false;
         //status filter
         if (paramStatus && (paramStatus in constents.challenges_flags.list)) {
@@ -112,18 +111,16 @@ export default class ChallengeResponsesController extends BaseController {
             }
         }
         if (sdg) {
-            additionalFilter = sdg && typeof sdg == 'string' ? { sdg } : {}
+            additionalFilter['sdg'] = sdg && typeof sdg == 'string' ? sdg : {}
         }
         if (rejected_reason) {
-            additionalFilter = rejected_reason && typeof rejected_reason == 'string' ? { rejected_reason } : {}
+            additionalFilter['rejected_reason'] = rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : {}
         }
         if (evaluator_id) {
-            additionalFilter = evaluator_id && typeof evaluator_id == 'string' ? { evaluated_by: evaluator_id } : {}
+            additionalFilter['evaluated_by'] = evaluator_id && typeof evaluator_id == 'string' ? evaluator_id : {}
         }
         if (district) {
-            whereClauseStatusPart["district"] = district && typeof district == 'string' ? district : {}
-            // districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
-            // districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {};
+            additionalFilter["district"] = district && typeof district == 'string' ? district : {}
         }
         if (id) {
             where[`${this.model}_id`] = req.params.id;
@@ -291,52 +288,36 @@ export default class ChallengeResponsesController extends BaseController {
                                     "evaluation_status",
                                     "status",
                                     "rejected_reason",
-
+                                    "final_result", "district",
                                     [
-                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
+                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
                                     ],
                                     [
-                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                                     ],
                                     [
-                                        db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                        db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`challenge_response\`.\`team_id\` )`), 'team_name'
                                     ],
                                     [
                                         db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
                                     ],
+                                    [
+                                        db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id =  \`challenge_responses\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
+                                    ],
+                                    [
+                                        db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id = \`challenge_responses\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
+                                    ],
+                                    [
+                                        db.literal(`(SELECT full_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_responses.team_id = \`challenge_responses\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
+                                    ]
                                 ],
                                 where: {
                                     [Op.and]: [
                                         condition,
                                         whereClauseStatusPart,
                                         additionalFilter,
-                                        districtFilter.literteam
                                     ]
-                                },
-                                include: [{
-                                    model: team,
-                                    attributes: [
-                                        'team_id',
-                                        'team_name'
-                                    ],
-                                    include: {
-                                        model: mentor,
-                                        attributes: [
-                                            'mentor_id',
-                                            'full_name'
-                                        ],
-                                        include: {
-                                            where: districtFilter.whereClauseForDistrict,
-                                            required: false,
-                                            model: organization,
-                                            attributes: [
-                                                "district",
-                                                "organization_name",
-                                                "organization_code"
-                                            ]
-                                        }
-                                    }
-                                }], limit, offset,
+                                }, limit, offset,
                             });
                             break;
                         case 'L2':
@@ -372,25 +353,34 @@ export default class ChallengeResponsesController extends BaseController {
                                     "evaluation_status",
                                     "status",
                                     "rejected_reason",
+                                    "final_result", "district",
                                     [
-                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
+                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
                                     ],
                                     [
-                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                                        db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                                     ],
                                     [
-                                        db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                        db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`challenge_response\`.\`team_id\` )`), 'team_name'
                                     ],
                                     [
                                         db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
                                     ],
+                                    [
+                                        db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id =  \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
+                                    ],
+                                    [
+                                        db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
+                                    ],
+                                    [
+                                        db.literal(`(SELECT full_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
+                                    ]
                                 ],
                                 where: {
                                     [Op.and]: [
                                         condition,
                                         whereClauseStatusPart,
                                         additionalFilter,
-                                        districtFilter.liter
                                     ]
                                 },
                                 include: [{
@@ -432,29 +422,6 @@ export default class ChallengeResponsesController extends BaseController {
                                             db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
                                         ]
                                     ]
-                                }, {
-                                    model: team,
-                                    attributes: [
-                                        'team_id',
-                                        'team_name',
-                                    ],
-                                    include: {
-                                        model: mentor,
-                                        attributes: [
-                                            'mentor_id',
-                                            'full_name'
-                                        ],
-                                        include: {
-                                            where: districtFilter.whereClauseForDistrict,
-                                            required: false,
-                                            model: organization,
-                                            attributes: [
-                                                "district",
-                                                "organization_name",
-                                                "organization_code"
-                                            ]
-                                        }
-                                    }
                                 }],
                                 group: groupByClausePart,
                                 having: havingClausePart,
@@ -482,51 +449,36 @@ export default class ChallengeResponsesController extends BaseController {
                             "evaluation_status",
                             "status",
                             "rejected_reason",
+                            "final_result", "district",
                             [
-                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
+                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
                             ],
                             [
-                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                                db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                             ],
                             [
-                                db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`challenge_response\`.\`team_id\` )`), 'team_name'
                             ],
                             [
                                 db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
                             ],
+                            [
+                                db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id =  \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
+                            ],
+                            [
+                                db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
+                            ],
+                            [
+                                db.literal(`(SELECT full_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
+                            ]
                         ],
                         where: {
                             [Op.and]: [
                                 condition,
                                 whereClauseStatusPart,
                                 additionalFilter,
-                                districtFilter.liter
                             ]
-                        },
-                        include: [{
-                            model: team,
-                            attributes: [
-                                'team_id',
-                                'team_name',
-                            ],
-                            include: {
-                                model: mentor,
-                                attributes: [
-                                    'mentor_id',
-                                    'full_name'
-                                ],
-                                include: {
-                                    where: districtFilter.whereClauseForDistrict,
-                                    required: false,
-                                    model: organization,
-                                    attributes: [
-                                        "district",
-                                        "organization_name",
-                                        "organization_code"
-                                    ]
-                                }
-                            }
-                        }], limit, offset,
+                        }, limit, offset,
                     });
                 }
                 const result = this.getPagingData(responseOfFindAndCountAll, page, limit);
@@ -1142,14 +1094,13 @@ export default class ChallengeResponsesController extends BaseController {
                 }
             }
             if (sdg) {
-                additionalFilter = sdg && typeof sdg == 'string' ? { sdg } : {}
+                additionalFilter['sdg'] = sdg && typeof sdg == 'string' ? sdg : {}
             }
             if (rejected_reason) {
-                additionalFilter = rejected_reason && typeof rejected_reason == 'string' ? { rejected_reason } : {}
+                additionalFilter['rejected_reason'] = rejected_reason && typeof rejected_reason == 'string' ? rejected_reason : {}
             }
             if (district) {
-                districtFilter['whereClauseForDistrict'] = district && typeof district == 'string' ? { district } : {}
-                districtFilter["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
+                additionalFilter['district'] = district && typeof district == 'string' ? district : {}
             }
             if (level && typeof level == 'string') {
                 switch (level) {
@@ -1157,85 +1108,94 @@ export default class ChallengeResponsesController extends BaseController {
                         data = await this.crudService.findAll(challenge_response, {
                             attributes: [
                                 "challenge_response_id",
+                                "challenge_id",
+                                "sdg",
                                 "team_id",
+                                "response",
                                 "initiated_by",
-                                "status",
+                                "created_at",
+                                "submitted_at",
                                 "evaluated_by",
                                 "evaluated_at",
-                                "submitted_at",
                                 "evaluation_status",
+                                "status",
                                 "rejected_reason",
-                                "sdg",
-                                "response",
+                                "final_result", "district",
                                 [
-                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
                                 ],
                                 [
-                                    db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                                 ],
+                                [
+                                    db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                ],
+                                [
+                                    db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
+                                ],
+                                [
+                                    db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id =  \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
+                                ],
+                                [
+                                    db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
+                                ],
+                                [
+                                    db.literal(`(SELECT full_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
+                                ]
                             ],
                             where: {
                                 [Op.and]: [
                                     { evaluated_by: evaluator_id },
                                     whereClauseEvaluationStatus,
                                     additionalFilter,
-                                    districtFilter.liter
                                 ]
-                            },
-                            include: {
-                                model: team,
-                                attributes: [
-                                    'team_id',
-                                    'team_name',
-                                ],
-                                include: {
-                                    model: mentor,
-                                    attributes: [
-                                        'mentor_id',
-                                        'full_name'
-                                    ],
-                                    include: {
-                                        where: districtFilter.whereClauseForDistrict,
-                                        required: false,
-                                        model: organization,
-                                        attributes: [
-                                            "district",
-                                            "organization_name",
-                                            "organization_code"
-                                        ]
-                                    }
-                                }
-                            },
+                            }
                         });
                         break;
                     case 'L2': {
                         data = await this.crudService.findAll(challenge_response, {
                             attributes: [
                                 "challenge_response_id",
+                                "challenge_id",
+                                "sdg",
                                 "team_id",
+                                "response",
                                 "initiated_by",
-                                "status",
+                                "created_at",
+                                "submitted_at",
                                 "evaluated_by",
                                 "evaluated_at",
-                                "submitted_at",
                                 "evaluation_status",
+                                "status",
                                 "rejected_reason",
-                                "sdg",
-                                "response",
+                                "final_result", "district",
                                 [
-                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
+                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`evaluated_by\` )`), 'evaluated_name'
                                 ],
                                 [
-                                    db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                    db.literal(`(SELECT full_name FROM users As s WHERE s.user_id =  \`challenge_response\`.\`initiated_by\` )`), 'initiated_name'
                                 ],
+                                [
+                                    db.literal(`(SELECT team_name FROM teams As t WHERE t.team_id =  \`challenge_response\`.\`team_id\` )`), 'team_name'
+                                ],
+                                [
+                                    db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
+                                ],
+                                [
+                                    db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id =  \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
+                                ],
+                                [
+                                    db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
+                                ],
+                                [
+                                    db.literal(`(SELECT full_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
+                                ]
                             ],
                             where: {
                                 [Op.and]: [
-                                    // { evaluated_by: evaluator_id },
-                                    db.literal('`evaluator_ratings`.`evaluator_id` =' + JSON.stringify(evaluator_id)),
                                     whereClauseEvaluationStatus,
                                     additionalFilter,
-                                    districtFilter.liter
+                                    db.literal('`evaluator_ratings`.`evaluator_id` =' + JSON.stringify(evaluator_id)),
                                 ]
                             },
                             include: [{
@@ -1258,29 +1218,6 @@ export default class ChallengeResponsesController extends BaseController {
                                     'submitted_at',
                                     "created_at"
                                 ]
-                            }, {
-                                model: team,
-                                attributes: [
-                                    'team_id',
-                                    'team_name',
-                                ],
-                                include: {
-                                    model: mentor,
-                                    attributes: [
-                                        'mentor_id',
-                                        'full_name'
-                                    ],
-                                    include: {
-                                        where: districtFilter.whereClauseForDistrict,
-                                        required: false,
-                                        model: organization,
-                                        attributes: [
-                                            "district",
-                                            "organization_name",
-                                            "organization_code"
-                                        ]
-                                    }
-                                }
                             }],
                         });
                     }
@@ -1301,16 +1238,15 @@ export default class ChallengeResponsesController extends BaseController {
     private async getChallengesBasedOnFilter(req: Request, res: Response, next: NextFunction) {
         try {
             const { district, sdg } = req.query
-            let whereClauseOfDistrict: any = {}
-            let whereClauseOfSdg: any = {}
+            let whereClause: any = {}
             if (district) {
-                whereClauseOfDistrict['whereClause'] = district && typeof district == 'string' ? { district } : {}
-                whereClauseOfDistrict["liter"] = district ? db.literal('`team->mentor->organization`.`district` = ' + JSON.stringify(district)) : {}
+                whereClause['district'] = district && typeof district == 'string' ? district : {}
             }
             if (sdg) {
-                whereClauseOfSdg = sdg && typeof sdg == 'string' ? { sdg } : {}
+                whereClause['sdg'] = sdg && typeof sdg == 'string' ? sdg : {}
             }
             // whereClauseOfSdg['sdg'] = { [Op.like]: sdg && typeof district == 'string' ? sdg : `%%` }
+            console.log(whereClause);
             const data = await this.crudService.findAll(challenge_response, {
                 attributes: [
                     "challenge_response_id",
@@ -1340,19 +1276,18 @@ export default class ChallengeResponsesController extends BaseController {
                         db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
                     ],
                     [
-                        db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_response    LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_response.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
+                        db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id =  \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
                     ],
                     [
-                        db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_response    LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN    mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_response.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
+                        db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
                     ],
                     [
-                        db.literal(`(SELECT full_name FROM challenge_responses AS challenge_response    LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id    LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_response.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
+                        db.literal(`(SELECT full_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
                     ]
                 ],
                 where: {
                     [Op.and]: [
-                        whereClauseOfSdg,
-                        whereClauseOfDistrict.liter
+                        whereClause
                     ]
                 }
             });
@@ -1440,6 +1375,15 @@ export default class ChallengeResponsesController extends BaseController {
                     ],
                     [
                         db.literal(`(SELECT JSON_ARRAYAGG(full_name) FROM unisolve_db.students  AS s LEFT OUTER JOIN unisolve_db.teams AS t ON s.team_id = t.team_id WHERE t.team_id = \`challenge_response\`.\`team_id\` )`), 'team_members'
+                    ],
+                    [
+                        db.literal(`(SELECT mentorTeamOrg.organization_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id =  \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_name'
+                    ],
+                    [
+                        db.literal(`(SELECT mentorTeamOrg.organization_code FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id LEFT OUTER JOIN organizations AS mentorTeamOrg ON mentorTeam.organization_code = mentorTeamOrg.organization_code WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'organization_code'
+                    ],
+                    [
+                        db.literal(`(SELECT full_name FROM challenge_responses AS challenge_responses LEFT OUTER JOIN teams AS team ON challenge_response.team_id = team.team_id LEFT OUTER JOIN mentors AS mentorTeam ON team.mentor_id = mentorTeam.mentor_id WHERE challenge_responses.team_id = \`challenge_response\`.\`team_id\` GROUP BY challenge_response.team_id)`), 'mentor_name'
                     ]
                 ],
                 where: {
@@ -1503,30 +1447,7 @@ export default class ChallengeResponsesController extends BaseController {
                         //     db.literal(`(SELECT full_name FROM users As s WHERE s.user_id = evaluator_ratings.created_by)`), 'rated_evaluated_name'
                         // ]
                     ]
-                }, {
-                    model: team,
-                    attributes: [
-                        'team_id',
-                        'team_name',
-                    ],
-                    include: {
-                        model: mentor,
-                        attributes: [
-                            'mentor_id',
-                            'full_name'
-                        ],
-                        include: {
-                            where: districtFilter.whereClauseForDistrict,
-                            required: false,
-                            model: organization,
-                            attributes: [
-                                "district",
-                                "organization_name",
-                                "organization_code"
-                            ]
-                        }
-                    }
-                },],
+                }], limit, offset, subQuery: false
             });
             if (!data) {
                 throw badRequest(data.message)
