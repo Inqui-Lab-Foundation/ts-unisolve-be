@@ -615,6 +615,8 @@ export default class DashboardController extends BaseController {
             const draft_count = await db.query("SELECT count(challenge_response_id) as 'draft_count' FROM challenge_responses where status = 'DRAFT'", { type: QueryTypes.SELECT });
             const final_challenges = await db.query("SELECT count(challenge_response_id) as 'final_challenges' FROM evaluation_results where status = 'ACTIVE'", { type: QueryTypes.SELECT });
             const l1_yet_to_process = await db.query(`SELECT COUNT(challenge_response_id) AS l1YetToProcess FROM unisolve_db.challenge_responses WHERE status = 'SUBMITTED' AND evaluation_status is NULL OR evaluation_status = ''`, { type: QueryTypes.SELECT });
+            const final_evaluation_challenge = await db.query(`SELECT COUNT(challenge_response_id) FROM unisolve_db.challenge_responses WHERE final_result = '0'`, { type: QueryTypes.SELECT });
+            const final_evaluation_final = await db.query(`SELECT COUNT(challenge_response_id) FROM unisolve_db.challenge_responses WHERE final_result = '1'`, { type: QueryTypes.SELECT });
             if (submitted_count instanceof Error) {
                 throw submitted_count
             }
@@ -639,6 +641,12 @@ export default class DashboardController extends BaseController {
             if (l1_yet_to_process instanceof Error) {
                 throw l1_yet_to_process
             };
+            if (final_evaluation_challenge instanceof Error) {
+                throw final_evaluation_challenge
+            };
+            if (final_evaluation_final instanceof Error) {
+                throw final_evaluation_final
+            };
             response['draft_count'] = Object.values(draft_count[0]).toString();
             response['submitted_count'] = Object.values(submitted_count[0]).toString()
             response['l1_yet_to_process'] = Object.values(l1_yet_to_process[0]).toString();
@@ -647,6 +655,8 @@ export default class DashboardController extends BaseController {
             response["l2_processed"] = (l2_processed.length).toString()
             response["l2_yet_to_processed"] = Object.values(l2_yet_to_processed[0]).toString()
             response['final_challenges'] = Object.values(final_challenges[0]).toString();
+            response['final_evaluation_challenge'] = Object.values(final_evaluation_challenge[0]).toString();
+            response['final_evaluation_final'] = Object.values(final_evaluation_final[0]).toString();
             res.status(200).send(dispatcher(res, response, "success"))
         } catch (err) {
             next(err)
