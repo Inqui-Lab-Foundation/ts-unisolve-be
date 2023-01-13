@@ -1380,7 +1380,7 @@ export default class ChallengeResponsesController extends BaseController {
         const paramStatus: any = req.query.status;
         const district: any = req.query.district;
         const sdg: any = req.query.sdg;
-        // const level: any = req.query.level;
+        const level: any = req.query.level;
         const { page, size } = req.query;
         const { limit, offset } = this.getPagination(page, size);
         const where: any = {};
@@ -1405,16 +1405,16 @@ export default class ChallengeResponsesController extends BaseController {
             whereClauseStatusPart["final_result"] = '0'
         }
         if (sdg) {
-            whereClauseStatusPart["sdg"] = sdg && typeof sdg == 'string' ? { sdg } : {}
+            whereClauseStatusPart["sdg"] = sdg && typeof sdg == 'string' ? sdg : {}
         }
         if (district) {
-            whereClauseStatusPart["district"] = district && typeof district == 'string' ? { district } : {}
+            whereClauseStatusPart["district"] = district && typeof district == 'string' ? district : {}
         };
-        // if (level) {
-        //     where["levelWhere"] = level && typeof level == 'string' ? { level } : {}
-        //     where["liter"] = level ? db.literal('`challenge_response->evaluator_ratings`.`level` = ' + JSON.stringify(level)) : {}
-        // }
-        // console.log(whereClauseStatusPart, where);
+        if (level) {
+            where["levelWhere"] = level && typeof level == 'string' ? { level } : {}
+            where["liter"] = level ? db.literal('`challenge_response->evaluator_ratings`.`level` = ' + JSON.stringify(level)) : {}
+        }
+        console.log(additionalFilter, whereClauseStatusPart);
         data = await this.crudService.findAll(challenge_response, {
             attributes: [
                 "challenge_response_id",
@@ -1446,14 +1446,12 @@ export default class ChallengeResponsesController extends BaseController {
             where: {
                 [Op.and]: [
                     whereClauseStatusPart,
-                    // where.liter,
-                    // districtFilter.liter,
-                    // additionalFilter.liter,
+                    where.liter,
                 ]
             },
             include: [{
                 model: evaluator_rating,
-                // where: { level: level },
+                where: where,
                 required: false,
                 attributes: [
                     [
@@ -1474,7 +1472,7 @@ export default class ChallengeResponsesController extends BaseController {
                     [
                         db.literal(`(SELECT ROUND(AVG(CAST(param_3 AS FLOAT)), 2) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_3_avg'
                     ],
-                    
+
                     [
                         db.literal(`(SELECT  JSON_ARRAYAGG(param_4) FROM unisolve_db.evaluator_ratings as rating WHERE rating.challenge_response_id = \`challenge_response\`.\`challenge_response_id\`)`), 'param_4'
                     ],
