@@ -516,7 +516,7 @@ export default class ChallengeResponsesController extends BaseController {
                 return result;
             }
             let file_name_prefix: any;
-            if (process.env.NODE_ENV == "prod") {
+            if (process.env.DB_HOST?.includes("prod")) {
                 file_name_prefix = `ka_ideas/${team_id}`
             } else {
                 file_name_prefix = `ka_ideas/stage/${team_id}`
