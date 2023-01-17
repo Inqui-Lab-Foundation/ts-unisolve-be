@@ -40,6 +40,7 @@ export default class ReportController extends BaseController {
         this.router.get(this.path + "/userTopicProgress", this.userTopicProgressGroupByCourseTopicId.bind(this));
         this.router.get(this.path + "/mentorTeamsStudents", this.teamRegistered.bind(this));
         this.router.get(this.path + "/challengesCount", this.challengesLevelCount.bind(this));
+        this.router.get(this.path + "/challengesDistrictCount", this.districtWiseChallengesCount.bind(this));
         // super.initializeRoutes();
     }
 
@@ -400,6 +401,20 @@ export default class ReportController extends BaseController {
                 throw challengesLevels
             }
             res.status(200).send(dispatcher(res, challengesLevels , "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+    protected async districtWiseChallengesCount(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            const challenges = await db.query("SELECT district, count(challenge_response_id) as count FROM unisolve_db.challenge_responses group by district", { type: QueryTypes.SELECT });
+            if (!challenges) {
+                throw notFound(speeches.DATA_NOT_FOUND)
+            }
+            if (challenges instanceof Error) {
+                throw challenges
+            }
+            res.status(200).send(dispatcher(res, challenges , "success"))
         } catch (err) {
             next(err)
         }
