@@ -1,15 +1,10 @@
-import { badRequest, internal, notFound, unauthorized } from "boom";
-import { nextTick } from "process";
+import { badRequest, internal, notFound } from "boom";
 import { Op } from "sequelize";
+
 import db from "../utils/dbconnection.util";
-import { constents } from "../configs/constents.config";
 import { speeches } from "../configs/speeches.config";
-import { course_topic } from "../models/course_topic.model";
-import { reflective_quiz_question } from "../models/reflective_quiz_question.model";
-import { reflective_quiz_response } from "../models/reflective_quiz_response.model";
 import { student } from "../models/student.model";
 import BaseService from "./base.service";
-import CRUDService from "./crud.service";
 import DashboardService from "./dashboard.service";
 
 export default class StudentService extends BaseService{

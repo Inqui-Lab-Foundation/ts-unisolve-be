@@ -114,7 +114,4 @@ export default class CRUDService {
             return error;
         }
     };
-    // async createCourse(model: any, body: object) {
-
-    // }
 }

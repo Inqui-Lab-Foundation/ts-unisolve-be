@@ -128,5 +128,3 @@ challenge_response.init(
         updatedAt: 'updated_at'
     }
 );
-
-//todo: add associations.. here 
