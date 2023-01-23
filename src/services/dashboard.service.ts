@@ -56,7 +56,6 @@ export default class DashboardService extends BaseService {
 
             await this.crudService.delete(dashboard_map_stat, { where: {}, truncate: true });
             const result = await this.crudService.bulkCreate(dashboard_map_stat, bulkCreateArray);
-            // console.log(result)
             return result;
         }catch(err){
             return err
@@ -88,10 +87,6 @@ export default class DashboardService extends BaseService {
             const overAllSchool = await this.crudService.findAll(organization, {
                 where: whereClause
             });
-            // if(argdistric=="b"){
-            //     console.log(argdistric)
-            //     console.log(overAllSchool)
-            // }
             if(!overAllSchool || (!overAllSchool.length) || overAllSchool.length==0){
                 return {
                     schoolIdsInDistrict: schoolIdsInDistrict,
@@ -103,7 +98,6 @@ export default class DashboardService extends BaseService {
                 }
             }
             schoolIdsInDistrict = overAllSchool.map((Element: any) => Element.dataValues.organization_code);
-
             const mentorReg = await this.crudService.findAll(mentor, {
                 where: {
                     organization_code: schoolIdsInDistrict,
@@ -130,13 +124,6 @@ export default class DashboardService extends BaseService {
                 group: ['organization_code']
             });
             if(!schoolRegistered || (!schoolRegistered.length) || schoolRegistered.length==0){
-                // return {
-                //     schoolIdsInDistrict: schoolIdsInDistrict,
-                //     registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
-                //     teamIdInDistrict: teamIdInDistrict,
-                //     challengeInDistrict: challengeInDistrict,
-                //     studentsInDistric: studentsInDistric
-                // }
                 registeredSchoolIdsInDistrict=[]
             }else{
                 registeredSchoolIdsInDistrict = schoolRegistered.map((Element: any) => Element.dataValues.organization_code);
@@ -173,13 +160,6 @@ export default class DashboardService extends BaseService {
                 group: ['mentor_id'],
             })
             if(!distinctMentorsWithTeams || (!distinctMentorsWithTeams.length) || distinctMentorsWithTeams.length==0){
-                // return {
-                //     schoolIdsInDistrict: schoolIdsInDistrict,
-                //     registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
-                //     teamIdInDistrict: teamIdInDistrict,
-                //     challengeInDistrict: challengeInDistrict,
-                //     studentsInDistric: studentsInDistric
-                // }
                 schoolIdsInDistrictWithTeams=[]
             }else{
                 schoolIdsInDistrictWithTeams = distinctMentorsWithTeams.map((Element: any) => Element.dataValues.mentor_id);
@@ -194,13 +174,6 @@ export default class DashboardService extends BaseService {
             });
 
             if(!challengeReg || (!challengeReg.length) || challengeReg.length==0){
-                // return {
-                //     schoolIdsInDistrict: schoolIdsInDistrict,
-                //     registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
-                //     teamIdInDistrict: teamIdInDistrict,
-                //     challengeInDistrict: challengeInDistrict,
-                //     studentsInDistric: studentsInDistric
-                // }
                 challengeInDistrict=[]
             }else{
                 challengeInDistrict = challengeReg.map((Element: any) => Element.dataValues.challenge_response_id);
@@ -218,13 +191,6 @@ export default class DashboardService extends BaseService {
                 }
             })
             if(!studentsResult || (!studentsResult.length) || studentsResult.length==0){
-                // return {
-                //     schoolIdsInDistrict: schoolIdsInDistrict,
-                //     registeredSchoolIdsInDistrict: registeredSchoolIdsInDistrict,
-                //     teamIdInDistrict: teamIdInDistrict,
-                //     challengeInDistrict: challengeInDistrict,
-                //     studentsInDistric: studentsInDistric
-                // }
                 studentsInDistric=[]
             }else{
                 studentsInDistric = studentsResult.map((Element: any) => Element.dataValues.student_id);
@@ -311,8 +277,6 @@ export default class DashboardService extends BaseService {
             ${this.getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart, whereClauseStatusPartLiteral, 'and t.topic_type = "VIDEO"')}
             ) as count
         `
-        //  return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-        //  `and t.topic_type = "VIDEO"`
     }
     getDbLieralForWorksheetToipcsCompletedCount(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
         return `
@@ -320,8 +284,6 @@ export default class DashboardService extends BaseService {
             ${this.getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart, whereClauseStatusPartLiteral, ' and t.topic_type = "WORKSHEET"')}
             ) as count
         `
-        //  return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-        //  `and t.topic_type = "WORKSHEET"`
     }
     getDbLieralForQuizToipcsCompletedCount(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
         return `
@@ -329,8 +291,6 @@ export default class DashboardService extends BaseService {
             ${this.getDbLieralCommPartToipcsCompletedCount(addWhereClauseStatusPart, whereClauseStatusPartLiteral, 'and t.topic_type = "QUIZ"')}
             ) as count
         `
-        //  return this.getDbLieralForAllToipcsCompletedCount(addWhereClauseStatusPart,whereClauseStatusPartLiteral)+
-        //  `and t.topic_type = "QUIZ"`
     }
     getDbLieralForPostSurveyCreatedAt(addWhereClauseStatusPart: any, whereClauseStatusPartLiteral: any) {
         return `

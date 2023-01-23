@@ -1,8 +1,10 @@
 import { Model } from "sequelize";
 import { constents } from "../configs/constents.config";
-import { speeches } from "../configs/speeches.config";
 import TranslationsProvider from "../utils/translations/translationProvider";
 
+/**
+ * Translation service get support language using the locale key by default set to en, and translates the object with the help of translation provider 
+ */
 export default class TranslationService {
 
     

@@ -1,13 +1,7 @@
-import { DataBrew } from "aws-sdk";
-import { required } from "joi";
 import { Op } from "sequelize";
 import { constents } from "../configs/constents.config";
-import { mentor } from "../models/mentor.model";
-import { mentor_topic_progress } from "../models/mentor_topic_progress.model";
-import { quiz_survey_response } from "../models/quiz_survey_response.model";
 import BaseService from "./base.service";
-import db from "../utils/dbconnection.util"
-import { organization } from "../models/organization.model";
+import db from "../utils/dbconnection.util";
 export default class ReportService extends BaseService{
     
     async fetchOrgCodeArrToIncInAllMentorReportBasedOnReportStatusParam(
@@ -30,7 +24,6 @@ export default class ReportService extends BaseService{
             if(tpost){
                 if(rs=="INPROGRESS" || 
                 !(rs in constents.reports_all_ment_reports_rs_flags.list)){
-                    //return as is 
                     return resultWherClause
                 }
                 
@@ -44,7 +37,6 @@ export default class ReportService extends BaseService{
                 
             }else if(tc){
                 if(!(rs in constents.reports_all_ment_reports_rs_flags.list)){
-                    //return as is 
                     return resultWherClause
                 }
                 if(rs=="COMPLETED" ){
@@ -76,7 +68,6 @@ export default class ReportService extends BaseService{
             }else if(tpre){
                 if(rs=="INPROGRESS" || 
                 !(rs in constents.reports_all_ment_reports_rs_flags.list)){
-                    //return as is 
                     return resultWherClause
                 }
                 [resultOrgCodeArr,meta] = await db.query(`
@@ -98,8 +89,6 @@ export default class ReportService extends BaseService{
             }else{
                 return resultWherClause
             }
-            // console.log("resultOrgCodeArr",resultOrgCodeArr)
-            //status in not in....!!
             if(rs == constents.reports_all_ment_reports_rs_flags.list["COMPLETED"] ||
                 rs == constents.reports_all_ment_reports_rs_flags.list["INPROGRESS"]){
                 resultWherClause = {

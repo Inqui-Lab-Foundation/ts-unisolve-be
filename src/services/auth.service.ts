@@ -1,6 +1,9 @@
 import bcrypt from 'bcrypt';
-import { nanoid } from 'nanoid';
 import { Op } from 'sequelize';
+import { badRequest, internal, notFound } from 'boom';
+import axios from 'axios';
+import CryptoJS from 'crypto-js';
+import { invalid } from 'joi';
 
 import jwtUtil from '../utils/jwt.util';
 import CRUDService from "./crud.service";
@@ -18,22 +21,10 @@ import { quiz_survey_response } from "../models/quiz_survey_response.model";
 import { reflective_quiz_response } from "../models/reflective_quiz_response.model";
 import { user_topic_progress } from "../models/user_topic_progress.model";
 import { worksheet_response } from "../models/worksheet_response.model";
-import AWS from 'aws-sdk';
-import axios from 'axios';
-import CryptoJS from 'crypto-js';
-import { includes } from 'lodash';
-import { func, invalid } from 'joi';
 import { mentor_topic_progress } from '../models/mentor_topic_progress.model';
-import { badRequest, internal, notAcceptable, notFound } from 'boom';
-import { notFoundError } from '../docs/errors';
 import { constents } from '../configs/constents.config';
 export default class authService {
-
     crudService: CRUDService = new CRUDService;
-    private password = process.env.GLOBAL_PASSWORD;
-    // private aws_access_key = process.env.AWS_ACCESS_KEY_ID;
-    // private aws_secret_key = process.env.AWS_SECRET_ACCESS_KEY;
-    // private aws_region = process.env.AWS_REGION;
     private otp = '112233';
 
     async checkOrgDetails(organization_code: any) {
@@ -119,7 +110,6 @@ export default class authService {
     async register(requestBody: any) {
         let response: any = {};
         let profile: any;
-        let reg_statue: any = requestBody.reg_statue;
         try {
             const user_res = await this.crudService.findOne(user, { where: { username: requestBody.username } });
             if (user_res) {
@@ -127,9 +117,7 @@ export default class authService {
                 return response
             }
             const result = await this.crudService.create(user, requestBody);
-            // console.log(result)
             let whereClass = { ...requestBody, user_id: result.dataValues.user_id };
-            // console.log(whereClass);
             switch (requestBody.role) {
                 case 'STUDENT': {
                     profile = await this.crudService.create(student, whereClass);
@@ -177,7 +165,6 @@ export default class authService {
                 errorResponse.push(`'${payload.full_name}'`);
                 continue;
             }
-            // payload.password = await bcrypt.hashSync(payload.password, process.env.SALT || baseConfig.SALT);
             let checkUserExisted = await this.crudService.findOne(user, {
                 attributes: ["user_id", "username"],
                 where: { username: payload.username }
@@ -242,26 +229,6 @@ export default class authService {
                 user_res.is_loggedin = "YES";
                 const token = await jwtUtil.createToken(user_res.dataValues, `${process.env.PRIVATE_KEY}`);
 
-                // await sendNotification({
-                //     notification_type: constents.notification_types.list.PUSH,
-                //     target_audience: user_res.user_id, // Keep 'ALL' for all users
-                //     title: 'Login Successful',
-                //     image: '',
-                //     message: 'You have successfully logged in.',
-                //     status: constents.notification_status_flags.list.PUBLISHED,
-                //     created_by: user_res.user_id
-                // });
-
-                // await sendNotification({
-                //     notification_type: constents.notification_types.list.EMAIL,
-                //     target_audience: user_res.email, // Keep 'ALL' for all users
-                //     title: 'Login Successful',
-                //     image: '',
-                //     message: 'You have successfully logged in.',
-                //     status: constents.notification_status_flags.list.PUBLISHED,
-                //     created_by: user_res.user_id
-                // });
-
                 result['data'] = {
                     user_id: user_res.dataValues.user_id,
                     name: user_res.dataValues.username,
@@ -308,8 +275,6 @@ export default class authService {
                     ]
                 }
             });
-            // const passwordValidation = bcrypt.compareSync(requestBody.body.old_password, user_res.dataValues.password);
-            // console.log("test: ", passwordValidation)
             if (!user_res) {
                 result['user_res'] = user_res;
                 result['error'] = speeches.USER_NOT_FOUND;
@@ -333,56 +298,10 @@ export default class authService {
         }
     }
     async generateOtp() {
-        // changing random OTP to static OTP as per Sreeni request.
         // return Math.random().toFixed(6).substr(-6);
-        // return Math.floor(1000 + Math.random() * 9000)
         return this.otp;
     }
     async triggerOtpMsg(mobile: any) {
-        // const resObj = {
-        //     Message: `Your verification code is ${otp}`,
-        //     PhoneNumber: '+' + mobile,
-        //     MessageAttributes: {
-        //         'AWS.SNS.SMS.SenderID': {
-        //             'DataType': 'String',
-        //             'StringValue': 'Unisolve'
-        //         },
-        //         'AWS.SNS.SMS.SMSType': {
-        //             'DataType': 'String',
-        //             'StringValue': "Transactional"
-        //         }
-        //     }
-        // };
-        // // try {
-        // const resp: any = await new AWS.SNS({
-        //     apiVersion: '2010-03-31',
-        //     accessKeyId: this.aws_access_key,
-        //     secretAccessKey: this.aws_secret_key,
-        //     region: 'ap-south-1'
-        // }).publish(resObj, function (error: any, data: any) {
-        //     if (error) {
-        //         console.log(error);
-        //         return error;
-        //     }
-        //     console.log(data);
-        //     return { MessageID: data.MessageId, OTP: otp }
-        // })
-        //.promise();
-        // resp.then(
-        //     function (data: any) {
-        //         console.log(data);
-        //         return { MessageID: data.MessageId, OTP: otp }
-        //     }
-        // ).catch(
-        //     function (error: any) {
-        //         // console.log(error);
-        //         return error;
-        //     });
-        // const resp = await axios.get(`https://veup.versatilesmshub.com/api/sendsms.php?api=0a227d90ef8cd9f7b2361b33abb3f2c8&senderid=YFSITS&channel=Trans&DCS=0&flashsms=0&number=${mobile}&text=Dear Student, A request for password reset had been generated. Your OTP for the same is ${otp} -Team Youth for Social Impact&SmsCampaignId=1&EntityID=1701164847193907676&DLT_TE_ID=1507165035646232522`)
-        // } catch (err) {
-        //     console.log(err);
-        //     return err;
-        // }
         try {
             const otp = await axios.get(`https://youthforsocialimpact.in/student/unisolveOTP/${mobile}`)
             return otp.data.otp;
@@ -396,9 +315,6 @@ export default class authService {
             const user_res: any = await this.crudService.findOne(mentor, {
                 where: {
                     [Op.or]: [
-                        // {
-                        //     email: { [Op.eq]: requestBody.email }
-                        // },
                         {
                             mobile: { [Op.like]: `%${requestBody.mobile}%` }
                         }
@@ -411,7 +327,6 @@ export default class authService {
                 result['error'] = speeches.USER_NOT_FOUND;
                 return result;
             }
-            //TODO trigger otp and update user with otp
             const otp = await this.generateOtp();
             const passwordNeedToBeUpdated: any = await this.triggerOtpMsg(requestBody.mobile);
             if (passwordNeedToBeUpdated instanceof Error) {
@@ -423,7 +338,6 @@ export default class authService {
             }, { where: { user_id: user_res.dataValues.user_id } });
             result['data'] = response;
             return result;
-
         } catch (error) {
             result['error'] = error;
             return result;
@@ -509,9 +423,7 @@ export default class authService {
             }, { where: { user_id: user_data.dataValues.user_id } })
             result['data'] = {
                 username: user_res.dataValues.username,
-                user_id: user_res.dataValues.user_id,
-                // mobile: mentor_res.dataValues.mobile,
-                // reg_status: mentor_res.dataValues.reg_status
+                user_id: user_res.dataValues.user_id
             };
             return result;
         } catch (error) {
@@ -572,7 +484,6 @@ export default class authService {
     }
     async updatePassword(requestBody: any, responseBody: any) {
         const res = await this.changePassword(requestBody, responseBody);
-        console.log(res);
         if (res.data) {
             await this.crudService.update(mentor, { reg_status: '3' }, { where: { user_id: requestBody.user_id } });
         } return res;
@@ -720,29 +631,18 @@ export default class authService {
     }
     async bulkDeleteUserWithDetails(argUserDetailsModel: any, arrayOfUserIds: any) {
         try {
-
-            // const allModels:any = {"STUDENT":student, "MENTOR":mentor, "ADMIN":admin,"EVALUATOR":evaluator}
             const UserDetailsModel = argUserDetailsModel
             const resultUserDetailsDelete = await this.crudService.delete(UserDetailsModel, {
                 where: { user_id: arrayOfUserIds },
                 force: true
             })
-            // console.log("resultUserDetailsDelete",resultUserDetailsDelete)
-            // if(!resultUserDetailsDelete){
-            //     throw internal("something went wrong while deleting user detais ")
-            // }
             if (resultUserDetailsDelete instanceof Error) {
                 throw resultUserDetailsDelete;
             }
-
             const resultUserDelete = await this.crudService.delete(user, {
                 where: { user_id: arrayOfUserIds },
                 force: true
             })
-            // console.log("resultUserDelete",resultUserDelete)
-            // if(!resultUserDelete){
-            //     throw internal("something went wrong while deleting user")
-            // }
             if (resultUserDelete instanceof Error) {
                 throw resultUserDetailsDelete;
             }
@@ -800,8 +700,6 @@ export default class authService {
     async checkIfTeamHasPlaceForNewMember(argTeamId: any) {
         try {
             let studentResult: any = await student.findAll({ where: { team_id: argTeamId } })
-            // console.log("studentResult",studentResult)
-            // console.log("studentResultLength",studentResult.length?"true":"false")
             if (studentResult && studentResult instanceof Error) {
                 throw studentResult
             }
