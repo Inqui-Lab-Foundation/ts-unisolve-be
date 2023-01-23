@@ -55,6 +55,8 @@ export default class DashboardController extends BaseController {
 
         //evaluator stats..
         this.router.get(`${this.path}/evaluatorStats`, this.getEvaluatorStats.bind(this));
+        //loggedInUserCount
+        this.router.get(`${this.path}/loggedInUserCount`, this.getLoggedInUserCount.bind(this));
 
         super.initializeRoutes();
     }
@@ -657,6 +659,41 @@ export default class DashboardController extends BaseController {
             response['final_challenges'] = Object.values(final_challenges[0]).toString();
             response['final_evaluation_challenge'] = Object.values(final_evaluation_challenge[0]).toString();
             response['final_evaluation_final'] = Object.values(final_evaluation_final[0]).toString();
+            res.status(200).send(dispatcher(res, response, "success"))
+        } catch (err) {
+            next(err)
+        }
+    }
+
+    //loggedUserCount
+    protected async getLoggedInUserCount(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let response: any;
+            const paramStatus: any = req.query.status;
+            // let  timer: any = req.body.time;
+            let whereClauseStatusPart: any = {};
+            let whereClauseStatusPartLiteral = "1=1";
+            let addWhereClauseStatusPart = false
+            if (paramStatus && (paramStatus in constents.common_status_flags.list)) {
+                whereClauseStatusPart = { "status": paramStatus }
+                whereClauseStatusPartLiteral = `status = "${paramStatus}"`
+                addWhereClauseStatusPart = true;
+            }
+            // timer = new Date(timer);
+            // const modifiedTime: any = timer.setSeconds(timer.getSeconds() + 5);
+            response = await this.crudService.findAndCountAll(user, {
+                attributes: [
+                    "username",
+                    "full_name"
+                ],
+                where: {
+                    [Op.and]: [
+                        { is_loggedin: 'YES' },
+                        { role: 'STUDENT' },
+                        // { last_login: { [Op.between]: [req.body.time, modifiedTime] } }
+                    ]
+                }
+            })
             res.status(200).send(dispatcher(res, response, "success"))
         } catch (err) {
             next(err)
