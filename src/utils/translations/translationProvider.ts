@@ -14,21 +14,34 @@ export default class TranslationsProvider {
     private static translationsFromDbArr: any = {}
 
     private static defaultLocale = constents.translations_flags.default_locale
+
+    /**
+     * @returns locale to default language if not passed
+     */
     static getDefaultLocale() {
         return this.defaultLocale
     }
 
-    private static supportedLocales: any = [
-    ]
+    private static supportedLocales: any = [];
+
+    /**
+     * @returns list of supported language from the database
+     */
     static getSupportedLocales() {
         return this.supportedLocales
     }
 
+    /**
+     * initialize functional call to supportedLanguages and Translations from database.
+     */
     static async init() {
         await this.initSupportedLanguages()
-
         await this.initTranslationsFromDb()
     }
+    
+    /**
+     * gets the supported languages from the database and store them in object.
+     */
     static async initSupportedLanguages() {
         // initializing supported languages first 
         const data = await supported_language.findAll({
@@ -39,6 +52,10 @@ export default class TranslationsProvider {
         })
         this.supportedLocales = data.map((u) => u.locale)
     }
+
+    /**
+     * gets the translations languages from the database and store them in object.
+     */
     static async initTranslationsFromDb() {
         ///initializing translations for all supported languages  
         for (var i = 0; i < this.supportedLocales.length; i++) {
@@ -62,6 +79,13 @@ export default class TranslationsProvider {
             }
         }
     }
+
+    /**
+     * get translations for specific key
+     * @param argToLocale String
+     * @param argKey String
+     * @returns translated string
+     */
     static getTranslationTo(argToLocale: string, argKey: string) {
         if (typeof argKey == 'string') {
             argKey = ("" + argKey).trim()
@@ -75,6 +99,12 @@ export default class TranslationsProvider {
         return argKey;
     }
 
+    /**
+     * get translations for specific value
+     * @param argToLocale String
+     * @param argValue String
+     * @returns translated key
+     */
     static getTranslationKeyForValue(argToLocale: string, argValue: string) {
         if (typeof argValue == 'string') {
             argValue = ("" + argValue).trim()
@@ -99,6 +129,11 @@ export default class TranslationsProvider {
         return argValue;
     }
 
+    /**
+     * using different error messages based on the language changed
+     * @param arglocale String
+     * @returns Object
+     */
     static getSpeechesFor(arglocale: string = this.defaultLocale) {
         switch (arglocale) {
             case "en":
@@ -110,6 +145,11 @@ export default class TranslationsProvider {
         }
     }
 
+    /**
+     * get translations data from the database refresh the rows inserted and bulk push
+     * @param translateTable model name
+     * @returns array 
+     */
     static async translateRefresh(translateTable:any)
     {
         let bulkInsert:any = [];
@@ -123,7 +163,6 @@ export default class TranslationsProvider {
                 let tableName = translateTable[i];
                 translateKeys = translateKeys[0];
                 // console.log("🚀 ~ file: translationProvider.ts ~ line 152 ~ TranslationsProvider ~ translateKeys", translateKeys,tableName,indexNo);
-                
                 for(let z:any=0;z<translateKeys.length;z++)
                 {
                     // console.log("🚀 ~ file: translationProvider.ts ~ line 158 ~ TranslationsProvider ~ translateKeys", translateKeys[z]);
