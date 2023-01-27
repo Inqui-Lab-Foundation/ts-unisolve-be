@@ -27,7 +27,7 @@ import TranslationService from "./services/translation.service";
  * @params portNumber
  * @params Database connection string
  * @note make sure translation middleware is called after route protection middleware because, 
- * translation middleware adds data to res.locals which is overridden in route protection middleware
+ * @note translation middleware adds data to res.locals which is overridden in route protection middleware
  * @note make sure initializeErrorHandling is the last middleware 
  */
 export default class App {
