@@ -20,6 +20,7 @@ import { student } from '../models/student.model';
 import { team } from '../models/team.model';
 import { challenge_response } from '../models/challenge_response.model';
 import StudentService from '../services/students.service';
+import { user } from '../models/user.model';
 
 
 export default class DashboardController extends BaseController {
