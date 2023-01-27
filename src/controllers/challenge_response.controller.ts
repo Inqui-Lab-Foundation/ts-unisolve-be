@@ -901,9 +901,9 @@ export default class ChallengeResponsesController extends BaseController {
             }
             let file_name_prefix: any;
             if (process.env.DB_HOST?.includes("prod")) {
-                file_name_prefix = `ka_ideas/${team_id}`
+                file_name_prefix = `ideas/${team_id}`
             } else {
-                file_name_prefix = `ka_ideas/stage/${team_id}`
+                file_name_prefix = `ideas/stage/${team_id}`
             }
             for (const file_name of Object.keys(files)) {
                 const file = files[file_name];
