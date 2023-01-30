@@ -41,7 +41,6 @@ export default class StudentService extends BaseService{
             if(showProgressAsWell){
                 attrsToIncludeForProgress=[
                     [
-                        //todo:TODO:optimization:this can further be optimised interms of right now total over topics count remains same for all students ..but we are still querying this for all students 
                         db.literal(`(
                             ${serviceDashboard.getDbLieralForAllToipcsCount(addWhereClauseStatusPart,
                             whereClauseStatusPartLiteral)}
@@ -76,9 +75,6 @@ export default class StudentService extends BaseService{
                             )`),
                         "idea_submission"
                     ],
-                    // [
-                    //     { "certificate_status": 0 } // hardcoded for now, functionality yet to finalized
-                    // ]
                 ]
             }
             let whereClauseShowCurrUserPart = {}
@@ -185,7 +181,6 @@ export default class StudentService extends BaseService{
             
             //@ts-ignore
             const studentBadgesString = studentResult.dataValues.badges;
-            
             const studentBadgesObj:any = JSON.parse(studentBadgesString);
             return studentBadgesObj
         }catch(err){

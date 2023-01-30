@@ -3,7 +3,16 @@ import { constents } from "../configs/constents.config";
 import BaseService from "./base.service";
 import db from "../utils/dbconnection.util";
 export default class ReportService extends BaseService{
-    
+    /**
+     * fetch Org Codes To include All Mentor Report Based On Report Status Param
+     * @param tr String attribute to include organization code for mentor who registered more then once
+     * @param tpre String attribute to include quiz quiz_survey_response 
+     * @param tc String
+     * @param tpost String
+     * @param rs String
+     * @param totalNoOfTopics String totalNoOfTopics 
+     * @returns where clause object with with selected attributes
+     */
     async fetchOrgCodeArrToIncInAllMentorReportBasedOnReportStatusParam(
         tr:any,
         tpre:any,
@@ -18,9 +27,9 @@ export default class ReportService extends BaseService{
             if(!rs || rs=="ALL"){
                 return resultWherClause
             }
-            //switch case begins....!! entire busines logic is here 
-            //where rs param changes its aligance based on the params given with higest weightage given to 
-            // tpost , then tc, then tpre and then tr and the way to fetch the params is diff for each ...!!
+            /**
+             * @note  switch case begins....!! entire business logic is here, where rs param changes its Alliance based on the params given with highest weighage given to, tpost , then tc, then tpre and then tr and the way to fetch the params is diff for each ...!!
+             */
             if(tpost){
                 if(rs=="INPROGRESS" || 
                 !(rs in constents.reports_all_ment_reports_rs_flags.list)){
@@ -108,5 +117,4 @@ export default class ReportService extends BaseService{
             return err
         }
     }
-
 }
