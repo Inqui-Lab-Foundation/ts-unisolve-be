@@ -7,7 +7,13 @@ import { reflective_quiz_response } from "../models/reflective_quiz_response.mod
 import BaseService from "./base.service";
 
 export default class ReflectiveQuizService extends BaseService {
-
+    /**
+     * Fetch next question for quiz based on the user_id
+     * @param user_id Number
+     * @param video_id String
+     * @param paramStatus String
+     * @returns Object 
+     */
     public async fetchNextQuestion(user_id: number, video_id: any, paramStatus: any) {
         try {
             if (!video_id) {
@@ -16,12 +22,6 @@ export default class ReflectiveQuizService extends BaseService {
             if (!user_id) {
                 throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
             }
-            //check if the given quiz is a valid topic
-            // const curr_topic =  await this.crudService.findOne(course_topic,{where:{"topic_type_id":video_id,"topic_type":"VIDEO"}})
-            // if(!curr_topic || curr_topic instanceof Error){
-            //     throw badRequest("INVALID TOPIC");
-            // }
-
             const quizRes = await this.crudService.findOne(reflective_quiz_response, { where: { video_id: video_id, user_id: user_id } });
             if (quizRes instanceof Error) {
                 throw internal(quizRes.message)
