@@ -7,6 +7,7 @@ export class organization extends Model<InferAttributes<organization>, InferCrea
     declare organization_id: CreationOptional<number>;
     declare organization_name: string;
     declare organization_code: string;
+    declare org_type: string;
     declare city: string;
     declare district: string;
     declare state: string;
@@ -26,6 +27,10 @@ organization.init({
         type: DataTypes.INTEGER,
         autoIncrement: true,
         primaryKey: true
+    },
+    org_type: {
+        type: DataTypes.STRING,
+        allowNull: true,
     },
     organization_name: {
         type: DataTypes.STRING,
