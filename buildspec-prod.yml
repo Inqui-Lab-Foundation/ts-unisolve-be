@@ -9,7 +9,7 @@ phases:
       - echo Installing source NPM dependencies...
       - npm install
   build:
-     commands: 
+     commands:
       - aws s3 cp s3://cicd-build-deployment-ts-artefacts/prod/.env .
       - cat .env
       - chmod +x ./scripts/*.sh
