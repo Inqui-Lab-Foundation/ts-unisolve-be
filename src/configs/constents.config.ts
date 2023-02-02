@@ -39,6 +39,13 @@ export const constents = {
     },
     default: 'ACTIVE'
   },
+  evaluation_process_status_flags: {
+    list: {
+      'ACCEPT_REJECT': 'ACCEPT_REJECT',
+      'RATING_SCALE': 'RATING_SCALE'
+    },
+    default: 'ACCEPT_REJECT'
+  },
   tut_videos_type_flags: {
     list: {
       'ALL': 'ALL',
@@ -62,7 +69,7 @@ export const constents = {
       'OPEN': 'OPEN',
       'INPROGRESS': 'INPROGRESS',
       'RESOLVED': 'RESOLVED',
-      'BLOCKED': 'BLOCKED'
+      'INVALID': 'INVALID'
     },
     default: 'OPEN'
   },
@@ -73,6 +80,15 @@ export const constents = {
       'EASY': 'EASY',
     },
     default: 'HARD'
+  },
+  evaluator_rating_level_flags: {
+    list: {
+      '2': '2',
+      '3': '3',
+      '4': '4',
+      '5': '5',
+    },
+    default: '2'
   },
   quiz_question_type_flags: {
     list: {
@@ -158,16 +174,19 @@ export const constents = {
   challenges_flags: {
     list: {
       "DRAFT": "DRAFT",
-      "SUBMITTED": "SUBMITTED",
-      "EVALUATION": "EVALUATION",
-      "SELECTEDROUND1": "SELECTEDROUND1",
-      "REJECTEDROUND1": "REJECTEDROUND1"
+      "SUBMITTED": "SUBMITTED"
     },
     default: "DRAFT"
   },
+  final_result_flags: {
+    list: {
+      "0": "0",
+      "1": "1"
+    },
+    default: null
+  },
   evaluation_status: {
     list: {
-      "EVALUATION": "EVALUATION",
       "SELECTEDROUND1": "SELECTEDROUND1",
       "REJECTEDROUND1": "REJECTEDROUND1"
     },
@@ -181,7 +200,7 @@ export const constents = {
     },
     default: "ALL"
   },
-  translations_flags:{
+  translations_flags: {
     default_locale: "en"
   },
   default_image_path: "/images/default.jpg",
@@ -194,7 +213,7 @@ export const constents = {
     },
     default: "ALL"
   },
-  TEAMS_MAX_STUDENTS_ALLOWED: 4,
+  TEAMS_MAX_STUDENTS_ALLOWED: 5,
   ALPHA_NUMERIC_PATTERN: /^[a-zA-Z0-9 ]*$/,
   certificate_flags: {
     list: {
@@ -204,34 +223,35 @@ export const constents = {
     },
     default: '1'
   },
-  TRANSLATION_CONFIG:{
-    table_column : {
-      "quiz_questions" : {
-        "primary_key" : "quiz_question_id",
-        "columns" : [
-        'question',
-        'option_a',
-        'option_b',
-        'option_c',
-        'option_d',
-        'correct_ans',
-        'question_image',
-        'question_icon',
-        'msg_ans_correct',
-        'msg_ans_wrong',
-        'ar_image_ans_correct',
-        'ar_video_ans_correct',
-        'accimg_ans_correct',
-        'ar_image_ans_wrong',
-        'ar_video_ans_wrong',
-        'accimg_ans_wrong',
-      ]}
+  TRANSLATION_CONFIG: {
+    table_column: {
+      "quiz_questions": {
+        "primary_key": "quiz_question_id",
+        "columns": [
+          'question',
+          'option_a',
+          'option_b',
+          'option_c',
+          'option_d',
+          'correct_ans',
+          'question_image',
+          'question_icon',
+          'msg_ans_correct',
+          'msg_ans_wrong',
+          'ar_image_ans_correct',
+          'ar_video_ans_correct',
+          'accimg_ans_correct',
+          'ar_image_ans_wrong',
+          'ar_video_ans_wrong',
+          'accimg_ans_wrong',
+        ]
+      }
     }
   },
-  SEQUELIZE_FLAGS:{
-    DEFAULT_EXCLUDE_SCOPE:['created_at','created_by','updated_at','updated_by','status'],
-    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS:['created_at','created_by','updated_at','updated_by'],
-    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS:['updated_at','updated_by'],
-    WITH_DEBUGATTRS:[]
+  SEQUELIZE_FLAGS: {
+    DEFAULT_EXCLUDE_SCOPE: ['created_at', 'created_by', 'updated_at', 'updated_by', 'status'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS: ['created_at', 'created_by', 'updated_at', 'updated_by'],
+    DEFAULT_EXCLUDE_SCOPE_WITHOUT_STATUS_CREATEDATTRS: ['updated_at', 'updated_by'],
+    WITH_DEBUGATTRS: []
   }
 };
