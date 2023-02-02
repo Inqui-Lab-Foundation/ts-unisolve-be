@@ -101,6 +101,24 @@ export default class DashboardController extends BaseController {
                     ],
                     [
                         db.literal(`(
+                        SELECT COUNT(quiz_response_id)
+                        FROM quiz_survey_responses AS postSurvey
+                        WHERE postSurvey.user_id IN (
+                            SELECT user_id
+                            from students as s
+                            where 
+                            ${addWhereClauseStatusPart ? "s." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
+                            and s.team_id in (
+                                select team_id 
+                                from teams as t
+                                where 
+                                ${addWhereClauseStatusPart ? "t." + whereClauseStatusPartLiteral : whereClauseStatusPartLiteral}
+                                and t.mentor_id=\`mentor\`.\`mentor_id\`)
+                            ) and postSurvey.quiz_survey_id = 4 is true)`),
+                        "post_survey_count"
+                    ],
+                    [
+                        db.literal(`(
                         select count(c.team_id) 
                         from challenge_responses as c 
                         where c.team_id in (
