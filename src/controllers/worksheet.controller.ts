@@ -219,6 +219,7 @@ export default class WorksheetController extends BaseController {
                     Key: file.originalFilename,
                     Body: readFile
                 };
+                let options: any = { partSize: 20 * 1024 * 1024, queueSize: 2 };
                 await s3.upload(params).promise()
                     .then((data: any) => { attachments.push(data.Location) })
                     .catch((err: any) => { errs.push(`Error uploading file: ${file.originalFilename}, err: ${err.message}`) })
