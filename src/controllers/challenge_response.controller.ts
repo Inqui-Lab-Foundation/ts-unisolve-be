@@ -917,7 +917,8 @@ export default class ChallengeResponsesController extends BaseController {
                     Key: file.originalFilename,
                     Body: readFile
                 };
-                await s3.upload(params).promise()
+                let options: any = { partSize: 20 * 1024 * 1024, queueSize: 2 };
+                await s3.upload(params, options).promise()
                     .then((data: any) => { attachments.push(data.Location) })
                     .catch((err: any) => { errs.push(`Error uploading file: ${file.originalFilename}, err: ${err.message}`) })
                 result['attachments'] = attachments;
