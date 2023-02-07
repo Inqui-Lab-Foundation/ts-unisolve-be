@@ -11,6 +11,7 @@ import { evaluator } from '../models/evaluator.model';
 import { user } from '../models/user.model';
 import { badRequest, notFound } from 'boom';
 import db from "../utils/dbconnection.util"
+import { evaluation_process } from '../models/evaluation_process.model';
 
 export default class EvaluatorController extends BaseController {
     model = "evaluator";
@@ -44,7 +45,8 @@ export default class EvaluatorController extends BaseController {
                 "user_id",
                 "username",
                 "full_name"
-            ], model: user, required: false }
+            ], model: user, required: false
+        }
         );
     }
 
@@ -102,6 +104,9 @@ export default class EvaluatorController extends BaseController {
         } else if (result.error) {
             return res.status(401).send(dispatcher(res, result.error, 'error', speeches.USER_RISTRICTED, 401));
         } else {
+            let getEvaluatorProcessLevel = await this.crudService.findOne(evaluation_process, { where: { status: "ACTIVE" } });
+            result.data["level_name"] = getEvaluatorProcessLevel.dataValues.level_name
+            result.data['eval_schema'] = getEvaluatorProcessLevel.dataValues.eval_schema;
             return res.status(200).send(dispatcher(res, result.data, 'success', speeches.USER_LOGIN_SUCCESS));
         }
     }
