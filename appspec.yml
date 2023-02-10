@@ -2,7 +2,7 @@ version: 0.0
 os: linux
 files:
   - source: /
-    destination: /home/ubuntu/tn-unisolve-be
+    destination: /home/ubuntu/ts-unisolve-be
 file_exists_behavior: OVERWRITE
 hooks:
   BeforeInstall:
