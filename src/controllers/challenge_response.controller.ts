@@ -28,6 +28,7 @@ import { organization } from "../models/organization.model";
 import { evaluation_process } from "../models/evaluation_process.model";
 import { evaluator_rating } from "../models/evaluator_rating.model";
 import { evaluation_results } from "../models/evaluation_results";
+import { evaluator } from "../models/evaluator.model";
 
 export default class ChallengeResponsesController extends BaseController {
 
@@ -47,6 +48,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
         this.router.get(this.path + "/updateSubmission", this.submission.bind(this));
         this.router.get(this.path + '/fetchRandomChallenge', this.getRandomChallenge.bind(this));
+        this.router.get(this.path + '/evaluatedIdeas', this.getEvaluatorDetailsForEvaluatedIdeas.bind(this));
         this.router.put(this.path + '/updateEntry/:id', validationMiddleware(UpdateAnyFieldSchema), this.updateAnyFields.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         this.router.get(`${this.path}/evaluated/:evaluator_id`, this.getChallengesForEvaluator.bind(this))
@@ -608,6 +610,79 @@ export default class ChallengeResponsesController extends BaseController {
             next(error);
         }
     }
+    protected async getEvaluatorDetailsForEvaluatedIdeas(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let challengeResponse: any;
+            let attributesNeedFetch: any;
+
+            let user_id = res.locals.user_id;
+            if (!user_id) throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
+
+            let evaluator_user_id = req.query.evaluator_user_id;
+            if (!evaluator_user_id) throw unauthorized(speeches.ID_REQUIRED);
+
+            let level = req.query.level;
+
+            if (level && typeof level == 'string') {
+                switch (level) {
+                    case 'L1':
+                        attributesNeedFetch = [
+                            `full_name`,
+                            `mobile`,
+                            [
+                                db.literal(`(SELECT username FROM users as u where u.user_id = \`evaluator\`.\`user_id\` )`), 'username'
+                            ],
+                            [
+                                db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                            ]
+                        ]
+                        challengeResponse = await this.crudService.findOne(evaluator, {
+                            attributes: attributesNeedFetch,
+                            where: {
+                                user_id: evaluator_user_id
+                            },
+                        });
+                        if (challengeResponse instanceof Error) {
+                            throw challengeResponse
+                        }
+                        break;
+                    case 'L2':
+                        attributesNeedFetch = [
+                            `full_name`,
+                            `mobile`,
+                            [
+                                db.literal(`(SELECT username FROM users as u where u.user_id = \`evaluator\`.\`user_id\` )`), 'username'
+                            ],
+                            [
+                                db.literal(`(SELECT 
+                                    count(*)
+                                    FROM (SELECT evaluator_id FROM 
+                                    unisolve_db.evaluator_ratings
+                                    GROUP BY challenge_response_id
+                                    HAVING COUNT(challenge_response_id) >= 3) as evaluated_data
+                                    WHERE evaluator_id = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                            ]
+                        ]
+                        challengeResponse = await this.crudService.findOne(evaluator, {
+                            attributes: attributesNeedFetch,
+                            where: {
+                                user_id: evaluator_user_id
+                            }
+                        });
+                        console.log(challengeResponse);
+                        if (challengeResponse instanceof Error) {
+                            throw challengeResponse
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            return res.status(200).send(dispatcher(res, challengeResponse, 'success'));
+        } catch (error) {
+            next(error);
+        }
+    }
     protected async insertSingleResponse(team_id: any, user_id: any, challenge_id: any, challenge_question_id: any, selected_option: any) {
         try {
             const questionAnswered = await this.crudService.findOne(challenge_question, { where: { challenge_question_id } });
@@ -711,7 +786,7 @@ export default class ChallengeResponsesController extends BaseController {
             for (const element of responses) {
                 let selected_option = Array.isArray(element.selected_option) ? element.selected_option.join("{{}}") : element.selected_option;
                 selected_option = res.locals.translationService.getTranslationKey(selected_option).split("{{}}");
-                result = await this.insertSingleResponse(team_id, user_id, challenge_id, element.challenge_question_id, selected_option)
+                result = await this.insertSingleResponse(team_id, user_id, challenge_id, element.challenge_question_id, selected_option);
                 if (!result || result instanceof Error) {
                     throw badRequest();
                 } else {
@@ -820,7 +895,7 @@ export default class ChallengeResponsesController extends BaseController {
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             const data = await this.crudService.update(modelLoaded, payload, { where: where });
             // console.log(data);
-            
+
             if (!data) {
                 throw badRequest()
             }
