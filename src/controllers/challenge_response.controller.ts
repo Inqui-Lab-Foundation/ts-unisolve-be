@@ -612,73 +612,74 @@ export default class ChallengeResponsesController extends BaseController {
     }
     protected async getEvaluatorDetailsForEvaluatedIdeas(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
         try {
-            let challengeResponse: any;
+            let response: any;
             let attributesNeedFetch: any;
 
             let user_id = res.locals.user_id;
             if (!user_id) throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
-
-            let evaluator_user_id = req.query.evaluator_user_id;
-            if (!evaluator_user_id) throw unauthorized(speeches.ID_REQUIRED);
-
+            
             let level = req.query.level;
 
             if (level && typeof level == 'string') {
                 switch (level) {
                     case 'L1':
                         attributesNeedFetch = [
-                            `full_name`,
-                            `mobile`,
                             [
-                                db.literal(`(SELECT username FROM users as u where u.user_id = \`evaluator\`.\`user_id\` )`), 'username'
+                                db.literal(`(SELECT full_name FROM users as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'full_name'
                             ],
                             [
-                                db.literal(`(SELECT count(*) FROM challenge_responses as idea where idea.evaluated_by = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                                db.literal(`(SELECT mobile FROM evaluators as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'mobile'
+                            ],
+                            [
+                                db.literal(`(SELECT username FROM users as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'username'
+                            ],
+                            [
+                                db.literal(`(SELECT role FROM users as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'role'
+                            ],
+                            [
+                                db.Sequelize.fn('count', db.Sequelize.col(`challenge_response.evaluated_by`)), 'evaluatedIdeaCount'
                             ]
                         ]
-                        challengeResponse = await this.crudService.findOne(evaluator, {
+                        response = await this.crudService.findAll(challenge_response, {
                             attributes: attributesNeedFetch,
-                            where: {
-                                user_id: evaluator_user_id
-                            },
+                            where: { evaluated_by: { [Op.not]: null } },
+                            group: [`challenge_response.evaluated_by`]
                         });
-                        if (challengeResponse instanceof Error) {
-                            throw challengeResponse
+                        if (response instanceof Error) {
+                            throw response
                         }
                         break;
                     case 'L2':
                         attributesNeedFetch = [
-                            `full_name`,
-                            `mobile`,
                             [
-                                db.literal(`(SELECT username FROM users as u where u.user_id = \`evaluator\`.\`user_id\` )`), 'username'
+                                db.literal(`(SELECT full_name FROM users as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'full_name'
                             ],
                             [
-                                db.literal(`(SELECT 
-                                    count(*)
-                                    FROM (SELECT evaluator_id FROM 
-                                    unisolve_db.evaluator_ratings
-                                    GROUP BY challenge_response_id
-                                    HAVING COUNT(challenge_response_id) >= 3) as evaluated_data
-                                    WHERE evaluator_id = ${evaluator_user_id.toString()})`), 'evaluatedIdeas'
+                                db.literal(`(SELECT mobile FROM evaluators as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'mobile'
+                            ],
+                            [
+                                db.literal(`(SELECT username FROM users as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'username'
+                            ],
+                            [
+                                db.literal(`(SELECT role FROM users as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'role'
+                            ],
+                            [
+                                db.Sequelize.fn('count', db.Sequelize.col(`evaluator_rating.evaluator_id`)), 'evaluatedIdeaCount'
                             ]
                         ]
-                        challengeResponse = await this.crudService.findOne(evaluator, {
+                        response = await this.crudService.findAll(evaluator_rating, {
                             attributes: attributesNeedFetch,
-                            where: {
-                                user_id: evaluator_user_id
-                            }
+                            group: [`evaluator_rating.challenge_response_id`],
                         });
-                        console.log(challengeResponse);
-                        if (challengeResponse instanceof Error) {
-                            throw challengeResponse
+                        if (response instanceof Error) {
+                            throw response
                         }
                         break;
                     default:
                         break;
                 }
             }
-            return res.status(200).send(dispatcher(res, challengeResponse, 'success'));
+            return res.status(200).send(dispatcher(res, response, 'success'));
         } catch (error) {
             next(error);
         }
