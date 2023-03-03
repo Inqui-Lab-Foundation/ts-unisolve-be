@@ -617,10 +617,7 @@ export default class ChallengeResponsesController extends BaseController {
 
             let user_id = res.locals.user_id;
             if (!user_id) throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
-
-            // let evaluator_user_id = req.query.evaluator_user_id;
-            // if (!evaluator_user_id) throw unauthorized(speeches.ID_REQUIRED);
-
+            
             let level = req.query.level;
 
             if (level && typeof level == 'string') {
