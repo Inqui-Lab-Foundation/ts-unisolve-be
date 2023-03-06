@@ -28,6 +28,7 @@ import { organization } from "../models/organization.model";
 import { evaluation_process } from "../models/evaluation_process.model";
 import { evaluator_rating } from "../models/evaluator_rating.model";
 import { evaluation_results } from "../models/evaluation_results";
+import { evaluator } from "../models/evaluator.model";
 
 export default class ChallengeResponsesController extends BaseController {
 
@@ -47,6 +48,7 @@ export default class ChallengeResponsesController extends BaseController {
         this.router.get(this.path + '/submittedDetails', this.getResponse.bind(this));
         this.router.get(this.path + "/updateSubmission", this.submission.bind(this));
         this.router.get(this.path + '/fetchRandomChallenge', this.getRandomChallenge.bind(this));
+        this.router.get(this.path + '/evaluatedIdeas', this.getEvaluatorDetailsForEvaluatedIdeas.bind(this));
         this.router.put(this.path + '/updateEntry/:id', validationMiddleware(UpdateAnyFieldSchema), this.updateAnyFields.bind(this));
         this.router.get(`${this.path}/clearResponse`, this.clearResponse.bind(this))
         this.router.get(`${this.path}/evaluated/:evaluator_id`, this.getChallengesForEvaluator.bind(this))
@@ -608,6 +610,80 @@ export default class ChallengeResponsesController extends BaseController {
             next(error);
         }
     }
+    protected async getEvaluatorDetailsForEvaluatedIdeas(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+        try {
+            let response: any;
+            let attributesNeedFetch: any;
+
+            let user_id = res.locals.user_id;
+            if (!user_id) throw unauthorized(speeches.UNAUTHORIZED_ACCESS);
+            
+            let level = req.query.level;
+
+            if (level && typeof level == 'string') {
+                switch (level) {
+                    case 'L1':
+                        attributesNeedFetch = [
+                            [
+                                db.literal(`(SELECT full_name FROM users as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'full_name'
+                            ],
+                            [
+                                db.literal(`(SELECT mobile FROM evaluators as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'mobile'
+                            ],
+                            [
+                                db.literal(`(SELECT username FROM users as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'username'
+                            ],
+                            [
+                                db.literal(`(SELECT role FROM users as u where u.user_id = \`challenge_response\`.\`evaluated_by\` )`), 'role'
+                            ],
+                            [
+                                db.Sequelize.fn('count', db.Sequelize.col(`challenge_response.evaluated_by`)), 'evaluatedIdeaCount'
+                            ]
+                        ]
+                        response = await this.crudService.findAll(challenge_response, {
+                            attributes: attributesNeedFetch,
+                            where: { evaluated_by: { [Op.not]: null } },
+                            group: [`challenge_response.evaluated_by`]
+                        });
+                        if (response instanceof Error) {
+                            throw response
+                        }
+                        break;
+                    case 'L2':
+                        attributesNeedFetch = [
+                            [
+                                db.literal(`(SELECT full_name FROM users as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'full_name'
+                            ],
+                            [
+                                db.literal(`(SELECT mobile FROM evaluators as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'mobile'
+                            ],
+                            [
+                                db.literal(`(SELECT username FROM users as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'username'
+                            ],
+                            [
+                                db.literal(`(SELECT role FROM users as u where u.user_id = \`evaluator_rating\`.\`evaluator_id\` )`), 'role'
+                            ],
+                            [
+                                db.Sequelize.fn('count', db.Sequelize.col(`evaluator_rating.evaluator_id`)), 'evaluatedIdeaCount'
+                            ]
+                        ]
+                        response = await this.crudService.findAll(evaluator_rating, {
+                            attributes: attributesNeedFetch,
+                            group: [`evaluator_rating.challenge_response_id`],
+                        });
+                        if (response instanceof Error) {
+                            throw response
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            return res.status(200).send(dispatcher(res, response, 'success'));
+        } catch (error) {
+            next(error);
+        }
+    }
     protected async insertSingleResponse(team_id: any, user_id: any, challenge_id: any, challenge_question_id: any, selected_option: any) {
         try {
             const questionAnswered = await this.crudService.findOne(challenge_question, { where: { challenge_question_id } });
@@ -711,7 +787,7 @@ export default class ChallengeResponsesController extends BaseController {
             for (const element of responses) {
                 let selected_option = Array.isArray(element.selected_option) ? element.selected_option.join("{{}}") : element.selected_option;
                 selected_option = res.locals.translationService.getTranslationKey(selected_option).split("{{}}");
-                result = await this.insertSingleResponse(team_id, user_id, challenge_id, element.challenge_question_id, selected_option)
+                result = await this.insertSingleResponse(team_id, user_id, challenge_id, element.challenge_question_id, selected_option);
                 if (!result || result instanceof Error) {
                     throw badRequest();
                 } else {
@@ -820,7 +896,7 @@ export default class ChallengeResponsesController extends BaseController {
             const payload = this.autoFillTrackingColumns(req, res, modelLoaded);
             const data = await this.crudService.update(modelLoaded, payload, { where: where });
             // console.log(data);
-            
+
             if (!data) {
                 throw badRequest()
             }
