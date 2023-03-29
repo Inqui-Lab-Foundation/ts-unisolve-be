@@ -669,7 +669,7 @@ export default class ChallengeResponsesController extends BaseController {
                         ]
                         response = await this.crudService.findAll(evaluator_rating, {
                             attributes: attributesNeedFetch,
-                            group: [`evaluator_rating.challenge_response_id`],
+                            group: [`evaluator_rating.evaluator_id`],
                         });
                         if (response instanceof Error) {
                             throw response
